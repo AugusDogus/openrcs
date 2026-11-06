@@ -54,13 +54,16 @@ src/
     crypto/emoji.ts       pairing emoji tables v0/v1
     crypto/sapisid.ts     SAPISIDHASH
     auth-data.ts          AuthData type + JSON (de)serialization
+    google-cookies.ts     parse pasted Google cookies (JSON, cURL, Cookie header)
     http.ts               request builder + typed response decode + cookie jar updates
     longpoll.ts           ReceiveMessages stream parser
     session.ts            outgoing RPC builder, response waiters, acks
     client.ts             GMClient: connect, long poll lifecycle, RPC methods, events
     pair-gaia.ts          Google-account pairing
     pair-qr.ts            QR pairing
+    message.ts            plain message/conversation extraction, send payloads
     errors.ts             tagged errors
+    testing/              fake Google + fake phone harness for tests
   lib/db/                 Drizzle schema + client (auth tables + app tables)
   lib/auth.ts             Better Auth server config (GitHub only)
   lib/auth-client.ts      Better Auth React client
@@ -68,7 +71,8 @@ src/
   lib/oauth/              OAuth 2.1 authorization server for MCP
   lib/secret-box.ts       AES-256-GCM envelope primitive
   lib/env.ts              validated env (zod)
-  lib/rcs/                service layer: phone lease, session persistence, sync, search, send
+  lib/rcs/                service layer: phone lease, session persistence, sync, search, send, pairing
+  lib/mcp/                MCP server and tools (one file per tool)
   app/                    routes and pages
 ```
 

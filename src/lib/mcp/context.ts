@@ -1,14 +1,13 @@
 import type { McpServer } from "@modelcontextprotocol/server";
+import type { McpAuth } from "@/lib/oauth";
 
 /**
- * Per-request context for the MCP server: the authenticated user the access
- * token was issued to. Tools must only read or write this user's data.
- * Granted OAuth scopes reach tool callbacks through the SDK's
- * `ctx.http?.authInfo` (see `toAuthInfo` in the MCP route).
+ * Per-request context for the MCP server: the verified access token's user,
+ * grant, client, scopes and DEK (docs/vault-contract.md). Tools must only read
+ * or write `auth.userId`'s data, check `auth.scopes` themselves, and never log
+ * or return the DEK.
  */
-export type RcsMcpContext = {
-  readonly userId: string;
-};
+export type RcsMcpContext = { readonly auth: McpAuth };
 
 /** Registers one tool on a per-request server instance. One file per tool in `./tools`. */
 export type RcsToolRegistrar = (server: McpServer, ctx: RcsMcpContext) => void;

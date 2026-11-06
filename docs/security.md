@@ -31,7 +31,7 @@ client or the dashboard calls in.
   `KEK = HKDF-SHA256(ikm = slotSecret, salt = KEY_PEPPER, info = "openrcs/kek/v1|" + kind + "|" + slotId)`.
   `slotSecret` is 32 random bytes held only by the client. The DB stores the
   slot id, kind, `verifier = SHA-256(HKDF(slotSecret, salt = KEY_PEPPER, info = "openrcs/verifier/v1|" + slotId))`,
-  the wrapped DEK (AAD = `userId|kind|slotId`), expiry, and revocation state.
+  the wrapped DEK (AAD = `userId|kind|slotId|dekId`), expiry, and revocation state.
   So unwrapping needs three things: the DB row, the env pepper, and the
   client's secret.
 - Slot kinds:
@@ -43,7 +43,8 @@ client or the dashboard calls in.
   - `oauth_refresh`: a refresh token (rotated on every use). The token string
     carries the secret.
 - **Access tokens** are stateless sealed envelopes:
-  `"oat_" + AES-256-GCM(key = HKDF(KEY_PEPPER, info = "openrcs/access-token/v1"), JSON{v, uid, gid, cid, scope, exp, dek})`.
+  `"oat_" + AES-256-GCM(key = HKDF(KEY_PEPPER, info = "openrcs/access-token/v1"), JSON{v, uid, gid, cid, scope, exp, did, dek})`
+  (`did` is the DEK id).
   They are never stored server-side, live 1 hour, and are checked against the
   grant row (not revoked) on every request. A stolen access token plus the
   env pepper gives the DEK, which is equivalent to the token's own power for

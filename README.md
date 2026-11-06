@@ -2,53 +2,118 @@
 
 # openrcs
 
-A hosted bridge to your phone's Google Messages (RCS/SMS) with an
-OAuth-protected MCP server. Sign in, pair your Android phone as a "Messages for
-web" device, then point an MCP client at `/api/mcp` to list, read, search and
-send messages.
+A hosted bridge from your Android phone's Google Messages (SMS/RCS) to AI
+agents. Sign in with GitHub, pair your phone as a "Messages for web" device,
+then connect an MCP client (Claude Code, Claude Desktop, Cursor, executor.sh)
+to list, read, search and send your messages.
 
-- Next.js 16 (App Router, Cache Components), Tailwind v4
-- Better Auth: email + password with an invite allowlist, plus the
-  `@better-auth/mcp` OAuth 2.1 authorization server (PKCE, dynamic client
-  registration, Client ID Metadata Documents, JWT access tokens)
-- MCP server built with `@modelcontextprotocol/server` v2
-- Turso (libSQL) + Drizzle ORM, with SQLite FTS5 for message search
+The Google Messages protocol is a TypeScript port of libgm from
+[mautrix-gmessages](https://github.com/mautrix/gmessages). The app is
+AGPL-3.0.
 
-See [docs/architecture.md](docs/architecture.md) for the protocol port and the
-serverless phone model.
+- Next.js 16 (App Router, Node.js runtime), Tailwind v4, deployed on Vercel
+- Better Auth for GitHub sign-in; our own OAuth 2.1 server for MCP clients
+- MCP server built with `@modelcontextprotocol/server`
+- Turso (libSQL) + Drizzle ORM; message content encrypted per user
 
-## Local setup
+See [docs/architecture.md](docs/architecture.md) for the serverless phone
+model and directory layout.
 
-Requires [Bun](https://bun.sh) 1.4+.
+## Security model
+
+openrcs is designed so that a full leak of the database **and** the server's
+environment secrets reveals no Google cookies, pairing keys or message content.
+
+- Each user has a random data encryption key (DEK). It encrypts the stored
+  Google session and every conversation and message (AES-256-GCM, bound to the
+  owning user and row).
+- The DEK is never stored unwrapped. Copies are wrapped under keys derived from
+  a secret that only a client holds (your paired browser's device cookie, or
+  an MCP client's OAuth refresh token) combined with the server's `KEY_PEPPER`.
+- So the server can only act while one of your clients is talking to it. There
+  is no unattended background sync: a large backfill runs at pairing, and an
+  incremental sync runs (at most once a minute) whenever an agent or the
+  dashboard calls in.
+- Unpairing or deleting the account deletes the session, every key slot and
+  grant, and all stored messages.
+
+Read [docs/security.md](docs/security.md) for the key hierarchy, OAuth design
+and what each kind of breach reveals.
+
+## Pairing your phone
+
+Open the dashboard and choose **Pair your phone**. Keep the phone on and
+online. Pair from the browser you will keep using: it holds your key, so a
+different browser can only re-pair (which resets stored messages and
+disconnects agents).
+
+**Google account** (works for most accounts):
+
+1. On a computer, open [messages.google.com/web](https://messages.google.com/web)
+   in Chrome, signed in to the Google account your phone's Google Messages uses.
+2. Open DevTools (F12) > Network and reload the page.
+3. Right-click any request to `messages.google.com` > Copy > Copy as cURL.
+4. Paste it into openrcs and start pairing.
+5. Tap the emoji openrcs shows in the prompt on your phone.
+
+The cookies are encrypted with your key as described above, but Google cookies
+grant broad access to your Google account, so prefer the QR code if it works
+for you.
+
+**QR code**: on the phone, open Google Messages > profile picture > Device
+pairing > QR code scanner and scan the code (it refreshes every 30 seconds).
+Google has disabled QR pairing for many accounts.
+
+After pairing, openrcs syncs your recent conversations (up to about four
+minutes); the rest syncs incrementally later.
+
+## Connecting an agent
+
+The MCP endpoint is `https://<your-deployment>/api/mcp` (shown on the
+dashboard with copy buttons). Agents sign in with OAuth: the client opens
+openrcs in your browser and you approve it from the browser that paired your
+phone. There are no API keys.
+
+- **Claude Code**: `claude mcp add --transport http openrcs https://openrcs.vercel.app/api/mcp`
+- **Claude Desktop, Cursor and other JSON-configured clients**:
+
+  ```json
+  { "mcpServers": { "openrcs": { "url": "https://openrcs.vercel.app/api/mcp" } } }
+  ```
+
+- **executor.sh**: add a remote MCP service with the URL and approve the OAuth
+  sign-in.
+
+Tools: `get_status`, `list_conversations`, `get_messages`, `search_messages`,
+`send_message`, `list_contacts`, `sync_messages`. Scopes: `messages:read` for
+reading, `messages:send` for sending.
+
+## Local development
+
+Requires [Bun](https://bun.sh) 1.4+ and a GitHub OAuth app whose callback URL is
+`http://localhost:3000/api/auth/callback/github`.
 
 ```sh
 bun install
 cp .env.example .env.local
 ```
 
-Fill in `.env.local`:
-
 | Variable | Value for local dev |
 | --- | --- |
 | `BETTER_AUTH_URL` | `http://localhost:3000` |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 32` |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | from your GitHub OAuth app |
 | `TURSO_DATABASE_URL` | `file:./.data/dev.db` |
 | `TURSO_AUTH_TOKEN` | leave empty |
-| `SESSION_ENCRYPTION_KEY` | `openssl rand -base64 32` (must decode to 32 bytes) |
-| `ALLOWED_EMAILS` | your email; comma-separate several |
-| `CRON_SECRET` | `openssl rand -base64 32` |
-
-Then create the database and start the app:
+| `KEY_PEPPER` | `openssl rand -base64 32` (must decode to 32 bytes) |
 
 ```sh
 bun run db:migrate
 bun run dev
 ```
 
-Open http://localhost:3000, create an account with an allowlisted email, and
-copy the MCP URL from the dashboard.
-
-## Scripts
+Over `http://localhost` the device cookie is `__openrcs-device` (the
+`__Host-` prefix needs HTTPS).
 
 | Script | What it does |
 | --- | --- |
@@ -56,48 +121,23 @@ copy the MCP URL from the dashboard.
 | `bun run build` / `bun run start` | Production build / server |
 | `bun run typecheck` | Route type generation + `tsc --noEmit` |
 | `bun run lint` | ESLint |
-| `bun test` | Unit tests (`bun:test`) |
-| `bun run db:migrate` | Apply `drizzle/` migrations to `TURSO_DATABASE_URL` (`file:` or `libsql://`) |
-| `bun run db:generate` | Generate a migration from schema changes in `src/lib/db/` |
-| `bun run db:auth-schema` | Regenerate `src/lib/db/auth-schema.ts` after changing Better Auth plugins |
+| `bun test` | Unit tests (`bun:test`, temp databases with the real migrations) |
+| `bun run db:migrate` | Apply `drizzle/` migrations to `TURSO_DATABASE_URL` |
 | `bun run gen:proto` | Regenerate `src/gen/gmproto` from `proto/` |
-
-Message search uses an FTS5 table (`message_fts`) created by the hand-written
-migration `drizzle/0001_message_fts.sql`; Drizzle cannot express virtual
-tables, so it does not appear in the schema files.
-
-## Connecting an MCP client
-
-Add `${BETTER_AUTH_URL}/api/mcp` as a remote (streamable HTTP) MCP server. The
-client discovers everything else:
-
-- `POST /api/mcp` without a token returns `401` with
-  `WWW-Authenticate: Bearer resource_metadata=".../.well-known/oauth-protected-resource/api/mcp"`.
-- Protected-resource metadata names the authorization server
-  `${BETTER_AUTH_URL}/api/auth`; its metadata is served at
-  `/.well-known/oauth-authorization-server[/api/auth]`,
-  `/.well-known/openid-configuration[/api/auth]` and
-  `/api/auth/.well-known/*`.
-- Clients register with dynamic client registration
-  (`/api/auth/oauth2/register`) or a Client ID Metadata Document URL, then run
-  the authorization-code flow with PKCE. The user signs in and approves access
-  on `/consent`.
-
-Scopes: `messages:read`, `messages:send` (resource scopes) plus `openid`,
-`profile`, `offline_access`.
 
 ## Deploying (Vercel + Turso)
 
-1. Create a Turso database and token:
-   `turso db create openrcs` and `turso db tokens create openrcs`.
-2. Set all variables from `.env.example` in the Vercel project (Production and
-   Preview). `BETTER_AUTH_URL` must be the deployment's public origin; it is
-   the OAuth issuer and the MCP token audience, so changing it invalidates
-   issued tokens.
-3. Apply migrations against Turso from your machine:
+1. Create a Turso database and token: `turso db create openrcs` and
+   `turso db tokens create openrcs`.
+2. Create a GitHub OAuth app with callback
+   `https://<your-domain>/api/auth/callback/github`.
+3. Set every variable above in the Vercel project. `BETTER_AUTH_URL` must be
+   the public origin: it is the OAuth issuer and the MCP resource, so changing
+   it invalidates issued tokens.
+4. Apply migrations from your machine:
    `TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... bun run db:migrate`.
-4. Deploy. All routes run on the Node.js runtime; `/api/mcp` allows up to
-   120 s per request. The build does not need secrets.
+5. Deploy. Functions run in `iad1` (see `vercel.json`); pairing routes allow up
+   to 300 s. There are no cron jobs.
 
-Keep `SESSION_ENCRYPTION_KEY` stable: it encrypts stored Google sessions, and
-a new key means every user must pair their phone again.
+Keep `KEY_PEPPER` stable and secret: rotating it makes every key slot and
+access token unusable, so every user must re-pair and re-authorize.

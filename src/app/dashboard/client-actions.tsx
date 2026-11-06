@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonClass } from "@/app/_components/ui";
-import { authClient } from "@/lib/auth-client";
 
 export function SignOutButton() {
   const router = useRouter();
@@ -11,9 +10,17 @@ export function SignOutButton() {
 
   async function signOut() {
     setPending(true);
-    await authClient.signOut();
-    router.replace("/sign-in");
-    router.refresh();
+    try {
+      // Better Auth's sign-out endpoint; clears the session cookie.
+      await fetch("/api/auth/sign-out", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      });
+    } finally {
+      router.replace("/sign-in");
+      router.refresh();
+    }
   }
 
   return (
@@ -25,7 +32,7 @@ export function SignOutButton() {
 
 type CopyState = "idle" | "copied" | "failed";
 
-export function CopyButton({ value }: { value: string }) {
+export function CopyButton({ value, label = "Copy" }: { value: string; label?: string }) {
   const [state, setState] = useState<CopyState>("idle");
 
   useEffect(() => {
@@ -50,7 +57,7 @@ export function CopyButton({ value }: { value: string }) {
       className={buttonClass("secondary", "h-9 shrink-0 px-3")}
       aria-live="polite"
     >
-      {state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : "Copy"}
+      {state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : label}
     </button>
   );
 }

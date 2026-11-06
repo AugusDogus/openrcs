@@ -2,62 +2,99 @@ import type { CallToolResult } from "@modelcontextprotocol/server";
 import { z } from "zod";
 import { GM_SESSION_KINDS, GM_SESSION_STATUSES } from "@/lib/db/app-schema";
 import { getDb } from "@/lib/db/client";
-import { PairingStatus } from "@/lib/db/pairing-status";
-import type { RcsToolRegistrar } from "@/lib/mcp/context";
+import { SessionStore } from "@/lib/rcs/session-store";
+import { Store } from "@/lib/rcs/store";
+import { SyncState } from "@/lib/rcs/sync-state";
+import type { RcsToolRegistrar } from "../context";
+import { ToolScope } from "../scopes";
+import { dashboardUrl, fail, isoOrNull, logToolError, ok } from "./shared";
 
 const outputSchema = z.object({
-  userId: z.string(),
-  status: z.enum([...GM_SESSION_STATUSES]),
-  kind: z.enum([...GM_SESSION_KINDS]).nullable(),
-  phoneLabel: z.string().nullable(),
-  lastConnectedAt: z.iso.datetime().nullable(),
-  lastError: z.string().nullable(),
+  pairing: z.object({
+    status: z.enum([...GM_SESSION_STATUSES]),
+    kind: z.enum([...GM_SESSION_KINDS]).nullable(),
+    phone_label: z.string().nullable(),
+    last_connected_at: z.iso.datetime().nullable(),
+    last_error: z.string().nullable(),
+  }),
+  sync: z.object({
+    last_sync_at: z.iso.datetime().nullable(),
+    last_sync_error: z.string().nullable(),
+  }),
+  stored: z.object({ conversations: z.number().int(), messages: z.number().int() }),
+  /** False when this client's key predates the current pairing (re-authorize). */
+  key_current: z.boolean(),
+  scopes: z.array(z.string()),
+  dashboard_url: z.string(),
 });
 
-type StatusOutput = z.infer<typeof outputSchema>;
-
-const toOutput = (userId: string, status: PairingStatus): StatusOutput => ({
-  userId,
-  status: status.status,
-  kind: status.kind,
-  phoneLabel: status.phoneLabel,
-  lastConnectedAt: status.lastConnectedAt?.toISOString() ?? null,
-  lastError: status.lastError,
-});
+const nextStep = (status: z.infer<typeof outputSchema>["pairing"]["status"], keyCurrent: boolean) => {
+  if (status === "unpaired") return `Not paired: ask the user to pair their phone at ${dashboardUrl()}.`;
+  if (!keyCurrent) return "This client's key is stale: re-authorize this MCP client.";
+  if (status === "needs_repair") {
+    return `Needs re-pairing: ask the user to pair again at ${dashboardUrl()}. Stored messages are still readable.`;
+  }
+  return "Ready: use list_conversations to find conversation ids.";
+};
 
 export const registerGetStatusTool: RcsToolRegistrar = (server, ctx) => {
   server.registerTool(
     "get_status",
     {
-      title: "Get pairing status",
+      title: "Get status",
       description:
-        "Returns the signed-in openrcs user id and whether their phone's Google Messages is paired. Call this first: if status is not 'paired', ask the user to pair their phone in the openrcs dashboard.",
+        "Call this first. Reports whether the user's phone (Google Messages) is paired with openrcs (status paired, needs_repair or unpaired), when it last connected and synced, how many conversations and messages are stored, and which scopes this client has. If status is not 'paired', tell the user to pair (or re-pair) in the openrcs dashboard. Timestamps are ISO 8601 UTC.",
       outputSchema,
       annotations: { readOnlyHint: true, openWorldHint: false },
     },
     async (): Promise<CallToolResult> => {
-      const result = await PairingStatus.read(getDb(), ctx.userId);
-      return result.match<CallToolResult>({
-        ok: (status) => {
-          const output = toOutput(ctx.userId, status);
-          return {
-            content: [{ type: "text", text: JSON.stringify(output) }],
-            structuredContent: output,
-          };
+      if (ctx.auth.scopes.length === 0) {
+        return ToolScope.check(ctx, ToolScope.read) ?? fail("This client has no message scopes.");
+      }
+      const db = getDb();
+      const userId = ctx.auth.userId;
+      const [record, sync, counts] = await Promise.all([
+        SessionStore.readRecord(db, userId),
+        SyncState.read(db, userId),
+        Store.counts(db, userId),
+      ]);
+      const storageFailure = (error: { readonly _tag: string }) => {
+        logToolError("get_status", error);
+        return fail(
+          "Could not read the openrcs status because the database did not respond. Nothing was changed; try again in a moment.",
+        );
+      };
+      if (record.isErr()) return storageFailure(record.error);
+      if (sync.isErr()) return storageFailure(sync.error);
+      if (counts.isErr()) return storageFailure(counts.error);
+      const session = record.value;
+      const status = session?.status ?? "unpaired";
+      const keyCurrent = session === null || session.dekId === ctx.auth.dek.id;
+      const output: z.infer<typeof outputSchema> = {
+        pairing: {
+          status,
+          kind: session?.kind ?? null,
+          phone_label: session?.phoneLabel ?? null,
+          last_connected_at: isoOrNull(session?.lastConnectedAt ?? null),
+          last_error: session?.lastError ?? null,
         },
-        err: (error) => {
-          console.error(`[mcp:get_status] ${error.message}`, error.cause);
-          return {
-            isError: true,
-            content: [
-              {
-                type: "text",
-                text: "Could not read the phone pairing status. Nothing was changed. Try again in a moment; if it keeps failing, the openrcs server's database connection needs attention.",
-              },
-            ],
-          };
+        sync: {
+          last_sync_at: isoOrNull(sync.value.lastSyncAt),
+          last_sync_error: sync.value.lastSyncError,
         },
-      });
+        stored: counts.value,
+        key_current: keyCurrent,
+        scopes: [...ctx.auth.scopes],
+        dashboard_url: dashboardUrl(),
+      };
+      const text = [
+        `Phone: ${status}${session?.phoneLabel ? ` (${session.phoneLabel})` : ""}.`,
+        `Last synced: ${output.sync.last_sync_at ?? "never"}.`,
+        `Stored: ${counts.value.conversations} conversations, ${counts.value.messages} messages.`,
+        `Scopes: ${output.scopes.join(", ")}.`,
+        nextStep(status, keyCurrent),
+      ].join(" ");
+      return ok(text, output);
     },
   );
 };

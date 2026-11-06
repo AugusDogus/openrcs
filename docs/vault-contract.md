@@ -40,16 +40,21 @@ export const DeviceUnlock = {
 } as const;
 
 // pairing-keys.ts: used by the pairing routes
-export type PreparedPairingKey = {
-  readonly userId: string;
-  readonly dek: Dek;
-  /** true when no valid device slot existed, so this pairing mints a new DEK. */
-  readonly isNewKey: boolean;
-  /** Set-Cookie header value to send at the START of the pairing response
-   *  (headers cannot change once the SSE stream begins). null if the
-   *  existing device cookie stays valid. */
-  readonly setCookie: string | null;
-};
+/** Discriminated on isNewKey. isNewKey: true when no valid device slot
+ *  existed, so this pairing mints a new DEK; setCookie is the Set-Cookie
+ *  header value to send at the START of the pairing response (headers cannot
+ *  change once the SSE stream begins), and pendingDeviceSlot is the new
+ *  device slot row (no secret) that commit inserts. isNewKey: false keeps the
+ *  existing device cookie (setCookie null). */
+export type PreparedPairingKey =
+  | { readonly userId: string; readonly dek: Dek; readonly isNewKey: false; readonly setCookie: null }
+  | {
+      readonly userId: string;
+      readonly dek: Dek;
+      readonly isNewKey: true;
+      readonly setCookie: string;
+      readonly pendingDeviceSlot: NewKeySlot;
+    };
 export const PairingKeys = {
   /** mode "pairing": use the device slot's DEK if valid, else mint a new DEK
    *  (always succeeds). mode "consent" (OAuth approval): same, except that if
@@ -113,8 +118,11 @@ export const createRcsMcpServer: (ctx: RcsMcpContext) => McpServer;
 ```
 
 Tools check `ctx.auth.scopes` themselves (read tools need `messages:read`,
-`send_message` needs `messages:send`) and return an `isError` result naming
-the missing scope and how to fix it (re-authorize the client with that scope).
+`send_message` needs `messages:send`; `get_status` accepts either) and return
+an `isError` result naming the missing scope and how to fix it (re-authorize
+the client with that scope). Each scoped tool also declares the SDK's
+`scopeChallenge`; since `/api/mcp` passes `authInfo`, the HTTP layer answers
+403 `insufficient_scope` (docs/security.md) before the in-tool check runs.
 
 ## `src/lib/rcs` (service layer)
 
