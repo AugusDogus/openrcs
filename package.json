@@ -9,7 +9,10 @@
     "lint": "eslint",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "bun test",
-    "gen:proto": "buf generate"
+    "gen:proto": "buf generate",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "bun src/lib/db/migrate.ts",
+    "db:auth-schema": "bunx auth@1.7.18 generate --config src/lib/db/auth-cli.config.ts --output src/lib/db/auth-schema.ts --yes"
   },
   "dependencies": {
     "@better-auth/cimd": "^1.7.18",
