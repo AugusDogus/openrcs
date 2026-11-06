@@ -1,3 +1,4 @@
-import { Discovery } from "@/app/.well-known/discovery";
+import { WellKnown } from "@/app/.well-known/handlers";
 
-export const GET = Discovery.protectedResource;
+export const GET = WellKnown.protectedResource;
+export const OPTIONS = WellKnown.preflight;

@@ -1,3 +1,4 @@
-import { Discovery } from "@/app/.well-known/discovery";
+import { WellKnown } from "@/app/.well-known/handlers";
 
-export const GET = Discovery.authorizationServer;
+export const GET = WellKnown.authorizationServer;
+export const OPTIONS = WellKnown.preflight;

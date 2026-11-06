@@ -15,9 +15,6 @@
     "db:auth-schema": "bunx auth@1.7.18 generate --config src/lib/db/auth-cli.config.ts --output src/lib/db/auth-schema.ts --yes"
   },
   "dependencies": {
-    "@better-auth/cimd": "^1.7.18",
-    "@better-auth/mcp": "^1.7.18",
-    "@better-auth/oauth-provider": "^1.7.18",
     "@bufbuild/protobuf": "^2.17.0",
     "@libsql/client": "^0.18.0",
     "@modelcontextprotocol/server": "^2.4.0",

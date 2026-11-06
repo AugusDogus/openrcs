@@ -1,58 +1,41 @@
-import { requireMcpAuth } from "@better-auth/mcp";
 import { createMcpHandler, type AuthInfo } from "@modelcontextprotocol/server";
 import { connection } from "next/server";
-import { getAuth } from "@/lib/auth";
-import { Env } from "@/lib/env";
-import { McpScope } from "@/lib/mcp/scopes";
+import { OAuthContext } from "@/lib/oauth/context";
+import { McpAuth } from "@/lib/oauth/mcp-auth";
 import { createRcsMcpServer } from "@/lib/mcp/server";
 
-export const maxDuration = 120;
+/** Sends and syncs talk to the phone over a long poll, which can take minutes. */
+export const maxDuration = 300;
 
-/** Verified access-token claims as passed by `requireMcpAuth`. */
-type AccessTokenClaims = Parameters<Parameters<typeof requireMcpAuth>[1]>[1];
-
-const jsonRpcError = (status: number, message: string) =>
-  Response.json({ jsonrpc: "2.0", error: { code: -32000, message }, id: null }, { status });
-
-const bearerToken = (request: Request): string => {
-  const header = request.headers.get("authorization") ?? "";
-  return header.replace(/^(Bearer|DPoP)\s+/i, "");
-};
-
-/** Verified JWT claims -> the SDK's AuthInfo, so tool callbacks can read granted scopes. */
-const toAuthInfo = (request: Request, claims: AccessTokenClaims, resource: string): AuthInfo => ({
-  token: bearerToken(request),
-  clientId: typeof claims.azp === "string" ? claims.azp : "",
-  scopes: typeof claims.scope === "string" ? claims.scope.split(" ").filter(Boolean) : [],
-  expiresAt: claims.exp,
-  resource: new URL(resource),
-});
-
-const serveMcp = async (request: Request, claims: AccessTokenClaims): Promise<Response> => {
-  const userId = claims.sub;
-  if (typeof userId !== "string" || userId.length === 0) {
-    return jsonRpcError(
-      403,
-      "This access token is not bound to a user. Authorize the MCP client with the authorization-code flow (sign in to openrcs) and retry.",
-    );
-  }
-  const handler = createMcpHandler(() => createRcsMcpServer({ userId }), {
-    onerror: (error) => console.error(`[mcp] ${error.name}: ${error.message}`),
-  });
-  return handler.fetch(request, {
-    authInfo: toAuthInfo(request, claims, Env.mcpResourceUrl()),
-  });
-};
-
-let protectedHandler: ((request: Request) => Promise<Response>) | undefined;
-
+/**
+ * Remote MCP endpoint. Every request must carry an access token from our
+ * OAuth server (docs/security.md); the verified grant (with the user's DEK)
+ * is handed to a fresh per-request MCP server.
+ */
 const handle = async (request: Request): Promise<Response> => {
   await connection();
-  protectedHandler ??= requireMcpAuth(getAuth(), serveMcp, {
-    resource: Env.mcpResourceUrl(),
-    challengeScopes: McpScope.all,
+  const ctx = OAuthContext.fromEnv();
+  const authenticated = await McpAuth.authenticate(ctx, request);
+  if (authenticated.isErr()) {
+    const error = authenticated.error;
+    if (error._tag === "OAuthStorageError") {
+      console.error(`[mcp] ${error.operation} failed`);
+      return McpAuth.unavailableResponse();
+    }
+    return McpAuth.unauthorizedResponse(ctx, error);
+  }
+  const auth = authenticated.value;
+  const authInfo: AuthInfo = {
+    token: McpAuth.bearerToken(request) ?? "",
+    clientId: auth.clientId,
+    scopes: [...auth.scopes],
+    resource: new URL(OAuthContext.mcpResource(ctx)),
+  };
+  const handler = createMcpHandler(() => createRcsMcpServer({ auth }), {
+    // Names only: SDK messages can echo request content (message bodies, numbers).
+    onerror: (error) => console.error(`[mcp] request failed: ${error.name}`),
   });
-  return protectedHandler(request);
+  return handler.fetch(request, { authInfo });
 };
 
 export { handle as DELETE, handle as GET, handle as POST };

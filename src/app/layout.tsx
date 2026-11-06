@@ -32,6 +32,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="flex min-h-full flex-col bg-background font-sans text-foreground">
         {children}
+        <footer className="px-4 py-6 text-center text-xs text-muted">
+          <a
+            href="https://github.com/AugusDogus/openrcs"
+            className="hover:text-foreground hover:underline"
+          >
+            Source code (AGPL-3.0)
+          </a>
+        </footer>
       </body>
     </html>
   );

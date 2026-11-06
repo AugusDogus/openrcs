@@ -1,0 +1,23 @@
+openrcs
+Copyright (C) 2026 the openrcs contributors
+
+openrcs is free software: you can redistribute it and/or modify it under the
+terms of the GNU Affero General Public License version 3 (see LICENSE). The
+source code is at https://github.com/AugusDogus/openrcs.
+
+This product includes software derived from the following projects:
+
+mautrix-gmessages (libgm)
+  https://github.com/mautrix/gmessages
+  Copyright (C) Tulir Asokan
+  Licensed under the GNU Affero General Public License version 3.
+  The Google Messages protocol layer in src/lib/gm (pblite codec, protocol
+  constants, request crypto, pairing, long poll and RPC client) is a
+  TypeScript port of libgm, as forked by MaxGhenis/gmessages
+  (https://github.com/MaxGhenis/gmessages).
+
+openmessage
+  https://github.com/MaxGhenis/openmessage
+  Released into the public domain under the Unlicense.
+  Message extraction and send-payload helpers in src/lib/gm were ported from
+  it.

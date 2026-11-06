@@ -83,7 +83,7 @@ export function Wordmark() {
   );
 }
 
-/** Centered single-column layout for sign-in, sign-up and consent. */
+/** Centered single-column layout for sign-in and consent. */
 export function AuthShell({
   title,
   subtitle,
