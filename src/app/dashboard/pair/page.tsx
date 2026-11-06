@@ -4,13 +4,11 @@ import { Suspense } from "react";
 import { Wordmark } from "@/app/_components/ui";
 import { requireCurrentUser } from "@/app/_lib/session";
 import { loadPhoneState } from "../_lib/phone-state";
-import { PairingFlow, type PairingMethodKind } from "./_components/pairing-flow";
+import { PairingFlow } from "./_components/pairing-flow";
 
 export const metadata: Metadata = { title: "Pair your phone" };
 
-type SearchParams = Promise<Record<string, string | string[] | undefined>>;
-
-export default function PairPage({ searchParams }: { searchParams: SearchParams }) {
+export default function PairPage() {
   return (
     <div className="flex flex-1 flex-col">
       <header className="border-b border-border bg-surface">
@@ -30,19 +28,17 @@ export default function PairPage({ searchParams }: { searchParams: SearchParams 
           </p>
         </div>
         <Suspense fallback={<div aria-hidden className="h-96 animate-pulse rounded-2xl border border-border bg-surface" />}>
-          <PairContent searchParams={searchParams} />
+          <PairContent />
         </Suspense>
       </main>
     </div>
   );
 }
 
-async function PairContent({ searchParams }: { searchParams: SearchParams }) {
+async function PairContent() {
   const user = await requireCurrentUser();
-  const { method } = await searchParams;
-  const initialMethod: PairingMethodKind = method === "qr" ? "qr" : "gaia";
   const state = await loadPhoneState(user.id);
   // Pairing from a browser that cannot unlock an existing session mints a new key.
   const resetsData = state.kind === "locked";
-  return <PairingFlow initialMethod={initialMethod} resetsData={resetsData} />;
+  return <PairingFlow resetsData={resetsData} />;
 }

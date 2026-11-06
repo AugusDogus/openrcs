@@ -4,5 +4,5 @@ import { handlePairingRequest } from "@/lib/rcs/pairing-http";
 export const maxDuration = 300;
 
 export function POST(request: Request): Promise<Response> {
-  return handlePairingRequest(request, "gaia");
+  return handlePairingRequest(request);
 }

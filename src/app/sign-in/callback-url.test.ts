@@ -3,7 +3,7 @@ import { CallbackUrl } from "./callback-url";
 
 describe("CallbackUrl.parse", () => {
   test("keeps same-origin relative paths", () => {
-    for (const value of ["/dashboard", "/oauth/authorize?client_id=a&state=b%20c", "/dashboard/pair?method=qr"]) {
+    for (const value of ["/dashboard", "/oauth/authorize?client_id=a&state=b%20c", "/dashboard/pair?from=settings"]) {
       expect(CallbackUrl.parse(value)).toBe(value);
     }
   });

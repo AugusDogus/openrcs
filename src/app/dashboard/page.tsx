@@ -108,7 +108,7 @@ function PhoneDetails({ state }: { state: Extract<PhoneState, { kind: "locked" |
   const { session } = state;
   return (
     <dl className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-      <Detail label="Pairing" value={session.kind === "gaia" ? "Google account" : "QR code"} />
+      <Detail label="Pairing" value={session.kind === "gaia" ? "Google account" : "QR code (legacy)"} />
       <Detail
         label="Last connected"
         value={session.lastConnectedAt ? formatTimestamp(session.lastConnectedAt) : "Never"}

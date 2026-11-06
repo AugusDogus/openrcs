@@ -51,7 +51,7 @@ const setup = async (): Promise<RcsTestEnv> => {
 };
 
 /** A paired gm_session for `ctx` (fresh AuthData, never used against Google). */
-const pair = async (db: Database, ctx: RcsContext, kind: "gaia" | "qr" = "qr") => {
+const pair = async (db: Database, ctx: RcsContext, kind: "gaia" | "qr" = "gaia") => {
   const saved = await SessionStore.save(db, ctx, {
     kind,
     phoneLabel: "Android phone (abc123)",

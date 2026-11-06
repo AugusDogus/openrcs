@@ -3,7 +3,6 @@ import { PairingEvent } from "./pairing-event";
 
 const events: PairingEvent[] = [
   { type: "emoji", emoji: "🦊", emojiImageUrl: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f98a/512.png" },
-  { type: "qr", dataUrl: "data:image/png;base64,iVBORw0KGgo=" },
   { type: "paired" },
   { type: "sync", conversationsDone: 3, conversationsTotal: 10 },
   { type: "error", message: "Line one.\nLine two with \"quotes\"." },

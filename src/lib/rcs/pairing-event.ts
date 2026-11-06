@@ -1,13 +1,12 @@
 import { z } from "zod";
 
 /**
- * Server-sent events of the pairing routes (`POST /api/pair/gaia`,
- * `POST /api/pair/qr`). Shared by the routes (encode) and the pairing page
- * (parse), so it must stay free of server-only imports.
+ * Server-sent events of the pairing route (`POST /api/pair/gaia`). Shared by
+ * the route (encode) and the pairing page (parse), so it must stay free of
+ * server-only imports.
  */
 export const PairingEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("emoji"), emoji: z.string(), emojiImageUrl: z.string() }),
-  z.object({ type: z.literal("qr"), dataUrl: z.string() }),
   z.object({ type: z.literal("paired") }),
   z.object({
     type: z.literal("sync"),

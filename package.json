@@ -22,7 +22,6 @@
     "better-result": "^3.0.1",
     "drizzle-orm": "^0.45.4",
     "next": "16.4.5",
-    "qrcode": "^1.5.4",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "zod": "^4.6.7"
@@ -33,7 +32,6 @@
     "@tailwindcss/turbopack": "^4",
     "@types/bun": "^1.4.4",
     "@types/node": "^20",
-    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.11",

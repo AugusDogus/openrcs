@@ -60,7 +60,7 @@ src/
     session.ts            outgoing RPC builder, response waiters, acks
     client.ts             GMClient: connect, long poll lifecycle, RPC methods, events
     pair-gaia.ts          Google-account pairing
-    pair-qr.ts            QR pairing
+    pair-qr.ts            QR pairing (protocol only; the app offers Google-account pairing alone)
     message.ts            plain message/conversation extraction, send payloads
     errors.ts             tagged errors
     testing/              fake Google + fake phone harness for tests

@@ -2,16 +2,16 @@ import { z } from "zod";
 import { getDb } from "@/lib/db/client";
 import { GoogleCookies } from "@/lib/gm/google-cookies";
 import { describeForLog } from "./errors";
-import { pairingResponseHeaders, startPairing, type PairingMethod } from "./pairing";
+import { pairingResponseHeaders, startPairing } from "./pairing";
 import { RequestGuard } from "./request-guard";
 
-/** Route-level glue for the pairing endpoints: guards, body parsing, SSE response. */
+/** Route-level glue for the pairing endpoint: guards, body parsing, SSE response. */
 
 const MAX_BODY_BYTES = 64 * 1024;
 
 const GaiaBodySchema = z.object({ cookies: z.string() });
 
-const parseGaiaBody = async (request: Request): Promise<PairingMethod | Response> => {
+const parseGaiaBody = async (request: Request): Promise<GoogleCookies | Response> => {
   const text = await request.text();
   if (text.length > MAX_BODY_BYTES) {
     return RequestGuard.errorResponse(
@@ -31,25 +31,22 @@ const parseGaiaBody = async (request: Request): Promise<PairingMethod | Response
   }
   const cookies = GoogleCookies.parse(body.data.cookies);
   if (cookies.isErr()) return RequestGuard.errorResponse(400, cookies.error.message);
-  return { kind: "gaia", cookies: cookies.value };
+  return cookies.value;
 };
 
-/** POST handler body shared by /api/pair/gaia and /api/pair/qr. */
-export const handlePairingRequest = async (
-  request: Request,
-  kind: PairingMethod["kind"],
-): Promise<Response> => {
+/** POST handler body of /api/pair/gaia. */
+export const handlePairingRequest = async (request: Request): Promise<Response> => {
   const startedAt = Date.now();
   const signedIn = await RequestGuard.requireSignedIn(request);
   if (signedIn.isErr()) return RequestGuard.errorResponse(signedIn.error.status, signedIn.error.message);
 
-  const method = kind === "gaia" ? await parseGaiaBody(request) : { kind: "qr" as const };
-  if (method instanceof Response) return method;
+  const cookies = await parseGaiaBody(request);
+  if (cookies instanceof Response) return cookies;
 
   const started = await startPairing(getDb(), {
     userId: signedIn.value.userId,
     cookieHeader: signedIn.value.cookieHeader,
-    method,
+    cookies,
     signal: request.signal,
     startedAt,
   });

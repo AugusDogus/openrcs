@@ -5,13 +5,10 @@ import { useEffect, useRef, useState } from "react";
 import { Alert, buttonClass, Card } from "@/app/_components/ui";
 import { PairingEvent } from "@/lib/rcs/pairing-event";
 
-export type PairingMethodKind = "gaia" | "qr";
-
 type FlowState =
   | { readonly stage: "idle" }
   | { readonly stage: "starting" }
   | { readonly stage: "emoji"; readonly emoji: string; readonly emojiImageUrl: string }
-  | { readonly stage: "qr"; readonly dataUrl: string }
   | { readonly stage: "syncing"; readonly done: number; readonly total: number | null }
   | { readonly stage: "done"; readonly warning: string | null }
   | { readonly stage: "error"; readonly message: string };
@@ -30,20 +27,19 @@ const readError = async (response: Response): Promise<string> => {
   return `Pairing could not start (HTTP ${response.status}). Reload the page and try again.`;
 };
 
-/** POST to a pairing route and drive `setState` from its event stream. */
+/** POST the pasted cookies to the pairing route and drive `setState` from its event stream. */
 const runPairing = async (
-  path: string,
-  body: unknown,
+  cookies: string,
   signal: AbortSignal,
   setState: (state: FlowState) => void,
 ): Promise<void> => {
   setState({ stage: "starting" });
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch("/api/pair/gaia", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ cookies }),
       signal,
     });
   } catch {
@@ -65,9 +61,6 @@ const runPairing = async (
     switch (event.type) {
       case "emoji":
         setState({ stage: "emoji", emoji: event.emoji, emojiImageUrl: event.emojiImageUrl });
-        break;
-      case "qr":
-        setState({ stage: "qr", dataUrl: event.dataUrl });
         break;
       case "paired":
         paired = true;
@@ -141,28 +134,18 @@ function Progress({ done, total }: { done: number; total: number | null }) {
   );
 }
 
-export function PairingFlow({
-  initialMethod,
-  resetsData,
-}: {
-  initialMethod: PairingMethodKind;
-  resetsData: boolean;
-}) {
-  const [method, setMethod] = useState<PairingMethodKind>(initialMethod);
+export function PairingFlow({ resetsData }: { resetsData: boolean }) {
   const [state, setState] = useState<FlowState>({ stage: "idle" });
   const [cookies, setCookies] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const busy = state.stage !== "idle" && state.stage !== "error" && state.stage !== "done";
-
-  function start(kind: PairingMethodKind) {
+  function start() {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
-    const path = kind === "gaia" ? "/api/pair/gaia" : "/api/pair/qr";
-    void runPairing(path, kind === "gaia" ? { cookies } : {}, controller.signal, setState);
+    void runPairing(cookies, controller.signal, setState);
   }
 
   function cancel() {
@@ -181,94 +164,50 @@ export function PairingFlow({
         </Alert>
       ) : null}
 
-      <div role="tablist" aria-label="Pairing method" className="flex gap-1 rounded-xl border border-border bg-surface p-1">
-        {(["gaia", "qr"] as const).map((kind) => (
-          <button
-            key={kind}
-            type="button"
-            role="tab"
-            aria-selected={method === kind}
-            disabled={busy}
-            onClick={() => {
-              setMethod(kind);
-              setState({ stage: "idle" });
-            }}
-            className={`h-9 flex-1 rounded-lg text-sm font-medium transition-colors disabled:cursor-not-allowed ${
-              method === kind ? "bg-surface-muted text-foreground" : "text-muted hover:text-foreground"
-            }`}
-          >
-            {kind === "gaia" ? "Google account" : "QR code"}
-          </button>
-        ))}
-      </div>
-
       <Card
-        title={method === "gaia" ? "Pair with your Google account" : "Pair with a QR code"}
-        description={
-          method === "gaia"
-            ? "Uses the Google account your phone's Google Messages is signed in to."
-            : "Scan a code with Google Messages on your phone. Google has disabled QR pairing for many accounts; if your phone has no QR code scanner under Device pairing, use the Google account option."
-        }
+        title="Pair with your Google account"
+        description="Uses the Google account your phone's Google Messages is signed in to."
       >
         <div className="flex flex-col gap-5">
           {state.stage === "idle" || state.stage === "error" || state.stage === "starting" ? (
-            method === "gaia" ? (
-              <form
-                className="flex flex-col gap-4"
-                onSubmit={(event) => {
-                  event.preventDefault();
-                  start("gaia");
-                }}
+            <form
+              className="flex flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                start();
+              }}
+            >
+              <GaiaInstructions />
+              <p className="rounded-lg bg-surface-muted px-3.5 py-3 text-xs leading-5 text-muted">
+                Your cookies are encrypted with a key that only this browser and the agents you authorize hold
+                (see{" "}
+                <a href={SECURITY_URL} target="_blank" rel="noreferrer" className="underline">
+                  the security design
+                </a>
+                ). Google cookies grant broad access to your Google account.
+              </p>
+              <label htmlFor="cookies" className="flex flex-col gap-1.5">
+                <span className="text-sm font-medium">Copied cURL command</span>
+                <textarea
+                  id="cookies"
+                  value={cookies}
+                  onChange={(event) => setCookies(event.target.value)}
+                  rows={6}
+                  spellCheck={false}
+                  autoComplete="off"
+                  placeholder="curl 'https://messages.google.com/...' -H 'cookie: ...'"
+                  className="rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring"
+                />
+              </label>
+              {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
+              <button
+                type="submit"
+                disabled={state.stage === "starting" || cookies.trim() === ""}
+                className={buttonClass("primary", "w-full sm:w-fit")}
               >
-                <GaiaInstructions />
-                <p className="rounded-lg bg-surface-muted px-3.5 py-3 text-xs leading-5 text-muted">
-                  Your cookies are encrypted with a key that only this browser and the agents you authorize hold
-                  (see{" "}
-                  <a href={SECURITY_URL} target="_blank" rel="noreferrer" className="underline">
-                    the security design
-                  </a>
-                  ). Google cookies grant broad access to your Google account, so the QR code is preferable if it
-                  works for you.
-                </p>
-                <label htmlFor="cookies" className="flex flex-col gap-1.5">
-                  <span className="text-sm font-medium">Copied cURL command</span>
-                  <textarea
-                    id="cookies"
-                    value={cookies}
-                    onChange={(event) => setCookies(event.target.value)}
-                    rows={6}
-                    spellCheck={false}
-                    autoComplete="off"
-                    placeholder="curl 'https://messages.google.com/...' -H 'cookie: ...'"
-                    className="rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                  />
-                </label>
-                {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
-                <button
-                  type="submit"
-                  disabled={state.stage === "starting" || cookies.trim() === ""}
-                  className={buttonClass("primary", "w-full sm:w-fit")}
-                >
-                  {state.stage === "starting" ? "Contacting Google…" : "Start pairing"}
-                </button>
-              </form>
-            ) : (
-              <div className="flex flex-col gap-4">
-                <p className="text-sm leading-6">
-                  On your phone, open Google Messages, tap your profile picture, then Device pairing &gt; QR code
-                  scanner.
-                </p>
-                {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
-                <button
-                  type="button"
-                  onClick={() => start("qr")}
-                  disabled={state.stage === "starting"}
-                  className={buttonClass("primary", "w-full sm:w-fit")}
-                >
-                  {state.stage === "starting" ? "Getting a code…" : "Show QR code"}
-                </button>
-              </div>
-            )
+                {state.stage === "starting" ? "Contacting Google…" : "Start pairing"}
+              </button>
+            </form>
           ) : null}
 
           {state.stage === "emoji" ? (
@@ -285,24 +224,6 @@ export function PairingFlow({
               <p className="text-base font-medium">Tap this emoji in Google Messages on your phone</p>
               <p className="max-w-sm text-sm text-muted">
                 Your phone shows a pairing prompt with several emoji. Pick the one above. Waiting for your phone…
-              </p>
-            </div>
-          ) : null}
-
-          {state.stage === "qr" ? (
-            <div className="flex flex-col items-center gap-4 py-2 text-center">
-              {/* A data: URL generated server-side; next/image adds nothing here. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={state.dataUrl}
-                alt="QR code to scan with Google Messages"
-                width={280}
-                height={280}
-                className="rounded-lg border border-border bg-white p-2"
-              />
-              <p className="max-w-sm text-sm text-muted">
-                Scan this with Google Messages (profile picture &gt; Device pairing &gt; QR code scanner). The code
-                refreshes every 30 seconds. Waiting for your phone…
               </p>
             </div>
           ) : null}
@@ -324,7 +245,7 @@ export function PairingFlow({
             </div>
           ) : null}
 
-          {state.stage === "emoji" || state.stage === "qr" ? (
+          {state.stage === "emoji" ? (
             <button type="button" onClick={cancel} className={buttonClass("secondary", "w-full sm:w-fit self-center")}>
               Cancel
             </button>

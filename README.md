@@ -47,7 +47,7 @@ online. Pair from the browser you will keep using: it holds your key, so a
 different browser can only re-pair (which resets stored messages and
 disconnects agents).
 
-**Google account** (works for most accounts):
+openrcs pairs with your Google account:
 
 1. On a computer, open [messages.google.com/web](https://messages.google.com/web)
    in Chrome, signed in to the Google account your phone's Google Messages uses.
@@ -57,12 +57,7 @@ disconnects agents).
 5. Tap the emoji openrcs shows in the prompt on your phone.
 
 The cookies are encrypted with your key as described above, but Google cookies
-grant broad access to your Google account, so prefer the QR code if it works
-for you.
-
-**QR code**: on the phone, open Google Messages > profile picture > Device
-pairing > QR code scanner and scan the code (it refreshes every 30 seconds).
-Google has disabled QR pairing for many accounts.
+grant broad access to your Google account.
 
 After pairing, openrcs syncs your recent conversations (up to about four
 minutes); the rest syncs incrementally later.
@@ -136,8 +131,8 @@ Over `http://localhost` the device cookies are named `__openrcs-device-<tag>`
    it invalidates issued tokens.
 4. Apply migrations from your machine:
    `TURSO_DATABASE_URL=libsql://... TURSO_AUTH_TOKEN=... bun run db:migrate`.
-5. Deploy. Functions run in `iad1` (see `vercel.json`); pairing routes allow up
-   to 300 s. There are no cron jobs.
+5. Deploy. Functions run in `iad1` (see `vercel.json`); the pairing route allows
+   up to 300 s. There are no cron jobs.
 
 Keep `KEY_PEPPER` stable and secret: rotating it makes every key slot and
 access token unusable, so every user must re-pair and re-authorize.

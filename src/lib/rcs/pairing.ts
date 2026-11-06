@@ -1,10 +1,8 @@
 import { Result } from "better-result";
-import * as QRCode from "qrcode";
 import type { Database } from "@/lib/db/client";
 import type { AuthData } from "@/lib/gm/auth-data";
 import type { GoogleCookies } from "@/lib/gm/google-cookies";
 import { GaiaPairing } from "@/lib/gm/pair-gaia";
-import { QrPairing } from "@/lib/gm/pair-qr";
 import {
   PairingKeys,
   type PreparedPairingKey,
@@ -20,15 +18,11 @@ import { deleteUserData } from "./store";
 import { backfill } from "./sync";
 
 /**
- * Pairing orchestration behind `POST /api/pair/gaia` and `POST /api/pair/qr`.
+ * Google-account (Gaia) pairing orchestration behind `POST /api/pair/gaia`.
  * Holds the phone lease for the whole flow, prepares the DEK (and device
  * cookie) before the stream starts, then streams PairingEvents:
- * emoji | qr -> paired -> sync* -> done (or error at any point).
+ * emoji -> paired -> sync* -> done (or error at any point).
  */
-export type PairingMethod =
-  | { readonly kind: "gaia"; readonly cookies: GoogleCookies }
-  | { readonly kind: "qr" };
-
 export type PairingStart = {
   /** Send as Set-Cookie on the response (headers cannot change once the stream starts). */
   readonly setCookie: string | null;
@@ -36,20 +30,18 @@ export type PairingStart = {
 };
 
 export const PAIRING_BUDGET = {
-  /** How long the user has to tap the emoji / scan the QR code. */
+  /** How long the user has to tap the emoji. */
   waitForPhoneMs: 180_000,
   /** Backfill stops by this offset from the request start (route maxDuration is 300 s). */
   backfillDeadlineMs: 240_000,
-  qrRefreshMs: 30_000,
-  qrRefreshes: 5,
   keepAliveMs: 15_000,
   leaseTtlMs: 60_000,
 } as const;
 
 type Tagged = { readonly _tag: string; readonly message: string };
 
-/** Plain text for pairing failures (src/lib/gm GaiaPairingError / QrPairingError). */
-export const describePairingError = (error: Tagged, method: PairingMethod["kind"]): string => {
+/** Plain text for pairing failures (src/lib/gm GaiaPairingError). */
+export const describePairingError = (error: Tagged): string => {
   switch (error._tag) {
     case "GaiaNoDevicesError":
       return "Google found no phone with Google Messages on this account. On your phone, open Google Messages, check it is signed in to the same Google account (Settings > Google account), then try again.";
@@ -64,15 +56,9 @@ export const describePairingError = (error: Tagged, method: PairingMethod["kind"
         ? "Your phone did not answer the pairing request. This Google account has several phones with Google Messages; make sure the one you want is online with Google Messages open, then try again."
         : "Your phone did not answer the pairing request. Make sure it is online and Google Messages is open, then try again.";
     case "GaiaPairingFailedError":
-      return "Google Messages refused the pairing for an unknown reason. Try again; if it keeps failing, try the QR code option.";
+      return "Google Messages refused the pairing for an unknown reason. Try again in a few minutes; if it keeps failing, update Google Messages on your phone and try again.";
     case "GMAuthExpiredError":
-      return method === "gaia"
-        ? "Google rejected these cookies (they may have expired, or that browser signed out). Copy a fresh request from messages.google.com and try again."
-        : "Google rejected the pairing session. Start again.";
-    case "QrPairingTimeoutError":
-      return "The QR code expired before a phone scanned it. Start again to get a new code.";
-    case "QrPairingCancelledError":
-      return "QR pairing was cancelled. Start again if that was not intended.";
+      return "Google rejected these cookies (they may have expired, or that browser signed out). Copy a fresh request from messages.google.com and try again.";
     default:
       return describePhoneError(error);
   }
@@ -82,16 +68,13 @@ type Paired = { readonly authData: AuthData; readonly phoneId: string };
 
 type Emit = (event: PairingEvent) => void;
 
-const qrDataUrl = (url: string): Promise<string> =>
-  QRCode.toDataURL(url, { errorCorrectionLevel: "L", margin: 1, width: 320 });
-
 const pairWithGaia = async (
   cookies: GoogleCookies,
   emit: Emit,
   signal: AbortSignal,
 ): Promise<Result<Paired, string>> => {
   const started = await GaiaPairing.start({ cookies, signal });
-  if (started.isErr()) return Result.err(describePairingError(started.error, "gaia"));
+  if (started.isErr()) return Result.err(describePairingError(started.error));
   emit({ type: "emoji", emoji: started.value.emoji, emojiImageUrl: started.value.emojiImageUrl });
   const finished = await GaiaPairing.finish(started.value.attempt, {
     signal,
@@ -99,85 +82,20 @@ const pairWithGaia = async (
   });
   return finished.isOk()
     ? Result.ok(finished.value)
-    : Result.err(describePairingError(finished.error, "gaia"));
-};
-
-/** What QR pairing talks to; tests inject a fake pairing and short timings. */
-export type QrPairingDeps = {
-  readonly pairing: Pick<typeof QrPairing, "start" | "refresh" | "waitForPair" | "cancel">;
-  readonly refreshMs: number;
-  readonly refreshes: number;
-};
-
-const defaultQrDeps: QrPairingDeps = {
-  pairing: QrPairing,
-  refreshMs: PAIRING_BUDGET.qrRefreshMs,
-  refreshes: PAIRING_BUDGET.qrRefreshes,
-};
-
-export const pairWithQr = async (
-  emit: Emit,
-  signal: AbortSignal,
-  deps: QrPairingDeps = defaultQrDeps,
-): Promise<Result<Paired, string>> => {
-  const { pairing } = deps;
-  const started = await pairing.start({ signal });
-  if (started.isErr()) return Result.err(describePairingError(started.error, "qr"));
-  const { attempt } = started.value;
-  // A refresh still in flight when waitForPair settles must not show a new
-  // code after "paired" (or after a failure).
-  let waiting = true;
-  const showQr = async (url: string) => {
-    const dataUrl = await qrDataUrl(url);
-    if (waiting) emit({ type: "qr", dataUrl });
-  };
-  try {
-    await showQr(started.value.qrUrl);
-  } catch (error) {
-    // waitForPair never runs, so close the attempt's long poll here.
-    await pairing.cancel(attempt);
-    throw error;
-  }
-  let refreshes = 0;
-  const timer = setInterval(() => {
-    if (refreshes >= deps.refreshes || signal.aborted) return;
-    refreshes += 1;
-    void pairing
-      .refresh(attempt)
-      .then(async (refreshed) => {
-        if (refreshed.isOk()) await showQr(refreshed.value);
-        else if (waiting) console.warn(`[rcs:pairing] QR refresh failed: ${describeForLog(refreshed.error)}`);
-      })
-      .catch((error: unknown) => {
-        console.warn(`[rcs:pairing] QR refresh failed: ${error instanceof Error ? error.name : "unknown"}`);
-      });
-  }, deps.refreshMs);
-  try {
-    const waited = await pairing.waitForPair(attempt, {
-      signal,
-      timeoutMs: deps.refreshMs * (deps.refreshes + 1),
-    });
-    return waited.isOk() ? Result.ok(waited.value) : Result.err(describePairingError(waited.error, "qr"));
-  } finally {
-    waiting = false;
-    clearInterval(timer);
-  }
+    : Result.err(describePairingError(finished.error));
 };
 
 const runPairing = async (
   db: Database,
   prepared: PreparedPairingKey,
-  method: PairingMethod,
+  cookies: GoogleCookies,
   emit: Emit,
   signal: AbortSignal,
   lease: PhoneLease,
   startedAt: number,
 ): Promise<void> => {
   const userId = prepared.userId;
-  const paired =
-    method.kind === "gaia"
-      ? await pairWithGaia(method.cookies, emit, signal)
-      : await pairWithQr(emit, signal);
+  const paired = await pairWithGaia(cookies, emit, signal);
   if (paired.isErr()) return emit({ type: "error", message: paired.error });
 
   const committed = await PairingKeys.commit(db, prepared, {
@@ -198,7 +116,7 @@ const runPairing = async (
 
   const ctx = { userId, dek: prepared.dek };
   const saved = await SessionStore.save(db, ctx, {
-    kind: method.kind,
+    kind: "gaia",
     phoneLabel: SessionStore.phoneLabelFrom(paired.value.phoneId),
     authData: paired.value.authData,
   });
@@ -237,7 +155,7 @@ export const startPairing = async (
   opts: {
     readonly userId: string;
     readonly cookieHeader: string | null;
-    readonly method: PairingMethod;
+    readonly cookies: GoogleCookies;
     readonly signal: AbortSignal;
     readonly startedAt?: number;
   },
@@ -285,7 +203,7 @@ export const startPairing = async (
         ttlMs: PAIRING_BUDGET.leaseTtlMs,
         onLost: (error) => console.warn(`[rcs:pairing] lease renewal failed: ${describeForLog(error)}`),
       });
-      void runPairing(db, prepared.value, opts.method, emit, signal, lease, startedAt)
+      void runPairing(db, prepared.value, opts.cookies, emit, signal, lease, startedAt)
         .catch((error: unknown) => {
           console.error(
             `[rcs:pairing] unexpected failure: ${error instanceof Error ? error.name : "unknown"}`,
