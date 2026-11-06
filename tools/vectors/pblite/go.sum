@@ -1,0 +1,8 @@
+github.com/MaxGhenis/gmessages v0.2602.1-0.20261021163109-6495a585293d h1:sRtSFaFd4shk1UMNaBtI1dv/71u8sLwgNwUCt4xsQig=
+github.com/MaxGhenis/gmessages v0.2602.1-0.20261021163109-6495a585293d/go.mod h1:osNvCtzL00mEpFQo0e1rks2B1vjOGKUqckhBu+Pc1+0=
+github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
+github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
+go.mau.fi/util v0.9.10 h1:wzvz5iDHyqDXB8vgisD4d3SzucLXNM3iNY+1O1RoHtg=
+go.mau.fi/util v0.9.10/go.mod h1:YQOxySn+ZE3qSYqNxvyX7Yi3suA8YK17PS6QqBREW7A=
+google.golang.org/protobuf v1.36.11 h1:fV6ZwhNocDyBLK0dj+fg8ektcVegBBuEolpbTQyBNVE=
+google.golang.org/protobuf v1.36.11/go.mod h1:HTf+CrKn2C3g5S8VImy6tdcUvCska2kB7j23XfzDpco=

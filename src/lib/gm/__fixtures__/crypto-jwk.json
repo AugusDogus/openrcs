@@ -1,0 +1,104 @@
+{
+  "cases": [
+    {
+      "name": "plain",
+      "jwkJson": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"nxu1CbzKxfp4bFY6XUbHDKw6mzmKSgy8KAPc4zdfd1g\",\"x\":\"3oaX_HlY3LqrcQYQ2Z-h2prrwbtWVfNIo_EHVweYxCk\",\"y\":\"u836ujLkHFpDltouFXUlcGjgG-VixSmfuPTmxiSgX-I\"}",
+      "d": "9f1bb509bccac5fa786c563a5d46c70cac3a9b398a4a0cbc2803dce3375f7758",
+      "x": "de8697fc7958dcbaab710610d99fa1da9aebc1bb5655f348a3f107570798c429",
+      "y": "bbcdfaba32e41c5a4396da2e1575257068e01be562c5299fb8f4e6c624a05fe2",
+      "spki": "3059301306072a8648ce3d020106082a8648ce3d03010703420004de8697fc7958dcbaab710610d99fa1da9aebc1bb5655f348a3f107570798c429bbcdfaba32e41c5a4396da2e1575257068e01be562c5299fb8f4e6c624a05fe2",
+      "signatures": [
+        {
+          "requestId": "5fc0be66-35d2-599b-9fc1-89f90ffec8fe",
+          "timestampMicros": "1730000000000000",
+          "signature": "304502206700e6cadaac5f6aa6474dc88330b6bdac7f5b42b10a547eb7bf56e4f021f6c5022100a25c91382609644ada966379d0b666fe6d86a1131c5b082fa28a30a73bb41568"
+        },
+        {
+          "requestId": "c0648d0b-d0e3-5647-9ec2-812cde9e3da6",
+          "timestampMicros": "1762435200123000",
+          "signature": "3045022100c3e3b48e792c7b63c85163b82ff8dd2cc3ccd5a85a26a02e54c5522fdb335cc302206c478da2d01fd3fc1879e989b607e4a9e1932ac1fddb6f346e3877371ab8ef51"
+        },
+        {
+          "requestId": "2d483113-cd85-5f9c-af10-e6e2af0511a7",
+          "timestampMicros": "1",
+          "signature": "304402206eddd27b16a0fc4fc3bc7d1694b0ab376ac4cc85f3bc34c58f99dd9f6ccd8132022026b6847b5f9b3ce9720d98cbfda4ede4d326af8a0b998c26abcededee6cc319a"
+        }
+      ]
+    },
+    {
+      "name": "d with leading zero byte",
+      "jwkJson": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"xwdg3DdBuNrAxyuOc8rgmeeR45f81__T4CQahcccQA\",\"x\":\"mL0s8erlulywRfoocMkUIYW8yYx80y0M0KSLv56LT5o\",\"y\":\"vFN5dmUIzBJa73jQwIxFmGvwRhp46bQSz3hbiiYvKQQ\"}",
+      "d": "00c70760dc3741b8dac0c72b8e73cae099e791e397fcd7ffd3e0241a85c71c40",
+      "x": "98bd2cf1eae5ba5cb045fa2870c9142185bcc98c7cd32d0cd0a48bbf9e8b4f9a",
+      "y": "bc5379766508cc125aef78d0c08c45986bf0461a78e9b412cf785b8a262f2904",
+      "spki": "3059301306072a8648ce3d020106082a8648ce3d0301070342000498bd2cf1eae5ba5cb045fa2870c9142185bcc98c7cd32d0cd0a48bbf9e8b4f9abc5379766508cc125aef78d0c08c45986bf0461a78e9b412cf785b8a262f2904",
+      "signatures": [
+        {
+          "requestId": "2047f823-f341-5e35-acfc-5470db3df8c9",
+          "timestampMicros": "1730000000000000",
+          "signature": "3045022100ed51d03a53cee59132bb5bbe2282448fb02f6503e17a29f63be93e25d22afd9d022014dcf7ff806f4e1d84420e7ec4201a20acb3a039a33dd8f869a4c4786d243d89"
+        },
+        {
+          "requestId": "f7475c01-afd8-5cc0-9c98-0925ed1e0ad0",
+          "timestampMicros": "1762435200123000",
+          "signature": "30460221009d0b9c8575ec0931ad1fb2408f2e600fc7b9b64d69a9bdaaf9823296b05c3434022100f4d6f3884fc6ab6b734624a9d7caad75b07579d9a270479a98e1b3520e0aedd7"
+        },
+        {
+          "requestId": "aaef1a32-2905-58e7-a62e-ce8c84a17319",
+          "timestampMicros": "1",
+          "signature": "3046022100b21b9e0cb4a0f82776542b95842777d3e9185bb2e96cad19728fd39aa6c59836022100fa5d5f935b5c5d65ee91d5745faf2e7755fe7845433034b4f70e29aeb13f643b"
+        }
+      ]
+    },
+    {
+      "name": "x with leading zero byte",
+      "jwkJson": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"l2Cc4yHwxGBtZtK55x2SVZaK2KZTV6Pmeu147YcTvsc\",\"x\":\"VuIx_xOtOsjQK6byuS44YLky6EQsFl2DGO55-f5Q7A\",\"y\":\"xdrPEcSil2BsWCv0NYHmhMXqZn9i_px0mJV6x8oDUvE\"}",
+      "d": "97609ce321f0c4606d66d2b9e71d9255968ad8a65357a3e67aed78ed8713bec7",
+      "x": "0056e231ff13ad3ac8d02ba6f2b92e3860b932e8442c165d8318ee79f9fe50ec",
+      "y": "c5dacf11c4a297606c582bf43581e684c5ea667f62fe9c7498957ac7ca0352f1",
+      "spki": "3059301306072a8648ce3d020106082a8648ce3d030107034200040056e231ff13ad3ac8d02ba6f2b92e3860b932e8442c165d8318ee79f9fe50ecc5dacf11c4a297606c582bf43581e684c5ea667f62fe9c7498957ac7ca0352f1",
+      "signatures": [
+        {
+          "requestId": "2ce4c1c8-cd29-5b3a-bb9e-5469744b970a",
+          "timestampMicros": "1730000000000000",
+          "signature": "3044022021a4e9a472093b13c3128a15cd6b42637a865b280e9df62c6b4758f6de94772e0220776d8b009ac928a4c0cc6b73c8d12295ef25d5da721cc8c83dc292cbac82c583"
+        },
+        {
+          "requestId": "9dd4cb0c-f0f8-5673-b3f4-ffd267209e8f",
+          "timestampMicros": "1762435200123000",
+          "signature": "3046022100a3d8fca0687b5b92bf0fc3988c7e778ecba262bd953c4b88472cfcfa67dd585a022100db353237ae374333dc36642dc3781bf21efc7bdcf295a9afdce9ae2f3b5f3db3"
+        },
+        {
+          "requestId": "f1dd1a8a-9328-5dbb-bcbd-9fc37124ff1a",
+          "timestampMicros": "1",
+          "signature": "3046022100da4aa69bfc78b1de0537b7083490fde197bf7e42591899cf9d27fbfa672aa0f8022100915803c46aaa29abbc340d48251415a90925e3b120543040d37341517b293bc0"
+        }
+      ]
+    },
+    {
+      "name": "y with leading zero byte",
+      "jwkJson": "{\"kty\":\"EC\",\"crv\":\"P-256\",\"d\":\"xxQDYz9fOYbKzeQfVohd7xHV5OaNERsq5pv6lRDwrDw\",\"x\":\"19XGSdyP8lBtkLUIq-lEtnXCA4_YAfsc1vOkVq2QBB8\",\"y\":\"NOnlyXqF03Erz7bQnakZEk-LKlP4AI8Z8EraCa_niQ\"}",
+      "d": "c71403633f5f3986cacde41f56885def11d5e4e68d111b2ae69bfa9510f0ac3c",
+      "x": "d7d5c649dc8ff2506d90b508abe944b675c2038fd801fb1cd6f3a456ad90041f",
+      "y": "0034e9e5c97a85d3712bcfb6d09da919124f8b2a53f8008f19f04ada09afe789",
+      "spki": "3059301306072a8648ce3d020106082a8648ce3d03010703420004d7d5c649dc8ff2506d90b508abe944b675c2038fd801fb1cd6f3a456ad90041f0034e9e5c97a85d3712bcfb6d09da919124f8b2a53f8008f19f04ada09afe789",
+      "signatures": [
+        {
+          "requestId": "074ee58b-c333-506d-957e-70f2df960868",
+          "timestampMicros": "1730000000000000",
+          "signature": "3045022100f34a95d40d017387d983889b2a4e80a8e5b2a1b32541e60c89b4fa48b28c52b402206a3ea1bb53fd07a94287710e11b0f949677b2a1b452af30368da14520593861d"
+        },
+        {
+          "requestId": "b24db90d-8240-5b34-a616-7286b14f186f",
+          "timestampMicros": "1762435200123000",
+          "signature": "304402204720ba260a8d0d8d080fcf8abd658fc93be8939a3b9b2c8dfe71653c52eca0bf02207a9b67bf4df6db803fca1c968bd0ffa53e08fab412d70ed2f2c257109e2cf36d"
+        },
+        {
+          "requestId": "218ef073-5658-5050-b61f-a3a1cc5aaafc",
+          "timestampMicros": "1",
+          "signature": "30440220179491fda2129f6b6198f2f55902240c922e6402d0cbba706d2d1762a6a157b702200c8cd94b80ba6a095d3f3c7dc6542070facb71945b4b2581a32563dac3d19943"
+        }
+      ]
+    }
+  ]
+}

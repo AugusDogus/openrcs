@@ -1,0 +1,22 @@
+{
+  "cases": [
+    {
+      "origin": "https://messages.google.com",
+      "sapisid": "fakeSapisidValue/AbCdEfGh-ij_KL",
+      "unixSeconds": 1793992267,
+      "hash": "SAPISIDHASH 1793992267_55f327ce579bb2e4cdd9697ff28259565f811814"
+    },
+    {
+      "origin": "https://messages.google.com",
+      "sapisid": "",
+      "unixSeconds": 1793992267,
+      "hash": "SAPISIDHASH 1793992267_9e9bfc9c76102a6f3a2e0d4a22450f25793ca08d"
+    },
+    {
+      "origin": "https://example.test",
+      "sapisid": "ünïcödé value with spaces",
+      "unixSeconds": 1793992267,
+      "hash": "SAPISIDHASH 1793992267_f759e457be71d2407912b406f561895845c4c65f"
+    }
+  ]
+}

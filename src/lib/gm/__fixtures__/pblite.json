@@ -1,0 +1,754 @@
+{
+  "generator": "tools/vectors/pblite (go run .); do not edit by hand",
+  "goarch": "amd64",
+  "encode": [
+    {
+      "name": "RegisterRefreshRequest with push keys",
+      "protoTypeName": "authentication.RegisterRefreshRequest",
+      "pbliteJSON": "[[\"3f2a9c1e-7b4d-4e8a-9c0f-1a2b3c4d5e6f\",null,\"Bugle\",null,null,\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVM\",[null,null,2026,3,18,null,4,null,6]],[1234567890123456789,\"a1b2c3d4e5f60718\",\"Bugle\"],1730000000123456,\"MDc+RUxTWmFob3Z9hIuSmaCnrrW8w8rR2N/m7fT7AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Nvi6fD3/gUMExo=\",null,null,null,null,null,null,null,null,[null,null,null,null,null,null,null,null,[],null,null,null,null,null,null,null,null,null,null,null,null,null,[3,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,[\"messages_web\",\"https://push.example.com/wpush/v2/gAAAAABk?x=1\\u0026y=\\u003c2\\u003e\",\"BAsSGSAnLjU8Q0pRWF9mbXR7gomQl56lrLO6wcjP1t3k6_L5AAcOFRwjKjE4P0ZNVFtiaXB3foWMk5qhqK-2vcQ\",\"CRAXHiUsMzpBSE9WXWRrcg\"]]],null,null,2]",
+      "binaryBase64": "CmwKJDNmMmE5YzFlLTdiNGQtNGU4YS05YzBmLTFhMmIzYzRkNWU2ZhoFQnVnbGUyMAMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4+rx+P8GDRQbIikwNz5FTDoLGOoPIAMoEjgESAYSIwiVgqbvx56EkRESEGExYjJjM2Q0ZTVmNjA3MTgaBUJ1Z2xlGMCE4JvQrYkDIkcwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTGmrBAUoAugG7AQgDsga1AQoMbWVzc2FnZXNfd2ViEjRodHRwczovL3B1c2guZXhhbXBsZS5jb20vd3B1c2gvdjIvZ0FBQUFBQms/eD0xJnk9PDI+GldCQXNTR1NBbkxqVThRMHBSV0Y5bWJYUjdnb21RbDU2bHJMTzZ3Y2pQMXQzazZfTDVBQWNPRlJ3aktqRTRQMFpOVkZ0aWFYQjNmb1dNazVxaHFLLTJ2Y1EiFkNSQVhIaVVzTXpwQlNFOVdYV1JyY2eAAQI=",
+      "roundTripBinaryBase64": "CmwKJDNmMmE5YzFlLTdiNGQtNGU4YS05YzBmLTFhMmIzYzRkNWU2ZhoFQnVnbGUyMAMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4+rx+P8GDRQbIikwNz5FTDoLGOoPIAMoEjgESAYSIwiAgqbvx56EkRESEGExYjJjM2Q0ZTVmNjA3MTgaBUJ1Z2xlGMCE4JvQrYkDIkcwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTGmrBAUoAugG7AQgDsga1AQoMbWVzc2FnZXNfd2ViEjRodHRwczovL3B1c2guZXhhbXBsZS5jb20vd3B1c2gvdjIvZ0FBQUFBQms/eD0xJnk9PDI+GldCQXNTR1NBbkxqVThRMHBSV0Y5bWJYUjdnb21RbDU2bHJMTzZ3Y2pQMXQzazZfTDVBQWNPRlJ3aktqRTRQMFpOVkZ0aWFYQjNmb1dNazVxaHFLLTJ2Y1EiFkNSQVhIaVVzTXpwQlNFOVdYV1JyY2eAAQI=",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "RegisterRefreshRequest without push keys",
+      "protoTypeName": "authentication.RegisterRefreshRequest",
+      "pbliteJSON": "[[\"00000000-0000-4000-8000-000000000000\",null,\"Bugle\",null,null,\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVM\",[null,null,2026,3,18,null,4,null,6]],[1234567890123456789,\"a1b2c3d4e5f60718\",\"Bugle\"],1700000000000000,\"MDc+RUxTWmFob3Z9hIuSmaCnrrW8w8rR2N/m7fT7AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Nvi6fD3/gUMEw==\",null,null,null,null,null,null,null,null,[null,null,null,null,null,null,null,null,[],null,null,null,null,null,null,null,null,null,null,null,null,null,null],null,null,2]",
+      "binaryBase64": "CmwKJDAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMBoFQnVnbGUyMAMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4+rx+P8GDRQbIikwNz5FTDoLGOoPIAMoEjgESAYSIwiVgqbvx56EkRESEGExYjJjM2Q0ZTVmNjA3MTgaBUJ1Z2xlGICA+cDBxIIDIkYwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTagJKAIABAg==",
+      "roundTripBinaryBase64": "CmwKJDAwMDAwMDAwLTAwMDAtNDAwMC04MDAwLTAwMDAwMDAwMDAwMBoFQnVnbGUyMAMKERgfJi00O0JJUFdeZWxzeoGIj5adpKuyucDHztXc4+rx+P8GDRQbIikwNz5FTDoLGOoPIAMoEjgESAYSIwiAgqbvx56EkRESEGExYjJjM2Q0ZTVmNjA3MTgaBUJ1Z2xlGICA+cDBxIIDIkYwNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTagJKAIABAg==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "ReceiveMessagesRequest",
+      "protoTypeName": "client.ReceiveMessagesRequest",
+      "pbliteJSON": "[[\"listen-req-id\",null,\"Bugle\",null,null,\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVM\",[null,null,2026,3,18,null,4,null,6]],null,null,[null,[]]]",
+      "binaryBase64": "ClUKDWxpc3Rlbi1yZXEtaWQaBUJ1Z2xlMjADChEYHyYtNDtCSVBXXmVsc3qBiI+WnaSrsrnAx87V3OPq8fj/Bg0UGyIpMDc+RUw6CxjqDyADKBI4BEgGIgISAA==",
+      "roundTripBinaryBase64": "ClUKDWxpc3Rlbi1yZXEtaWQaBUJ1Z2xlMjADChEYHyYtNDtCSVBXXmVsc3qBiI+WnaSrsrnAx87V3OPq8fj/Bg0UGyIpMDc+RUw6CxjqDyADKBI4BEgGIgISAA==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "OutgoingRPCMessage with destRegistrationIDs and TTL",
+      "protoTypeName": "rpc.OutgoingRPCMessage",
+      "pbliteJSON": "[[987654321,\"mobile-source\",\"Bugle\"],[\"req-1\",19,null,null,null,null,null,null,null,null,null,\"AQgPFh0kKzI5QEdOVVxjanF4f4aNlJuiqbC3vsXM09rh6O/2/QQLEhkgJy41PENKUVhfZm10e4KJkJeepayzusHIz9bd5Ovy+QAHDhUcIyoxOD9GTVRbYmlwd36FjJOaoaivtg==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"req-1\",null,null,null,null,\"BQwTGiEoLzY9REtSWWBnbnV8g4qRmJ+mrbS7wsnQ194=\",[null,null,2026,3,18,null,4,null,6]],null,2592000000000,null,null,null,[\"NmMyZjdhMWUtMGQzYi00ZjVhLThlOWMtMTEyMjMzNDQ1NTY2\",\"c2Vjb25kLcO8\"]]",
+      "binaryBase64": "ChwIsdH51gMSDW1vYmlsZS1zb3VyY2UaBUJ1Z2xlEnYKBXJlcS0xEBNiZAEIDxYdJCsyOUBHTlVcY2pxeH+GjZSboqmwt77FzNPa4ejv9v0ECxIZICcuNTxDSlFYX2ZtdHuCiZCXnqWss7rByM/W3eTr8vkABw4VHCMqMTg/Rk1UW2JpcHd+hYyTmqGor7a6AQQKABACGjYKBXJlcS0xMiAFDBMaISgvNj1ES1JZYGdudXyDipGYn6attLvCydDX3joLGOoPIAMoEjgESAYogID1+bdLSiQ2YzJmN2ExZS0wZDNiLTRmNWEtOGU5Yy0xMTIyMzM0NDU1NjZKCXNlY29uZC3DvA==",
+      "roundTripBinaryBase64": "ChwIsdH51gMSDW1vYmlsZS1zb3VyY2UaBUJ1Z2xlEnYKBXJlcS0xEBNiZAEIDxYdJCsyOUBHTlVcY2pxeH+GjZSboqmwt77FzNPa4ejv9v0ECxIZICcuNTxDSlFYX2ZtdHuCiZCXnqWss7rByM/W3eTr8vkABw4VHCMqMTg/Rk1UW2JpcHd+hYyTmqGor7a6AQQKABACGjYKBXJlcS0xMiAFDBMaISgvNj1ES1JZYGdudXyDipGYn6attLvCydDX3joLGOoPIAMoEjgESAYogID1+bdLSiQ2YzJmN2ExZS0wZDNiLTRmNWEtOGU5Yy0xMTIyMzM0NDU1NjZKCXNlY29uZC3DvA==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "OutgoingRPCMessage without TTL or destinations",
+      "protoTypeName": "rpc.OutgoingRPCMessage",
+      "pbliteJSON": "[null,[\"req-2\",14,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,[[],20]],[\"req-2\",null,null,null,null,null,[null,null,2026,3,18,null,4,null,6]],null,null,null,null,null,null]",
+      "binaryBase64": "EhAKBXJlcS0yEA66AQQKABAUGhQKBXJlcS0yOgsY6g8gAygSOARIBg==",
+      "roundTripBinaryBase64": "EhAKBXJlcS0yEA66AQQKABAUGhQKBXJlcS0yOgsY6g8gAygSOARIBg==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "SignInGaiaRequest with pblite_binary someData",
+      "protoTypeName": "authentication.SignInGaiaRequest",
+      "pbliteJSON": "[[\"5e4d3c2b-1a09-4f8e-8d7c-6b5a49382716\",null,\"GDitto\",null,null,null,[null,null,2026,3,18,null,4,null,6]],[[3,\"messages-web-0123456789abcdef0123456789abcdef\"],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"GlswNz5FTFNaYWhvdn2Ei5KZoKeutbzDytHY3+bt9PsCCRAXHiUsMzpBSE9WXWRrcnmAh46VnKOqsbi/xs3U2+Lp8Pf+BQwTGiEoLzY9REtSWWBnbnV8g4qRmJ+m\"],1,\"GDitto\"]",
+      "binaryBase64": "CjsKJDVlNGQzYzJiLTFhMDktNGY4ZS04ZDdjLTZiNWE0OTM4MjcxNhoGR0RpdHRvOgsY6g8gAygSOARIBhKTAQoxCAMSLW1lc3NhZ2VzLXdlYi0wMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZqICXRpbMDc+RUxTWmFob3Z9hIuSmaCnrrW8w8rR2N/m7fT7AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Nvi6fD3/gUMExohKC82PURLUllgZ251fIOKkZifphgBIgZHRGl0dG8=",
+      "roundTripBinaryBase64": "CjsKJDVlNGQzYzJiLTFhMDktNGY4ZS04ZDdjLTZiNWE0OTM4MjcxNhoGR0RpdHRvOgsY6g8gAygSOARIBhKTAQoxCAMSLW1lc3NhZ2VzLXdlYi0wMTIzNDU2Nzg5YWJjZGVmMDEyMzQ1Njc4OWFiY2RlZqICXRpbMDc+RUxTWmFob3Z9hIuSmaCnrrW8w8rR2N/m7fT7AgkQFx4lLDM6QUhPVl1ka3J5gIeOlZyjqrG4v8bN1Nvi6fD3/gUMExohKC82PURLUllgZ251fIOKkZifphgBIgZHRGl0dG8=",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "SignInGaiaRequest with empty pblite_binary message",
+      "protoTypeName": "authentication.SignInGaiaRequest",
+      "pbliteJSON": "[null,[null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"\"],null,null]",
+      "binaryBase64": "EgOiAgA=",
+      "roundTripBinaryBase64": "EgOiAgA=",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "AckMessageRequest with repeated acks",
+      "protoTypeName": "client.AckMessageRequest",
+      "pbliteJSON": "[[\"ack-req\",null,\"Bugle\",null,null,\"AwoRGB8mLTQ7QklQV15lbHN6gYiPlp2kq7K5wMfO1dzj6vH4/wYNFBsiKTA3PkVM\",[null,null,2026,3,18,null,4,null,6]],[],null,[[\"ack-1\",[1234567890123456789,\"a1b2c3d4e5f60718\",\"Bugle\"]],[\"ack-2\",[1234567890123456789,\"a1b2c3d4e5f60718\",\"Bugle\"]],[\"ack-3\",null],[null,null]]]",
+      "binaryBase64": "Ck8KB2Fjay1yZXEaBUJ1Z2xlMjADChEYHyYtNDtCSVBXXmVsc3qBiI+WnaSrsrnAx87V3OPq8fj/Bg0UGyIpMDc+RUw6CxjqDyADKBI4BEgGEgAiLAoFYWNrLTESIwiVgqbvx56EkRESEGExYjJjM2Q0ZTVmNjA3MTgaBUJ1Z2xlIiwKBWFjay0yEiMIlYKm78eehJEREhBhMWIyYzNkNGU1ZjYwNzE4GgVCdWdsZSIHCgVhY2stMyIA",
+      "roundTripBinaryBase64": "Ck8KB2Fjay1yZXEaBUJ1Z2xlMjADChEYHyYtNDtCSVBXXmVsc3qBiI+WnaSrsrnAx87V3OPq8fj/Bg0UGyIpMDc+RUw6CxjqDyADKBI4BEgGEgAiLAoFYWNrLTESIwiAgqbvx56EkRESEGExYjJjM2Q0ZTVmNjA3MTgaBUJ1Z2xlIiwKBWFjay0yEiMIgIKm78eehJEREhBhMWIyYzNkNGU1ZjYwNzE4GgVCdWdsZSIHCgVhY2stMyIA",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "AuthMessage with escaping-sensitive strings",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[\"\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007\\b\\t\\n\\u000b\\f\\r\\u000e\\u000f\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001f\\\"\\\\/\\u003c\\u003e\\u0026'\\u2028\\u2029 é ß 日本語   ﻿ � 😀 👩‍💻 🇺🇸\",null,\"\\u003cscript\\u003ealert(\\\"x\\u0026y\\\")\\u003c/script\\u003e\",null,null,null,null]",
+      "binaryBase64": "CmMAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyJcLzw+Jid/4oCo4oCpIMOpIMOfIOaXpeacrOiqniDCoCDvu78g77+9IPCfmIAg8J+RqeKAjfCfkrsg8J+HuvCfh7gaHTxzY3JpcHQ+YWxlcnQoIngmeSIpPC9zY3JpcHQ+",
+      "roundTripBinaryBase64": "CmMAAQIDBAUGBwgJCgsMDQ4PEBESExQVFhcYGRobHB0eHyJcLzw+Jid/4oCo4oCpIMOpIMOfIOaXpeacrOiqniDCoCDvu78g77+9IPCfmIAg8J+RqeKAjfCfkrsg8J+HuvCfh7gaHTxzY3JpcHQ+YWxlcnQoIngmeSIpPC9zY3JpcHQ+",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "SignInGaiaResponse with non-ASCII pblite_binary string",
+      "protoTypeName": "authentication.SignInGaiaResponse",
+      "pbliteJSON": "[[null,18446744073709551615,null,-9223372036854775808],\"w7xuw69jw7Zkw6kgPCY+IPCfmIA=\",null,null]",
+      "binaryBase64": "ChYQ////////////ASCAgICAgICAgIABEhTDvG7Dr2PDtmTDqSA8Jj4g8J+YgA==",
+      "roundTripBinaryBase64": "ChYQgICAgICAgICAASCAgICAgICAgIABEhTDvG7Dr2PDtmTDqSA8Jj4g8J+YgA==",
+      "roundTripArchDependent": true
+    },
+    {
+      "name": "RPCGaiaData with uint64, negative int64 and nested pblite_binary",
+      "protoTypeName": "authentication.RPCGaiaData",
+      "pbliteJSON": "[-1,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,[null,[[[\"OWE4YjdjNmQtNWU0Zi00YTNiLTJjMWQtMGUwZjEwMTExMjEz\",null,null,1,\"en-US\",null,18446744073709551615],[\"bG9jYWw=\",null,null,6,null,null,9007199254740993]]],-1730000000123456,[[\"OWE4YjdjNmQtNWU0Zi00YTNiLTJjMWQtMGUwZjEwMTExMjEz\",null,1,6,null,null,1730000000654321,\"CAEQgICAgPj/////ARoD/wD+\"],[null,null,null,null,null,null,null,\"\"]]]]",
+      "binaryBase64": "CP///////////wHiBqoBElAKOgokOWE4YjdjNmQtNWU0Zi00YTNiLTJjMWQtMGUwZjEwMTExMjEzIAEqBWVuLVVTOP///////////wEKEgoFbG9jYWwgBjiBgICAgICAEBjA+5/kr9L2/P8BIkcKJDlhOGI3YzZkLTVlNGYtNGEzYi0yYzFkLTBlMGYxMDExMTIxMxgBIAY48beAnNCtiQNCEggBEICAgID4/////wEaA/8A/iICQgA=",
+      "roundTripBinaryBase64": "CP///////////wHiBqoBElAKOgokOWE4YjdjNmQtNWU0Zi00YTNiLTJjMWQtMGUwZjEwMTExMjEzIAEqBWVuLVVTOICAgICAgICAgAEKEgoFbG9jYWwgBjiAgICAgICAEBjA+5/kr9L2/P8BIkcKJDlhOGI3YzZkLTVlNGYtNGEzYi0yYzFkLTBlMGYxMDExMTIxMxgBIAY48beAnNCtiQNCEggBEICAgID4/////wEaA/8A/iICQgA=",
+      "roundTripArchDependent": true
+    },
+    {
+      "name": "Config with oneof members including zero values",
+      "protoTypeName": "config.Config",
+      "pbliteJSON": "[null,null,null,[[[\"int-zero\",[null,0,null]],[\"str-empty\",[null,null,\"\"]],[\"int\",[null,-42,null]],[\"unset\",[null,null,null]]]],null,null,null,null,null]",
+      "binaryBase64": "IkAKDgoIaW50LXplcm8SAhAACg8KCXN0ci1lbXB0eRICGgAKEgoDaW50EgsQ1v//////////AQoJCgV1bnNldBIA",
+      "roundTripBinaryBase64": "IkAKDgoIaW50LXplcm8SAhAACg8KCXN0ci1lbXB0eRICGgAKEgoDaW50EgsQ1v//////////AQoJCgV1bnNldBIA",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "UpdateConversationRequest with oneof message member",
+      "protoTypeName": "client.UpdateConversationRequest",
+      "pbliteJSON": "[[\"conv-1\",null,null,null,null,null,null,null,null,null,null,0],7,\"conv-1\",null,null,null]",
+      "binaryBase64": "EAcaBmNvbnYtMQoKCgZjb252LTFgAA==",
+      "roundTripBinaryBase64": "EAcaBmNvbnYtMQoKCgZjb252LTFgAA==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "StartAckMessage with explicit-presence zero",
+      "protoTypeName": "rpc.StartAckMessage",
+      "pbliteJSON": "[0]",
+      "binaryBase64": "CAA=",
+      "roundTripBinaryBase64": "CAA=",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "GetOrCreateConversationRequest with explicit-presence empty and false",
+      "protoTypeName": "client.GetOrCreateConversationRequest",
+      "pbliteJSON": "[null,null,\"\",false]",
+      "binaryBase64": "GgAgAA==",
+      "roundTripBinaryBase64": "GgAgAA==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "RPCMessageData with bools and bytes",
+      "protoTypeName": "rpc.RPCMessageData",
+      "pbliteJSON": "[\"session\",null,1730000000999999,1,\"AA==\",true,null,\"yM/W3eTr8vkABw4VHCMqMTg=\",true,null,null]",
+      "binaryBase64": "CgdzZXNzaW9uGL/ElZzQrYkDIAEqAQAwAUIRyM/W3eTr8vkABw4VHCMqMThIAQ==",
+      "roundTripBinaryBase64": "CgdzZXNzaW9uGL/ElZzQrYkDIAEqAQAwAUIRyM/W3eTr8vkABw4VHCMqMThIAQ==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "Config with repeated uint32 and int64",
+      "protoTypeName": "config.Config",
+      "pbliteJSON": "[\"20260318\",null,[[\"k\",1,null,\"\",null]],null,null,null,null,[0,1,4294967295,7],1730000000123]",
+      "binaryBase64": "CggyMDI2MDMxOBoHCgFrEAEiAEIIAAH/////DwdI+6ik4Kwy",
+      "roundTripBinaryBase64": "CggyMDI2MDMxOBoHCgFrEAEiAEIIAAH/////DwdI+6ik4Kwy",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "Settings.SomeData with repeated bytes including empty",
+      "protoTypeName": "settings.SomeData",
+      "pbliteJSON": "[null,null,true,null,null,null,null,null,null,null,null,null,null,null,[\"8J+YgA==\",\"\",\"+gEIDxY=\"],\"{\\\"a\\\":\\\"\\u003cb\\u003e\\\"}\",null]",
+      "binaryBase64": "GAF6BPCfmIB6AHoF+gEIDxaCAQt7ImEiOiI8Yj4ifQ==",
+      "roundTripBinaryBase64": "GAF6BPCfmIB6AHoF+gEIDxaCAQt7ImEiOiI8Yj4ifQ==",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "ThumbnailData with unset fixed64 member",
+      "protoTypeName": "client.ThumbnailData",
+      "pbliteJSON": "[null,[null,null,null,null,null,null,null,null,null,null,null,null,null],\"AQID\",-7,null]",
+      "binaryBase64": "EgAaAwECAyD5//////////8B",
+      "roundTripBinaryBase64": "EgAaAwECAyD5//////////8B",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "BrowserDetails (libgm BrowserDetailsMessage)",
+      "protoTypeName": "authentication.BrowserDetails",
+      "pbliteJSON": "[\"Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36\",1,\"libgm\",null,null,2]",
+      "binaryBase64": "CmVNb3ppbGxhLzUuMCAoTGludXg7IEFuZHJvaWQgMTQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xNDYuMC4wLjAgU2FmYXJpLzUzNy4zNhABGgVsaWJnbTAC",
+      "roundTripBinaryBase64": "CmVNb3ppbGxhLzUuMCAoTGludXg7IEFuZHJvaWQgMTQpIEFwcGxlV2ViS2l0LzUzNy4zNiAoS0hUTUwsIGxpa2UgR2Vja28pIENocm9tZS8xNDYuMC4wLjAgU2FmYXJpLzUzNy4zNhABGgVsaWJnbTAC",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "ConfigVersion (libgm ConfigMessage)",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null,null,2026,3,18,null,4,null,6]",
+      "binaryBase64": "GOoPIAMoEjgESAY=",
+      "roundTripBinaryBase64": "GOoPIAMoEjgESAY=",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "EmptyArr",
+      "protoTypeName": "util.EmptyArr",
+      "pbliteJSON": "[]",
+      "binaryBase64": "",
+      "roundTripBinaryBase64": "",
+      "roundTripArchDependent": false
+    },
+    {
+      "name": "AuthMessage with nothing set",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null,null,null,null,null,null,null]",
+      "binaryBase64": "",
+      "roundTripBinaryBase64": "",
+      "roundTripArchDependent": false
+    }
+  ],
+  "encodeErrors": [
+    {
+      "name": "fixed64 field is unsupported",
+      "protoTypeName": "client.ThumbnailData.MysteriousData",
+      "binaryBase64": "aQEAAAAAAAAA",
+      "goError": "unsupported field type fixed64 in client.ThumbnailData.MysteriousData.maybeAHash",
+      "field": "client.ThumbnailData.MysteriousData.maybeAHash"
+    },
+    {
+      "name": "unsupported field nested in a sub-message",
+      "protoTypeName": "client.ThumbnailData",
+      "binaryBase64": "Eglp//////////8aAQE=",
+      "goError": "unsupported field type fixed64 in client.ThumbnailData.MysteriousData.maybeAHash",
+      "field": "client.ThumbnailData.MysteriousData.maybeAHash"
+    }
+  ],
+  "decode": [
+    {
+      "name": "int64 as decimal string, trailing extra elements, nulls",
+      "protoTypeName": "authentication.RegisterRefreshRequest",
+      "pbliteJSON": "[[ \"req\" , null, \"Bugle\", \"AQID\", [null,null,2026,3,18,null,4,null,6]], [\"-42\",\"src\"], \"1730000000123456\", \"c2lnbmF0dXJl\", null, null, null, null, null, null, null, null, [null,null,null,null,null,null,null,null,[],null,null,null,null,null,null,null,null,null,null,null,null,null,[3]], null, null, 2, \"extra\", {\"ignored\": true}, [1,2,3], 4.5]",
+      "binaryBase64": "CgwKA3JlcRoFQnVnbGUSEAjW//////////8BEgNzcmMYwITgm9CtiQMiCXNpZ25hdHVyZWoHSgC6AQIIA4ABAg==",
+      "archDependent": false
+    },
+    {
+      "name": "int64 as JSON number above 2^53 rounds through float64",
+      "protoTypeName": "authentication.Device",
+      "pbliteJSON": "[1700000000000000123, \"s\", \"n\"]",
+      "binaryBase64": "CICAqLHjn+fLFxIBcxoBbg==",
+      "archDependent": false
+    },
+    {
+      "name": "int64 as JSON number with exponent and fraction",
+      "protoTypeName": "authentication.RegisterRefreshRequest",
+      "pbliteJSON": "[null, [-3.99e2], 1.73e15]",
+      "binaryBase64": "EgsI8fz/////////ARiAwNib0K2JAw==",
+      "archDependent": false
+    },
+    {
+      "name": "int32 from strings with sign and leading zeros",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null, null, \"2026\", \"+3\", \"-018\", null, \"007\", null, \"-2147483648\"]",
+      "binaryBase64": "GOoPIAMo7v//////////ATgHSICAgID4/////wE=",
+      "archDependent": false
+    },
+    {
+      "name": "int32 from fractional numbers truncates toward zero",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null, null, 3.9, -3.9, 0.5, null, 2147483647, null, -0]",
+      "binaryBase64": "GAMg/f//////////ATj/////Bw==",
+      "archDependent": false
+    },
+    {
+      "name": "uint64 from decimal string beyond 2^53",
+      "protoTypeName": "authentication.SignInGaiaResponse",
+      "pbliteJSON": "[[null, \"18446744073709551615\", null, \"-9223372036854775808\"]]",
+      "binaryBase64": "ChYQ////////////ASCAgICAgICAgIAB",
+      "archDependent": false
+    },
+    {
+      "name": "bool from number and bool",
+      "protoTypeName": "rpc.RPCMessageData",
+      "pbliteJSON": "[null, null, null, null, null, 1, 0, null, 2.5]",
+      "binaryBase64": "MAFIAQ==",
+      "archDependent": false
+    },
+    {
+      "name": "bool false and zero values stay unset",
+      "protoTypeName": "rpc.RPCMessageData",
+      "pbliteJSON": "[\"\", null, 0, 0, \"\", false, false, \"\", 0, null, \"\"]",
+      "binaryBase64": "",
+      "archDependent": false
+    },
+    {
+      "name": "enum from number",
+      "protoTypeName": "authentication.BrowserDetails",
+      "pbliteJSON": "[\"ua\", 2.0, \"os\", null, null, 3]",
+      "binaryBase64": "CgJ1YRACGgJvczAD",
+      "archDependent": false
+    },
+    {
+      "name": "empty arrays set sub-messages but not lists",
+      "protoTypeName": "client.AckMessageRequest",
+      "pbliteJSON": "[[], [], null, []]",
+      "binaryBase64": "CgASAA==",
+      "archDependent": false
+    },
+    {
+      "name": "repeated messages and empty elements",
+      "protoTypeName": "client.AckMessageRequest",
+      "pbliteJSON": "[null, [], null, [[\"a\", [\"1\", \"s\"]], [], [\"c\"]]]",
+      "binaryBase64": "EgAiCgoBYRIFCAESAXMiACIDCgFj",
+      "archDependent": false
+    },
+    {
+      "name": "pblite_binary message and string",
+      "protoTypeName": "authentication.SignInGaiaRequest",
+      "pbliteJSON": "[null, [[3, \"dev\"], null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, \"GgMBAgM=\"], 1, \"GDitto\"]",
+      "binaryBase64": "EhEKBwgDEgNkZXaiAgUaAwECAxgBIgZHRGl0dG8=",
+      "archDependent": false
+    },
+    {
+      "name": "pblite_binary string with non-ASCII UTF-8",
+      "protoTypeName": "authentication.SignInGaiaResponse",
+      "pbliteJSON": "[null, \"w7xuw69jw7Zkw6kgPCY+IPCfmIA=\"]",
+      "binaryBase64": "EhTDvG7Dr2PDtmTDqSA8Jj4g8J+YgA==",
+      "archDependent": false
+    },
+    {
+      "name": "repeated pblite_binary strings",
+      "protoTypeName": "rpc.OutgoingRPCMessage",
+      "pbliteJSON": "[null, null, null, null, \"2592000000000\", null, null, null, [\"YWJj\", \"\", \"w7w=\"]]",
+      "binaryBase64": "KICA9fm3S0oDYWJjSgBKAsO8",
+      "archDependent": false
+    },
+    {
+      "name": "base64 with embedded newlines and non-zero trailing bits",
+      "protoTypeName": "rpc.RPCMessageData",
+      "pbliteJSON": "[null, null, null, null, \"YWJj\\r\\nZGVm\", null, null, \"AB==\", null, null, \"QUJD\\nRA==\"]",
+      "binaryBase64": "KgZhYmNkZWZCAQBaBEFCQ0Q=",
+      "archDependent": false
+    },
+    {
+      "name": "oneof: last declared member wins",
+      "protoTypeName": "client.UpdateConversationRequest",
+      "pbliteJSON": "[[\"from-updateData\"], 1, \"c\", null, null, [\"from-deleteData\"]]",
+      "binaryBase64": "EAEaAWMKEQoPZnJvbS11cGRhdGVEYXRh",
+      "archDependent": false
+    },
+    {
+      "name": "oneof scalar zero is selected",
+      "protoTypeName": "config.Config.WrappedFlag.Value",
+      "pbliteJSON": "[null, 0]",
+      "binaryBase64": "EAA=",
+      "archDependent": false
+    },
+    {
+      "name": "oneof scalar: later member overrides earlier",
+      "protoTypeName": "config.Config.WrappedFlag.Value",
+      "pbliteJSON": "[null, 7, \"seven\"]",
+      "binaryBase64": "GgVzZXZlbg==",
+      "archDependent": false
+    },
+    {
+      "name": "explicit presence zero values are kept",
+      "protoTypeName": "client.GetOrCreateConversationRequest",
+      "pbliteJSON": "[null, [], \"\", false]",
+      "binaryBase64": "GgAgAA==",
+      "archDependent": false
+    },
+    {
+      "name": "JSON escapes, surrogate pairs and lone surrogates",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[\"\\u003c\\u0026\\u003e \\ud83d\\ude00 \\u00e9 \\n\\t\\\"\\\\/\", null, \"lone \\ud800 surrogate \\udc00 end\"]",
+      "binaryBase64": "ChE8Jj4g8J+YgCDDqSAKCSJcLxoabG9uZSDvv70gc3Vycm9nYXRlIO+/vSBlbmQ=",
+      "archDependent": false
+    },
+    {
+      "name": "optional message heartbeat",
+      "protoTypeName": "rpc.LongPollingPayload",
+      "pbliteJSON": "[null, null, [], [0]]",
+      "binaryBase64": "GgAiAggA",
+      "archDependent": false
+    },
+    {
+      "name": "whitespace around JSON",
+      "protoTypeName": "util.EmptyArr",
+      "pbliteJSON": " \n [ ] \t",
+      "binaryBase64": "",
+      "archDependent": false
+    },
+    {
+      "name": "list of strings with empty element",
+      "protoTypeName": "client.GetThumbnailRequest",
+      "pbliteJSON": "[[\"a\", \"b\", \"\"]]",
+      "binaryBase64": "CgFhCgFiCgA=",
+      "archDependent": false
+    },
+    {
+      "name": "repeated uint32 from numbers and strings",
+      "protoTypeName": "config.Config",
+      "pbliteJSON": "[\"v\", null, [[\"k\", \"3\", null, \"\"]], null, null, null, null, [0, \"4294967295\", 1.9, \"007\"], \"-1730000000123\"]",
+      "binaryBase64": "CgF2GgcKAWsQAyIAQggA/////w8BB0iF19uf083///8B",
+      "archDependent": false
+    },
+    {
+      "name": "repeated bytes",
+      "protoTypeName": "settings.SomeData",
+      "pbliteJSON": "[null, null, 1, null, null, null, null, null, null, null, null, null, null, null, [\"8J+YgA==\", \"\", \"AQ==\"]]",
+      "binaryBase64": "GAF6BPCfmIB6AHoBAQ==",
+      "archDependent": false
+    },
+    {
+      "name": "null fixed64 value is skipped",
+      "protoTypeName": "client.ThumbnailData.MysteriousData",
+      "pbliteJSON": "[null, null, null, null, null, null, null, null, null, null, null, null, null]",
+      "binaryBase64": "",
+      "archDependent": false
+    },
+    {
+      "name": "int32 from out-of-range numbers",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null, null, 3e9, -3e9, 2147483648, null, -2147483649, null, 1e300]",
+      "binaryBase64": "GICAgID4/////wEggICAgPj/////ASiAgICA+P////8BOICAgID4/////wFIgICAgPj/////AQ==",
+      "archDependent": true
+    },
+    {
+      "name": "enum from out-of-range number",
+      "protoTypeName": "authentication.BrowserDetails",
+      "pbliteJSON": "[null, 3e9, null, null, null, -2147483649]",
+      "binaryBase64": "EICAgID4/////wEwgICAgPj/////AQ==",
+      "archDependent": true
+    },
+    {
+      "name": "int64 from out-of-range numbers",
+      "protoTypeName": "authentication.RegisterRefreshRequest",
+      "pbliteJSON": "[null, [9.3e18], -1e300]",
+      "binaryBase64": "EgsIgICAgICAgICAARiAgICAgICAgIAB",
+      "archDependent": true
+    },
+    {
+      "name": "uint32 list from negative and out-of-range numbers",
+      "protoTypeName": "config.Config",
+      "pbliteJSON": "[null, null, null, null, null, null, null, [-1, -1.5, -3e9, 5e9, 4294967296, 9.3e18, -1e300]]",
+      "binaryBase64": "Qhf/////D/////8PgMS+6QSA5JfQAgAAAA==",
+      "archDependent": true
+    },
+    {
+      "name": "uint64 from negative numbers and values at or above 2^63",
+      "protoTypeName": "rpc.IncomingRPCMessage",
+      "pbliteJSON": "[null, null, -1, null, null, 9.3e18, 1.8446744073709552e19]",
+      "binaryBase64": "GP///////////wEwgICI2Z+Xj4iBATiAgICAgICAgIAB",
+      "archDependent": true
+    },
+    {
+      "name": "uint64 from large negative and huge numbers",
+      "protoTypeName": "rpc.IncomingRPCMessage",
+      "pbliteJSON": "[null, null, -9.3e18, null, null, 2e19, -1.5]",
+      "binaryBase64": "GICAgICAgICAgAEwgICAgICAgICAATj///////////8B",
+      "archDependent": true
+    }
+  ],
+  "decodeErrors": [
+    {
+      "name": "invalid JSON",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[1,",
+      "goError": "unexpected end of JSON input",
+      "location": null
+    },
+    {
+      "name": "top-level object",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "{\"a\":1}",
+      "goError": "expected array in JSON, got map[string]interface {}",
+      "location": null
+    },
+    {
+      "name": "top-level string",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "\"abc\"",
+      "goError": "expected array in JSON, got string",
+      "location": null
+    },
+    {
+      "name": "top-level null",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "null",
+      "goError": "expected array in JSON, got <nil>",
+      "location": null
+    },
+    {
+      "name": "number overflowing float64",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, null, null, 1e400]",
+      "goError": "json: cannot unmarshal number 1e400 into .7 of type float64",
+      "location": null
+    },
+    {
+      "name": "byte order mark before JSON",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "﻿[]",
+      "goError": "invalid character '\\ufeff' looking for beginning of value",
+      "location": null
+    },
+    {
+      "name": "fixed64 value present",
+      "protoTypeName": "client.ThumbnailData.MysteriousData",
+      "pbliteJSON": "[null, null, null, null, null, null, null, null, null, null, null, null, 5]",
+      "goError": "unsupported field type fixed64 in client.ThumbnailData.MysteriousData.maybeAHash",
+      "location": {
+        "field": "client.ThumbnailData.MysteriousData.maybeAHash",
+        "index": null
+      }
+    },
+    {
+      "name": "string field given number",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[1]",
+      "goError": "expected string at index 0 for field authentication.AuthMessage.requestID, got float64",
+      "location": {
+        "field": "authentication.AuthMessage.requestID",
+        "index": 0
+      }
+    },
+    {
+      "name": "int32 field given bool",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null, null, true]",
+      "goError": "expected float64 at index 2 for field authentication.ConfigVersion.Year, got bool",
+      "location": {
+        "field": "authentication.ConfigVersion.Year",
+        "index": 2
+      }
+    },
+    {
+      "name": "int32 string out of range",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null, null, null, \"2147483648\"]",
+      "goError": "failed to parse int32 at index 3 for field authentication.ConfigVersion.Month: strconv.ParseInt: parsing \"2147483648\": value out of range",
+      "location": {
+        "field": "authentication.ConfigVersion.Month",
+        "index": 3
+      }
+    },
+    {
+      "name": "int32 string not decimal",
+      "protoTypeName": "authentication.ConfigVersion",
+      "pbliteJSON": "[null, null, null, null, \"0x10\"]",
+      "goError": "failed to parse int32 at index 4 for field authentication.ConfigVersion.Day: strconv.ParseInt: parsing \"0x10\": invalid syntax",
+      "location": {
+        "field": "authentication.ConfigVersion.Day",
+        "index": 4
+      }
+    },
+    {
+      "name": "int64 string with fraction",
+      "protoTypeName": "authentication.Device",
+      "pbliteJSON": "[\"1.5\"]",
+      "goError": "failed to parse int64 at index 0 for field authentication.Device.userID: strconv.ParseInt: parsing \"1.5\": invalid syntax",
+      "location": {
+        "field": "authentication.Device.userID",
+        "index": 0
+      }
+    },
+    {
+      "name": "uint64 string negative",
+      "protoTypeName": "authentication.SignInGaiaResponse.Header",
+      "pbliteJSON": "[null, \"-1\"]",
+      "goError": "failed to parse uint64 at index 1 for field authentication.SignInGaiaResponse.Header.unknownInt2: strconv.ParseUint: parsing \"-1\": invalid syntax",
+      "location": {
+        "field": "authentication.SignInGaiaResponse.Header.unknownInt2",
+        "index": 1
+      }
+    },
+    {
+      "name": "uint64 string with plus sign",
+      "protoTypeName": "authentication.SignInGaiaResponse.Header",
+      "pbliteJSON": "[null, \"+1\"]",
+      "goError": "failed to parse uint64 at index 1 for field authentication.SignInGaiaResponse.Header.unknownInt2: strconv.ParseUint: parsing \"+1\": invalid syntax",
+      "location": {
+        "field": "authentication.SignInGaiaResponse.Header.unknownInt2",
+        "index": 1
+      }
+    },
+    {
+      "name": "bytes invalid base64 length",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, \"abc\"]",
+      "goError": "failed to decode base64 at index 5 for field authentication.AuthMessage.tachyonAuthToken: illegal base64 data at input byte 0",
+      "location": {
+        "field": "authentication.AuthMessage.tachyonAuthToken",
+        "index": 5
+      }
+    },
+    {
+      "name": "bytes invalid base64 alphabet",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, \"ab-_\"]",
+      "goError": "failed to decode base64 at index 5 for field authentication.AuthMessage.tachyonAuthToken: illegal base64 data at input byte 2",
+      "location": {
+        "field": "authentication.AuthMessage.tachyonAuthToken",
+        "index": 5
+      }
+    },
+    {
+      "name": "bytes base64 without padding",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, \"YWI\"]",
+      "goError": "failed to decode base64 at index 5 for field authentication.AuthMessage.tachyonAuthToken: illegal base64 data at input byte 0",
+      "location": {
+        "field": "authentication.AuthMessage.tachyonAuthToken",
+        "index": 5
+      }
+    },
+    {
+      "name": "bytes data after padding",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, \"YQ==YQ==\"]",
+      "goError": "failed to decode base64 at index 5 for field authentication.AuthMessage.tachyonAuthToken: illegal base64 data at input byte 4",
+      "location": {
+        "field": "authentication.AuthMessage.tachyonAuthToken",
+        "index": 5
+      }
+    },
+    {
+      "name": "bytes given array",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, [1]]",
+      "goError": "expected string at index 5 for field authentication.AuthMessage.tachyonAuthToken, got []interface {}",
+      "location": {
+        "field": "authentication.AuthMessage.tachyonAuthToken",
+        "index": 5
+      }
+    },
+    {
+      "name": "message field given string",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, null, \"x\"]",
+      "goError": "expected untyped array at index 6 for field authentication.AuthMessage.configVersion, got string",
+      "location": {
+        "field": "authentication.AuthMessage.configVersion",
+        "index": 6
+      }
+    },
+    {
+      "name": "nested message error reports nested field",
+      "protoTypeName": "authentication.AuthMessage",
+      "pbliteJSON": "[null, null, null, null, null, null, [null, null, \"y\"]]",
+      "goError": "failed to parse int32 at index 2 for field authentication.ConfigVersion.Year: strconv.ParseInt: parsing \"y\": invalid syntax",
+      "location": {
+        "field": "authentication.ConfigVersion.Year",
+        "index": 2
+      }
+    },
+    {
+      "name": "repeated field given object",
+      "protoTypeName": "client.AckMessageRequest",
+      "pbliteJSON": "[null, null, null, {\"a\": 1}]",
+      "goError": "expected untyped array at index 3 for repeated field client.AckMessageRequest.acks, got map[string]interface {}",
+      "location": {
+        "field": "client.AckMessageRequest.acks",
+        "index": 3
+      }
+    },
+    {
+      "name": "null element inside repeated messages",
+      "protoTypeName": "client.AckMessageRequest",
+      "pbliteJSON": "[null, null, null, [[\"a\"], null]]",
+      "goError": "expected untyped array at index 1 for field client.AckMessageRequest.acks, got <nil>",
+      "location": {
+        "field": "client.AckMessageRequest.acks",
+        "index": 1
+      }
+    },
+    {
+      "name": "null element inside repeated strings",
+      "protoTypeName": "client.GetThumbnailRequest",
+      "pbliteJSON": "[[\"a\", null]]",
+      "goError": "expected string at index 1 for field client.GetThumbnailRequest.identifiers, got <nil>",
+      "location": {
+        "field": "client.GetThumbnailRequest.identifiers",
+        "index": 1
+      }
+    },
+    {
+      "name": "enum given string",
+      "protoTypeName": "authentication.BrowserDetails",
+      "pbliteJSON": "[null, \"1\"]",
+      "goError": "expected float64 at index 1 for field authentication.BrowserDetails.browserType, got string",
+      "location": {
+        "field": "authentication.BrowserDetails.browserType",
+        "index": 1
+      }
+    },
+    {
+      "name": "bool given string",
+      "protoTypeName": "rpc.RPCMessageData",
+      "pbliteJSON": "[null, null, null, null, null, \"true\"]",
+      "goError": "expected bool or float at index 5 for field rpc.RPCMessageData.bool1, got string",
+      "location": {
+        "field": "rpc.RPCMessageData.bool1",
+        "index": 5
+      }
+    },
+    {
+      "name": "pblite_binary message given array",
+      "protoTypeName": "authentication.SignInGaiaRequest.Inner",
+      "pbliteJSON": "[null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, []]",
+      "goError": "expected string at index 35 for field authentication.SignInGaiaRequest.Inner.someData, got []interface {}",
+      "location": {
+        "field": "authentication.SignInGaiaRequest.Inner.someData",
+        "index": 35
+      }
+    },
+    {
+      "name": "pblite_binary message with truncated protobuf",
+      "protoTypeName": "authentication.SignInGaiaRequest.Inner",
+      "pbliteJSON": "[null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, \"GgU=\"]",
+      "goError": "failed to unmarshal binary protobuf at index 35 for field authentication.SignInGaiaRequest.Inner.someData: proto: cannot parse invalid wire-format data",
+      "location": {
+        "field": "authentication.SignInGaiaRequest.Inner.someData",
+        "index": 35
+      }
+    },
+    {
+      "name": "pblite_binary string invalid base64",
+      "protoTypeName": "authentication.SignInGaiaResponse",
+      "pbliteJSON": "[null, \"@@@@\"]",
+      "goError": "failed to decode base64 at index 1 for field authentication.SignInGaiaResponse.maybeBrowserUUID: illegal base64 data at input byte 0",
+      "location": {
+        "field": "authentication.SignInGaiaResponse.maybeBrowserUUID",
+        "index": 1
+      }
+    },
+    {
+      "name": "repeated pblite_binary string element invalid base64",
+      "protoTypeName": "rpc.OutgoingRPCMessage",
+      "pbliteJSON": "[null, null, null, null, null, null, null, null, [\"YWJj\", \"!\"]]",
+      "goError": "failed to decode base64 at index 1 for field rpc.OutgoingRPCMessage.destRegistrationIDs: illegal base64 data at input byte 0",
+      "location": {
+        "field": "rpc.OutgoingRPCMessage.destRegistrationIDs",
+        "index": 1
+      }
+    }
+  ],
+  "floatFormatting": {
+    "doubleBits": [
+      "0000000000000000",
+      "8000000000000000",
+      "3fb999999999999a",
+      "c004000000000000",
+      "4059000000000000",
+      "4415af1d78b58c40",
+      "444b1ae4d6e2ef50",
+      "4454542ba12a337c",
+      "3eb0c6f7a0b5ed8d",
+      "3eb0c6f7a0b5ed8d",
+      "3e7ad7f29abcaf48",
+      "3e8421f5f40d8376",
+      "3efa36e2eb1c432d",
+      "419d6f34547df3b6",
+      "430c6bf526340002",
+      "4340000000000000",
+      "0000000000000001",
+      "7fefffffffffffff",
+      "fe37e43c8800759c",
+      "0000000000000003"
+    ],
+    "doubleJSON": "[0,-0,0.1,-2.5,100,100000000000000000000,1e+21,1.5e+21,0.000001,0.000001,1e-7,1.5e-7,0.000025,123456789.123,1000000000000000.2,9007199254740992,5e-324,1.7976931348623157e+308,-1e+300,1.5e-323]",
+    "floatSourceBits": [
+      "3fb999999999999a",
+      "3fd5555555555555",
+      "47efffffe0000000",
+      "3696d601ad376ab9",
+      "4170000010000000",
+      "8000000000000000",
+      "444b1ae4d6e2ef50",
+      "3e7ad7f29abcaf48",
+      "4004000000000000",
+      "40fe240c9fbe76c9"
+    ],
+    "floatJSON": "[0.10000000149011612,0.3333333432674408,3.4028234663852886e+38,1.401298464324817e-45,16777216,-0,1.0000000200408773e+21,1.0000000116860974e-7,2.5,123456.7890625]"
+  }
+}
