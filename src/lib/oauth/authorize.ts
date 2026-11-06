@@ -32,9 +32,12 @@ const found = (location: string): Response =>
   new Response(null, { status: 302, headers: { Location: location, "Cache-Control": "no-store" } });
 
 /**
- * GET /oauth/authorize. Validates the client and exact redirect URI before
- * any redirect (failures render an error page), then sends the user to
- * GitHub sign-in if needed and on to the consent page.
+ * GET /oauth/authorize. Validates the request (failures render an error
+ * page), then sends the user to GitHub sign-in if needed and on to the
+ * consent page. Errors are never redirected to the client: every redirect URI
+ * comes from open dynamic registration, so an automatic error redirect would
+ * make this origin an open redirector (RFC 9700 section 4.11.2). Only the
+ * user's own consent decision redirects back to the client.
  */
 const handle = async (ctx: OAuthContext, request: Request): Promise<Response> => {
   const url = new URL(request.url);
@@ -45,7 +48,11 @@ const handle = async (ctx: OAuthContext, request: Request): Promise<Response> =>
       case "AuthorizeFatalError":
         return OAuthHttp.htmlError(400, "Cannot authorize this app", error.message);
       case "AuthorizeRedirectError":
-        return found(AuthorizationRequest.errorUrl(ctx, error));
+        return OAuthHttp.htmlError(
+          400,
+          "Cannot authorize this app",
+          `This authorization request is invalid (${error.error}): ${error.description} Nothing was shared. Return to the app you were connecting and start again.`,
+        );
       case "OAuthStorageError":
         OAuthLog.failure(error.operation, error.cause);
         return unavailable();

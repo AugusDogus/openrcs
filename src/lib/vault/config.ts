@@ -2,7 +2,10 @@ import { Env } from "@/lib/env";
 
 /** Device cookie name and attributes for the deployment's scheme. */
 export type DeviceCookieSettings = {
-  /** "__Host-openrcs-device" over https, "__openrcs-device" over http (local dev). */
+  /**
+   * Base name: "__Host-openrcs-device" over https, "__openrcs-device" over
+   * http (local dev). Each account's cookie appends a tag (DeviceCookie.nameFor).
+   */
   readonly name: string;
   readonly secure: boolean;
 };

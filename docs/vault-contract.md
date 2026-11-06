@@ -30,7 +30,9 @@ export const DataBox = {
 } as const;
 
 // device.ts: the browser key slot
-export const DEVICE_COOKIE = "__Host-openrcs-device"; // "__openrcs-device" over http://localhost in dev
+/** Base name; each account's cookie is `${base}-${16 chars of base64url(SHA-256(userId))}`
+ *  ("__openrcs-device" base over http://localhost in dev). */
+export const DEVICE_COOKIE = "__Host-openrcs-device";
 export const DeviceUnlock = {
   /** Unwrap the user's DEK from the device cookie in `cookieHeader`.
    *  Errors: VaultLockedError (no/invalid/revoked/stale slot: this browser
@@ -76,8 +78,8 @@ export const PairingKeys = {
 export const Vault = {
   /** Unpair/delete: revoke and delete every slot and grant of the user. */
   revokeAll(db: Database, userId: string): Promise<Result<void, VaultStorageError>>;
-  /** Clear-Site cookie header value removing the device cookie. */
-  clearDeviceCookie(): string;
+  /** Set-Cookie header value removing this user's device cookie (other accounts' stay). */
+  clearDeviceCookie(userId: string): string;
 } as const;
 ```
 

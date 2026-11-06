@@ -16,6 +16,12 @@ export async function POST(request: Request): Promise<Response> {
 
   const unpaired = await unpairUser(db, signedIn.value);
   if (unpaired.isErr()) {
+    if (unpaired.error._tag === "RcsPhoneBusyError") {
+      return RequestGuard.errorResponse(
+        409,
+        "openrcs is still busy with your phone (a sync, send or pairing). Nothing was deleted and your account still exists; try again in a minute.",
+      );
+    }
     console.error(`[api:account-delete] unpair failed: ${describeForLog(unpaired.error)}`);
     return RequestGuard.errorResponse(
       503,
@@ -33,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
       `[api:account-delete] sign-out before deletion failed (continuing): ${error instanceof Error ? error.name : "unknown"}`,
     );
   }
-  headers.append("set-cookie", Vault.clearDeviceCookie());
+  headers.append("set-cookie", Vault.clearDeviceCookie(signedIn.value.userId));
 
   const deleted = await deleteAccountRows(db, signedIn.value.userId);
   if (deleted.isErr()) {

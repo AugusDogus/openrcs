@@ -1,5 +1,5 @@
 import { Result } from "better-result";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { keySlot, oauthGrant } from "@/lib/db/vault-schema";
 import { VaultConfig } from "./config";
@@ -75,7 +75,7 @@ const prepareWith = async (
     userId,
     dek,
     isNewKey: true,
-    setCookie: DeviceCookie.serialize(config.deviceCookie, credential),
+    setCookie: DeviceCookie.serialize(config.deviceCookie, userId, credential),
     pendingDeviceSlot: values,
   });
 };
@@ -90,16 +90,15 @@ const commitWith = async (
   const { userId, dek } = prepared;
   const now = config.now();
 
-  // Everything sealed under an older DEK is unreadable from now on.
+  // Everything sealed under an older DEK is unreadable from now on, and the
+  // old slots' key shares are destroyed so their credentials reveal nothing.
   const revoked = await Result.tryPromise({
     try: () =>
       db.batch([
         db
           .update(keySlot)
-          .set({ revokedAt: now })
-          .where(
-            and(eq(keySlot.userId, userId), ne(keySlot.dekId, dek.id), isNull(keySlot.revokedAt)),
-          ),
+          .set({ revokedAt: sql`coalesce(${keySlot.revokedAt}, ${now})`, wrappedDek: KeySlot.TOMBSTONE })
+          .where(and(eq(keySlot.userId, userId), ne(keySlot.dekId, dek.id))),
         db
           .update(oauthGrant)
           .set({ revokedAt: now, revokedReason: "key_rotated" })

@@ -1,6 +1,6 @@
 import { createHash, createSecretKey, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
 import { Result } from "better-result";
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, lte, ne } from "drizzle-orm";
 import { gmSession } from "@/lib/db/app-schema";
 import type { Database } from "@/lib/db/client";
 import { keySlot, type KeySlotKind } from "@/lib/db/vault-schema";
@@ -25,13 +25,19 @@ import {
  *   verifier = base64url(SHA-256(HKDF-SHA256(ikm = secret, salt = pepper, info = "openrcs/verifier/v1|" + slotId)))
  *   wrapped  = AES-256-GCM(KEK, DEK, AAD = userId|kind|slotId|dekId), envelope version "k1"
  *
- * The database only ever sees the verifier and the wrapped DEK.
+ * The database only ever sees the verifier and the wrapped DEK. Once a slot
+ * can no longer be used (consumed, revoked or expired) its wrapped DEK is
+ * overwritten with `TOMBSTONE`, so an old credential plus a later database
+ * and KEY_PEPPER leak reveals nothing. The row itself (id, verifier, grant,
+ * consumed/revoked times) stays for replay detection.
  */
 
 const SLOT_ID_BYTES = 16;
 const SLOT_SECRET_BYTES = 32;
 const KEY_BYTES = 32;
 const WRAP_VERSION = "k1";
+/** `wrapped_dek` of a slot whose key share was destroyed. Never unwraps. */
+const TOMBSTONE = "";
 
 export type KeySlotRow = typeof keySlot.$inferSelect;
 export type NewKeySlot = typeof keySlot.$inferInsert & {
@@ -136,16 +142,28 @@ const invalid = (row: { id: string; kind: KeySlotKind }, reason: KeySlotRejectio
     message: `Key slot ${row.id} (${row.kind}) cannot be used: ${reason.replace(/_/g, " ")}. Nothing was changed.`,
   });
 
+/** Checks the secret against the stored verifier (constant time). */
+const verify = (
+  config: VaultConfig,
+  row: KeySlotRow,
+  credential: SlotCredential,
+): Result<void, KeySlotInvalidError> => {
+  if (credential.slotId !== row.id) return Result.err(invalid(row, "not_found"));
+  if (!constantTimeEqual(verifierFor(config.pepper, credential), row.verifier)) {
+    return Result.err(invalid(row, "wrong_secret"));
+  }
+  return Result.ok();
+};
+
 /** Checks the secret against the stored verifier and unwraps the DEK. */
 const unwrap = (
   config: VaultConfig,
   row: KeySlotRow,
   credential: SlotCredential,
 ): Result<Dek, KeySlotInvalidError> => {
-  if (credential.slotId !== row.id) return Result.err(invalid(row, "not_found"));
-  if (!constantTimeEqual(verifierFor(config.pepper, credential), row.verifier)) {
-    return Result.err(invalid(row, "wrong_secret"));
-  }
+  const verified = verify(config, row, credential);
+  if (verified.isErr()) return Result.err(verified.error);
+  if (row.wrappedDek === TOMBSTONE) return Result.err(invalid(row, "unwrap_failed"));
   const kek = createSecretKey(deriveKek(config.pepper, row.kind, credential));
   const opened = SecretBox.openBytes({ key: kek }, row.wrappedDek, {
     associatedData: wrapAad(row.userId, row.kind, row.id, row.dekId),
@@ -186,6 +204,42 @@ const load = (db: Database, slotId: string): Promise<Result<KeySlotRow | null, V
     catch: (cause) => VaultErrors.storage(`load key slot ${slotId}`, null, cause),
   });
 
+/** Overwrites the key share of `row` (the row stays for replay detection). */
+const destroy = (db: Database, row: KeySlotRow): Promise<Result<void, VaultStorageError>> =>
+  Result.tryPromise({
+    try: async () => {
+      await db.update(keySlot).set({ wrappedDek: TOMBSTONE }).where(eq(keySlot.id, row.id));
+    },
+    catch: (cause) => VaultErrors.storage(`destroy key share of slot ${row.id}`, row.userId, cause),
+  });
+
+/**
+ * Destroys the key share of every expired slot of the user. Called on the
+ * user's own token and consent writes, so codes that were never redeemed and
+ * refresh tokens that were never used again do not keep a usable copy.
+ */
+const destroyExpired = (
+  db: Database,
+  userId: string,
+  now: number,
+): Promise<Result<void, VaultStorageError>> =>
+  Result.tryPromise({
+    try: async () => {
+      await db
+        .update(keySlot)
+        .set({ wrappedDek: TOMBSTONE })
+        .where(
+          and(
+            eq(keySlot.userId, userId),
+            isNotNull(keySlot.expiresAt),
+            lte(keySlot.expiresAt, now),
+            ne(keySlot.wrappedDek, TOMBSTONE),
+          ),
+        );
+    },
+    catch: (cause) => VaultErrors.storage("destroy key shares of expired slots", userId, cause),
+  });
+
 /** The DEK generation of the user's paired session, or null when not paired. */
 const sessionDekId = (
   db: Database,
@@ -216,7 +270,10 @@ export type OpenedSlot = { readonly row: KeySlotRow; readonly dek: Dek };
  * Loads a slot and returns its DEK if the credential is genuine and the slot
  * is usable: right kind and user, correct secret (constant-time verifier
  * check), not revoked, not consumed, not expired, and for the same DEK
- * generation as the user's gm_session (when one exists).
+ * generation as the user's gm_session (when one exists). Lifecycle checks run
+ * before unwrapping, so a consumed slot whose key share is gone still reports
+ * KeySlotConsumedError (replay detection). An expired slot's key share is
+ * destroyed when it is presented.
  */
 const open = async (
   db: Database,
@@ -228,27 +285,38 @@ const open = async (
   const row = loaded.value;
   if (!row) return Result.err(invalid({ id: input.credential.slotId, kind: input.kind }, "not_found"));
   if (row.kind !== input.kind) return Result.err(invalid(row, "wrong_kind"));
-  const dek = unwrap(config, row, input.credential);
-  if (dek.isErr()) return Result.err(dek.error);
+  const verified = verify(config, row, input.credential);
+  if (verified.isErr()) return Result.err(verified.error);
   if (input.userId !== undefined && row.userId !== input.userId) {
     return Result.err(invalid(row, "wrong_user"));
   }
   const state = checkState(row, config.now());
-  if (state.isErr()) return Result.err(state.error);
+  if (state.isErr()) {
+    if (state.error._tag === "KeySlotInvalidError" && state.error.reason === "expired" && row.wrappedDek !== TOMBSTONE) {
+      const destroyed = await destroy(db, row);
+      if (destroyed.isErr()) return Result.err(destroyed.error);
+    }
+    return Result.err(state.error);
+  }
   const currentDekId = await sessionDekId(db, row.userId);
   if (currentDekId.isErr()) return Result.err(currentDekId.error);
   if (currentDekId.value !== null && currentDekId.value !== row.dekId) {
     return Result.err(invalid(row, "stale_key"));
   }
+  const dek = unwrap(config, row, input.credential);
+  if (dek.isErr()) return Result.err(dek.error);
   return Result.ok({ row, dek: dek.value });
 };
 
 export const KeySlot = {
+  TOMBSTONE,
   mint,
+  verify,
   unwrap,
   checkState,
   load,
   open,
+  destroyExpired,
   sessionDekId,
   verifierFor,
   constantTimeEqual,

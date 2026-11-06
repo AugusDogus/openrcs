@@ -1,5 +1,5 @@
 import { Result } from "better-result";
-import { sql } from "drizzle-orm";
+import { lte, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { requestThrottle } from "@/lib/db/vault-schema";
 import { OAuthErrors, type OAuthStorageError } from "./errors";
@@ -65,12 +65,29 @@ const hitAll = async (
   return Result.ok(decision);
 };
 
+const rules = {
+  registerPerIp: { limit: 30, windowMs: 10 * 60 * 1000 },
+  /** Bounds what open registration can store per hour, however many addresses an attacker has. */
+  registerGlobal: { limit: 300, windowMs: 60 * 60 * 1000 },
+  tokenPerIp: { limit: 120, windowMs: 60 * 1000 },
+  /** Per client AND address (client ids are public). */
+  tokenPerClient: { limit: 60, windowMs: 60 * 1000 },
+} as const satisfies Record<string, ThrottleRule>;
+
+const longestWindowMs = Math.max(...Object.values(rules).map((rule) => rule.windowMs));
+
+/** Deletes counters whose window has ended under every rule. */
+const prune = (db: Database, now: number): Promise<Result<void, OAuthStorageError>> =>
+  Result.tryPromise({
+    try: async () => {
+      await db.delete(requestThrottle).where(lte(requestThrottle.windowStart, now - longestWindowMs));
+    },
+    catch: (cause) => OAuthErrors.storage("prune expired throttle windows", cause),
+  });
+
 export const RequestThrottle = {
   hit,
   hitAll,
-  rules: {
-    registerPerIp: { limit: 30, windowMs: 10 * 60 * 1000 },
-    tokenPerIp: { limit: 120, windowMs: 60 * 1000 },
-    tokenPerClient: { limit: 60, windowMs: 60 * 1000 },
-  },
+  prune,
+  rules,
 } as const;

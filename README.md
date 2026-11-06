@@ -112,8 +112,8 @@ bun run db:migrate
 bun run dev
 ```
 
-Over `http://localhost` the device cookie is `__openrcs-device` (the
-`__Host-` prefix needs HTTPS).
+Over `http://localhost` the device cookies are named `__openrcs-device-<tag>`
+(one per account; the `__Host-` prefix needs HTTPS).
 
 | Script | What it does |
 | --- | --- |

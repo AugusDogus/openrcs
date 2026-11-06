@@ -6,7 +6,8 @@ export class InvalidRedirectUriError extends TaggedError("InvalidRedirectUriErro
   message: string;
 }> {}
 
-export const MAX_URI_LENGTH = 2000;
+/** Real redirect, client and logo URIs are far shorter; the cap bounds what open registration can store. */
+export const MAX_URI_LENGTH = 512;
 
 /** Schemes that are never private-use app schemes (RFC 8252 section 7.1). */
 const BLOCKED_SCHEMES = new Set([

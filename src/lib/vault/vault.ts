@@ -21,8 +21,9 @@ const revokeAll = (db: Database, userId: string): Promise<Result<void, VaultStor
 export const Vault = {
   /** Unpair/delete: revoke and delete every slot and grant of the user. */
   revokeAll,
-  /** Set-Cookie header value removing the device cookie. */
-  clearDeviceCookie: (): string =>
-    DeviceCookie.clear(VaultConfig.deviceCookieFor(Env.auth().BETTER_AUTH_URL)),
-  clearDeviceCookieWith: (settings: DeviceCookieSettings): string => DeviceCookie.clear(settings),
+  /** Set-Cookie header value removing `userId`'s device cookie (other accounts in the browser keep theirs). */
+  clearDeviceCookie: (userId: string): string =>
+    DeviceCookie.clear(VaultConfig.deviceCookieFor(Env.auth().BETTER_AUTH_URL), userId),
+  clearDeviceCookieWith: (settings: DeviceCookieSettings, userId: string): string =>
+    DeviceCookie.clear(settings, userId),
 } as const;

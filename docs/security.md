@@ -10,9 +10,10 @@ or message content.
 
 | Attacker has | Learns |
 | --- | --- |
-| Database dump | Opaque ids, timestamps, row counts. No secrets, no content. |
+| Database dump | Opaque ids, timestamps, row counts. No secrets, no content (GitHub provider tokens are dropped before every account write, never stored). |
 | Database + Vercel env (`KEY_PEPPER`) | Same as above. Every key-encryption key also needs a client-held secret that is never stored. |
-| One user's refresh token or device cookie, plus DB + env | That one user's data. |
+| One user's live refresh token or device cookie, plus DB + env | That one user's data. Used, rotated, revoked or expired codes, refresh tokens and device cookies reveal nothing: their slot's wrapped DEK is destroyed. |
+| Any access token ever issued to a user, plus env (`KEY_PEPPER`) | That user's DEK, so with the DB their data, until the DEK is rotated (re-pairing from a browser with no valid device slot). Expiry and revocation stop the server honoring the token but cannot take back the DEK it carries. |
 | A live compromise of the running code | Data of users whose clients make requests during the compromise. No hosted design can prevent this; only running locally can. |
 
 The unavoidable trade-off: the server cannot sync while no client is
@@ -33,11 +34,20 @@ client or the dashboard calls in.
   slot id, kind, `verifier = SHA-256(HKDF(slotSecret, salt = KEY_PEPPER, info = "openrcs/verifier/v1|" + slotId))`,
   the wrapped DEK (AAD = `userId|kind|slotId|dekId`), expiry, and revocation state.
   So unwrapping needs three things: the DB row, the env pepper, and the
-  client's secret.
+  client's secret. When a slot stops being usable (a code is redeemed, a
+  refresh token rotated, a slot revoked, or an expired slot is presented or
+  swept on the user's next token or consent write) its wrapped DEK is
+  overwritten with an empty tombstone. The row (id, verifier, grant,
+  consumed/revoked times) stays for replay detection.
 - Slot kinds:
   - `device`: the browser that paired. Its secret lives in an HttpOnly,
-    Secure, SameSite=Lax cookie `__Host-openrcs-device` = `<slotId>.<base64url secret>`
-    (1 year). Lets the dashboard unlock data and approve new MCP clients.
+    Secure, SameSite=Lax cookie `__Host-openrcs-device-<tag>` = `<slotId>.<base64url secret>`
+    (1 year), where `<tag>` is the first 16 characters of
+    base64url(SHA-256(userId)): one cookie per account, so accounts sharing
+    a browser never overwrite each other's key. (The unscoped
+    `__Host-openrcs-device` of browsers paired earlier is still read, and only
+    unlocks its own account.) Lets the dashboard unlock data and approve new
+    MCP clients.
   - `oauth_code`: an authorization code (single use, 60 s TTL). The code
     string itself carries the secret.
   - `oauth_refresh`: a refresh token (rotated on every use). The token string
@@ -46,9 +56,11 @@ client or the dashboard calls in.
   `"oat_" + AES-256-GCM(key = HKDF(KEY_PEPPER, info = "openrcs/access-token/v1"), JSON{v, uid, gid, cid, scope, exp, did, dek})`
   (`did` is the DEK id).
   They are never stored server-side, live 1 hour, and are checked against the
-  grant row (not revoked) on every request. A stolen access token plus the
-  env pepper gives the DEK, which is equivalent to the token's own power for
-  its lifetime.
+  grant row (not revoked) on every request. Because the DEK is inside, any
+  access token ever issued (even expired or revoked) plus the env pepper
+  gives the DEK, and that DEK stays valid until the user's DEK is rotated by
+  re-pairing from a browser with no valid device slot. Revoking a grant does
+  not rotate the DEK (that would disconnect every other client).
 
 ## Data at rest
 
@@ -73,13 +85,24 @@ and browser sessions). Follows the MCP authorization spec:
   `authorization_servers = [origin]`.
 - `GET /.well-known/oauth-authorization-server` (also served at
   `/.well-known/openid-configuration` for clients that probe it): RFC 8414.
-- `POST /oauth/register`: RFC 7591 dynamic client registration, rate limited.
+- `POST /oauth/register`: RFC 7591 dynamic client registration, open, so
+  bounded: per-address limit (IPv6 counted per /64), a global hourly cap,
+  URIs of at most 512 characters, and registrations without a grant are
+  pruned after 24 hours.
 - `GET /oauth/authorize` -> GitHub sign-in if needed -> consent page that
-  requires an unlocked device slot -> authorization code.
+  requires an unlocked device slot -> authorization code. Invalid requests
+  get an error page, never an automatic redirect: every redirect URI comes
+  from open registration, so redirecting errors would make the issuer an
+  open redirector (RFC 9700 section 4.11.2). Only the user's own consent
+  decision (approve or deny) redirects to the client.
 - `POST /oauth/token`: `authorization_code` (PKCE S256 required, exact
   redirect URI match, RFC 8707 `resource` must be the MCP resource) and
   `refresh_token` (rotation; reuse of a rotated token outside a short grace
-  window revokes the whole grant).
+  window revokes the whole grant). A redeemed code replayed by its own client
+  within 10 minutes revokes the grant; replays by other clients or later
+  only fail, so an old code from browser history cannot disconnect the user.
+  Token requests are rate limited per address and per (client, address),
+  since client ids are public.
 - `POST /oauth/revoke`: RFC 7009.
 - `/api/mcp` answers 401 with
   `WWW-Authenticate: Bearer resource_metadata="${origin}/.well-known/oauth-protected-resource/api/mcp"`
@@ -95,7 +118,10 @@ Scopes: `messages:read`, `messages:send`.
   old slots and grants are revoked and the user's old encrypted data is
   deleted (it is unreadable without the old DEK).
 - Unpair / delete deletes the session, all slots and grants, and all stored
-  conversations and messages.
+  conversations and messages. It first takes the phone lease (waiting up to
+  30 s for a sync, send or pairing in progress, else refusing and deleting
+  nothing), so no in-flight operation can store rows or re-create the session
+  afterwards.
 
 ## Operational rules
 

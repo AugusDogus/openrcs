@@ -134,6 +134,9 @@ const issueCode = async (
     catch: (cause) => OAuthErrors.storage(`create grant and authorization code for client ${request.clientId}`, cause),
   });
   if (stored.isErr()) return Result.err(stored.error);
+  // Maintenance: the code is issued either way, so a failure is only logged.
+  const swept = await KeySlot.destroyExpired(ctx.db, session.userId, now);
+  if (swept.isErr()) OAuthLog.failure(swept.error.operation, swept.error.cause);
   return Result.ok(AuthorizationCode.format(code.credential));
 };
 

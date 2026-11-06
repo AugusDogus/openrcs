@@ -28,7 +28,12 @@ export class AuthorizeFatalError extends TaggedError("AuthorizeFatalError")<{
   message: string;
 }> {}
 
-/** An error the client should receive on its (verified) redirect URI. */
+/**
+ * An RFC 6749 error for a request whose client and redirect URI matched the
+ * registration. GET /oauth/authorize shows it as a page (redirect URIs come
+ * from open registration, so it never redirects on its own); only the user's
+ * consent decision sends it to the redirect URI.
+ */
 export class AuthorizeRedirectError extends TaggedError("AuthorizeRedirectError")<{
   redirectUri: string;
   state: string | null;
@@ -46,8 +51,8 @@ const fatal = (message: string) => Result.err(new AuthorizeFatalError({ message 
 const restart = "Nothing was shared. Return to the app you were connecting and start again.";
 
 /**
- * Validates client and redirect URI first (failures never redirect), then
- * everything else (failures go back to the client as error redirects).
+ * Validates client and redirect URI first (AuthorizeFatalError), then
+ * everything else (AuthorizeRedirectError).
  */
 const validate = async (
   ctx: OAuthContext,

@@ -169,6 +169,30 @@ describe("KeySlot", () => {
     );
   });
 
+  test("a consumed slot whose key share was destroyed still reports KeySlotConsumedError", async () => {
+    const { credential, values } = await mintAndStore("oauth_refresh", clock.now() + 1_000);
+    await t.db.update(keySlot).set({ consumedAt: clock.now() }).where(eq(keySlot.id, credential.slotId));
+    clock.advance(1_000);
+    (await KeySlot.destroyExpired(t.db, userId, clock.now())).unwrap();
+    const [row] = await t.db.select().from(keySlot).where(eq(keySlot.id, credential.slotId));
+    expect(row?.wrappedDek).not.toBe(values.wrappedDek);
+    const result = await KeySlot.open(t.db, config, { credential, kind: "oauth_refresh" });
+    expect(result.isErr() && result.error._tag).toBe("KeySlotConsumedError");
+  });
+
+  test("an expired slot is tombstoned when it is presented", async () => {
+    const { credential } = await mintAndStore("device", clock.now() + 1_000);
+    clock.advance(1_000);
+    await expectRejected(
+      await KeySlot.open(t.db, config, { credential, kind: "device" }),
+      "KeySlotInvalidError",
+      "expired",
+    );
+    const [row] = await t.db.select().from(keySlot).where(eq(keySlot.id, credential.slotId));
+    expect(row?.wrappedDek).toBe(KeySlot.TOMBSTONE);
+    expect(row && KeySlot.unwrap(config, row, credential).isErr()).toBe(true);
+  });
+
   test("a wrapped DEK moved to another slot row does not unwrap", async () => {
     const a = await mintAndStore();
     const b = await mintAndStore();

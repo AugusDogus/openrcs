@@ -11,11 +11,13 @@ import { OAuthContext } from "./context";
 import { OAuthErrors, type OAuthProtocolError, type OAuthStorageError } from "./errors";
 import { OAuthGrants, type GrantRevocationReason, type OAuthGrantRow } from "./grants";
 import { OAuthHttp } from "./http";
+import { OAuthLog } from "./log";
 import { McpScope } from "./scopes";
 import { RequestThrottle } from "./throttle";
 import {
   ACCESS_TOKEN_TTL_SECONDS,
   AccessToken,
+  AUTHORIZATION_CODE_REPLAY_WINDOW_MS,
   AuthorizationCode,
   REFRESH_REUSE_GRACE_MS,
   REFRESH_TOKEN_TTL_MS,
@@ -80,8 +82,9 @@ const liveGrant = async (
 type IssuedTokens = { readonly refreshToken: string; readonly accessToken: string; readonly scope: string };
 
 /**
- * Marks `consumedSlotId` used and stores a new refresh slot in one write
- * transaction. Ok(null) when another request consumed the slot first.
+ * Marks `consumedSlotId` used (destroying its key share) and stores a new
+ * refresh slot in one write transaction. Ok(null) when another request
+ * consumed the slot first.
  */
 const rotate = async (
   ctx: OAuthContext,
@@ -104,7 +107,7 @@ const rotate = async (
       ctx.db.transaction(async (tx) => {
         const consumed = await tx
           .update(keySlot)
-          .set({ consumedAt: now, lastUsedAt: now })
+          .set({ consumedAt: now, lastUsedAt: now, wrappedDek: KeySlot.TOMBSTONE })
           .where(
             and(eq(keySlot.id, consumedSlotId), isNull(keySlot.consumedAt), isNull(keySlot.revokedAt)),
           )
@@ -117,6 +120,9 @@ const rotate = async (
   });
   if (committed.isErr()) return Result.err(committed.error);
   if (!committed.value) return Result.ok(null);
+  // Maintenance: the tokens are issued either way, so a failure is only logged.
+  const swept = await KeySlot.destroyExpired(ctx.db, grant.userId, now);
+  if (swept.isErr()) OAuthLog.failure(swept.error.operation, swept.error.cause);
   return Result.ok({
     refreshToken: RefreshToken.format(refresh.credential),
     accessToken: AccessToken.seal(ctx.vault.pepper, {
@@ -131,12 +137,21 @@ const rotate = async (
   });
 };
 
+/**
+ * What a replay of a consumed credential means. `benign`: a client retry
+ * (plain invalid_grant). `theft`: revoke the grant, but only when the
+ * credential's own client replays it; anyone else holding an old credential
+ * must not be able to disconnect the user. `stale`: too old to signal theft.
+ */
+type ReplayVerdict = "benign" | "theft" | "stale";
+
 const openSlot = async (
   ctx: OAuthContext,
+  client: OAuthClientRecord,
   credential: SlotCredential | undefined,
   kind: "oauth_code" | "oauth_refresh",
   replayReason: GrantRevocationReason,
-  isBenignReplay: (consumedAt: number) => boolean,
+  classifyReplay: (consumedAt: number) => ReplayVerdict,
 ): Promise<Result<{ row: KeySlotRow; dek: Dek }, TokenError>> => {
   const what = kind === "oauth_code" ? "authorization code" : "refresh token";
   if (!credential) return Result.err(invalidGrant(`The ${what} is invalid.`));
@@ -158,16 +173,23 @@ const openSlot = async (
                 : `The ${what} is invalid.`,
         ),
       );
-    case "KeySlotConsumedError":
-      if (isBenignReplay(error.consumedAt)) {
-        return Result.err(invalidGrant(`The ${what} was already used. Use the newest one.`));
-      }
+    case "KeySlotConsumedError": {
+      const alreadyUsed = invalidGrant(
+        kind === "oauth_code"
+          ? "The authorization code was already used. Start the authorization again."
+          : "The refresh token was already used. Use the newest one.",
+      );
+      if (classifyReplay(error.consumedAt) !== "theft" || error.grantId === null) return Result.err(alreadyUsed);
+      const grant = await OAuthGrants.load(ctx.db, error.grantId);
+      if (grant.isErr()) return Result.err(grant.error);
+      if (grant.value === null || grant.value.clientId !== client.clientId) return Result.err(alreadyUsed);
       return revokeForReplay(
         ctx,
         error.grantId,
         replayReason,
         `The ${what} was already used, so this authorization was revoked to protect the account. Authorize the client again.`,
       );
+    }
   }
 };
 
@@ -183,7 +205,15 @@ const exchangeCode = async (
   if (redirectUri === undefined) return Result.err(invalidRequest("redirect_uri is required."));
   if (verifier === undefined) return Result.err(invalidRequest("code_verifier is required (PKCE)."));
 
-  const opened = await openSlot(ctx, AuthorizationCode.parse(code), "oauth_code", "authorization_code_reuse", () => false);
+  const now = ctx.vault.now();
+  const opened = await openSlot(
+    ctx,
+    client,
+    AuthorizationCode.parse(code),
+    "oauth_code",
+    "authorization_code_reuse",
+    (consumedAt) => (now - consumedAt <= AUTHORIZATION_CODE_REPLAY_WINDOW_MS ? "theft" : "stale"),
+  );
   if (opened.isErr()) return Result.err(opened.error);
   const { row, dek } = opened.value;
   const payload = codePayloadSchema.safeParse(
@@ -232,10 +262,11 @@ const refresh = async (
   const now = ctx.vault.now();
   const opened = await openSlot(
     ctx,
+    client,
     RefreshToken.parse(token),
     "oauth_refresh",
     "refresh_token_reuse",
-    (consumedAt) => now - consumedAt <= REFRESH_REUSE_GRACE_MS,
+    (consumedAt) => (now - consumedAt <= REFRESH_REUSE_GRACE_MS ? "benign" : "theft"),
   );
   if (opened.isErr()) return Result.err(opened.error);
   const { row, dek } = opened.value;
@@ -286,9 +317,11 @@ const handle = async (ctx: OAuthContext, request: Request): Promise<Response> =>
       ? OAuthClients.logStorageError(client.error)
       : OAuthHttp.protocolError(client.error);
   }
+  // Keyed by client AND address: client_ids are public, so a per-client
+  // bucket alone would let anyone block a client's real users.
   const clientLimit = await RequestThrottle.hit(
     ctx.db,
-    `token:client:${client.value.clientId}`,
+    `token:client:${client.value.clientId}:${OAuthHttp.clientIp(request)}`,
     RequestThrottle.rules.tokenPerClient,
     ctx.vault.now(),
   );

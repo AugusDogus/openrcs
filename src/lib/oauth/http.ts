@@ -123,15 +123,42 @@ const readJsonObject = async (
   return Result.ok(Object.fromEntries(Object.entries(value)));
 };
 
+const hextet = /^[0-9a-f]{1,4}$/i;
+
 /**
- * Best-effort client address for throttling. On Vercel `x-forwarded-for` is
- * set by the platform; elsewhere it may be absent, so everything unknown
- * shares one bucket.
+ * Throttle bucket of an address: an IPv6 address counts as its /64 (one
+ * subscriber usually controls a whole /64, so per-address buckets are free to
+ * multiply), an IPv4-mapped IPv6 address as its IPv4 address, anything else
+ * as itself.
+ */
+const throttleBucket = (address: string): string => {
+  if (!address.includes(":")) return address;
+  const bare = address.replace(/^\[|\]$/g, "").split("%")[0] ?? "";
+  const mapped = /^::ffff:(\d{1,3}(?:\.\d{1,3}){3})$/i.exec(bare);
+  if (mapped?.[1] !== undefined) return mapped[1];
+  const halves = bare.split("::");
+  if (halves.length > 2) return address;
+  const head = halves[0] ? halves[0].split(":") : [];
+  const tail = halves.length === 2 && halves[1] ? halves[1].split(":") : [];
+  const width = (parts: readonly string[]) => parts.reduce((n, part) => n + (part.includes(".") ? 2 : 1), 0);
+  const zeros = 8 - width(head) - width(tail);
+  if (halves.length === 2 ? zeros < 1 : zeros !== 0) return address;
+  const groups = [...head, ...Array.from({ length: halves.length === 2 ? zeros : 0 }, () => "0"), ...tail];
+  const prefix = groups.slice(0, 4);
+  if (!prefix.every((group) => hextet.test(group))) return address;
+  return `${prefix.map((group) => Number.parseInt(group, 16).toString(16)).join(":")}::/64`;
+};
+
+/**
+ * Best-effort client address for throttling (see `throttleBucket`). On
+ * Vercel `x-forwarded-for` is set by the platform; elsewhere it may be
+ * absent, so everything unknown shares one bucket.
  */
 const clientIp = (request: Request): string => {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  if (forwarded) return forwarded;
-  return request.headers.get("x-real-ip")?.trim() || "unknown";
+  if (forwarded) return throttleBucket(forwarded);
+  const real = request.headers.get("x-real-ip")?.trim();
+  return real ? throttleBucket(real) : "unknown";
 };
 
 const escapeHtml = (value: string): string =>
@@ -189,6 +216,7 @@ export const OAuthHttp = {
   readForm,
   readJsonObject,
   uniqueParams,
+  throttleBucket,
   clientIp,
   escapeHtml,
   htmlError,

@@ -5,15 +5,17 @@ import { keySlot, oauthGrant } from "@/lib/db/vault-schema";
 import { DataBox } from "@/lib/vault/data-box";
 import { Dek } from "@/lib/vault/dek";
 import { DeviceUnlock } from "@/lib/vault/device";
+import { KeySlot } from "@/lib/vault/key-slot";
 import { VaultTesting } from "@/lib/vault/testing";
 import { AuthorizeEndpoint } from "./authorize";
 import { OAuthClients } from "./clients";
 import { ConsentFlow, type ConsentView } from "./consent";
 import { GrantRevocation } from "./grant-revocation";
+import { OAuthGrants } from "./grants";
 import { McpAuth } from "./mcp-auth";
 import { RevokeEndpoint } from "./revoke-endpoint";
 import { OAuthTesting, TEST_ORIGIN, type OAuthTestHarness } from "./testing";
-import { AccessToken } from "./tokens";
+import { AccessToken, AuthorizationCode, RefreshToken } from "./tokens";
 import { TokenEndpoint } from "./token-endpoint";
 
 const REDIRECT = "http://127.0.0.1:8976/callback";
@@ -154,7 +156,7 @@ describe("authorization code flow", () => {
     const { client, browser, tokens, setCookie } = await connected();
     expect(tokens.scope).toBe("messages:read messages:send");
     // First consent before pairing minted the vault key and set the device cookie.
-    expect(setCookie).toMatch(/^__Host-openrcs-device=.*; HttpOnly; SameSite=Lax; Secure$/);
+    expect(setCookie).toMatch(/^__Host-openrcs-device-[A-Za-z0-9_-]{16}=.*; HttpOnly; SameSite=Lax; Secure$/);
 
     const auth = (await McpAuth.authenticate(h.ctx, mcpRequest(tokens.access_token))).unwrap();
     expect(auth.userId).toBe(browser.userId);
@@ -220,25 +222,27 @@ describe("/oauth/authorize validation", () => {
     }
   });
 
-  test("other errors go back to the client with error, state and iss", async () => {
-    const client = await registerClient();
+  test("other errors render an error page and never redirect to the (dynamically registered) redirect URI", async () => {
+    const client = await registerClient({ redirect_uris: ["https://evil.example/phish"] });
+    const browser = await h.signIn();
     const { challenge } = OAuthTesting.pkce();
-    const cases: readonly [Record<string, string>, string][] = [
-      [{ code_challenge_method: "plain" }, "invalid_request"],
-      [{ code_challenge: "" }, "invalid_request"],
-      [{ code_challenge: "short" }, "invalid_request"],
-      [{ response_type: "token" }, "unsupported_response_type"],
-      [{ resource: "https://elsewhere.example/api/mcp" }, "invalid_target"],
-      [{ scope: "openid" }, "invalid_scope"],
+    const cases: readonly Record<string, string>[] = [
+      { response_type: "" },
+      { code_challenge_method: "plain" },
+      { code_challenge: "" },
+      { code_challenge: "short" },
+      { response_type: "token" },
+      { resource: "https://elsewhere.example/api/mcp" },
+      { scope: "openid" },
     ];
-    for (const [extra, error] of cases) {
-      const response = await authorize(authorizeParams(client.client_id, challenge, extra));
-      expect(response.status).toBe(302);
-      const location = new URL(response.headers.get("location") ?? "");
-      expect(`${location.origin}${location.pathname}`).toBe(REDIRECT);
-      expect(location.searchParams.get("error")).toBe(error);
-      expect(location.searchParams.get("state")).toBe("state-123");
-      expect(location.searchParams.get("iss")).toBe(TEST_ORIGIN);
+    for (const extra of cases) {
+      const params = authorizeParams(client.client_id, challenge, { redirect_uri: "https://evil.example/phish", ...extra });
+      for (const cookie of [undefined, browser.cookie]) {
+        const response = await authorize(params, cookie);
+        expect(response.status).toBe(400);
+        expect(response.headers.get("location")).toBeNull();
+        expect(response.headers.get("content-type")).toContain("text/html");
+      }
     }
   });
 
@@ -321,7 +325,7 @@ describe("consent lock rule", () => {
       userId: browser.userId,
       cookie: browser.cookie
         .split("; ")
-        .filter((cookie) => !cookie.startsWith("__Host-openrcs-device="))
+        .filter((cookie) => !cookie.startsWith("__Host-openrcs-device"))
         .join("; "),
     };
     const params = authorizeParams(client.client_id, OAuthTesting.pkce().challenge);
@@ -376,6 +380,19 @@ describe("token endpoint: authorization_code", () => {
     expect(auth.isErr()).toBe(true);
   });
 
+  test("a used code replayed by another client, or long after use, is invalid_grant without revoking", async () => {
+    const { client, code, tokens, browser } = await connected();
+    const attacker = await registerClient();
+    const junk = "x".repeat(43);
+    await expectOAuthError(await exchange(attacker.client_id, code, junk), 400, "invalid_grant");
+    expect((await grantOf(browser.userId)).revokedAt).toBeNull();
+
+    h.clock.advance(3 * 24 * 60 * 60 * 1000);
+    await expectOAuthError(await exchange(client.client_id, code, junk), 400, "invalid_grant");
+    expect((await grantOf(browser.userId)).revokedAt).toBeNull();
+    expect((await refresh(client.client_id, tokens.refresh_token)).status).toBe(200);
+  });
+
   test("tampered codes are invalid_grant", async () => {
     const client = await registerClient();
     const browser = await h.signIn();
@@ -409,6 +426,19 @@ describe("token endpoint: authorization_code", () => {
     const jsonBody = await TokenEndpoint.handle(h.ctx, OAuthTesting.json(`${TEST_ORIGIN}/oauth/token`, { grant_type: "refresh_token" }));
     await expectOAuthError(jsonBody, 400, "invalid_request");
     await expectOAuthError(await token({ grant_type: "refresh_token", client_id: client.client_id, scope: "a", refresh_token: "x" }, {}), 400, "invalid_grant");
+  });
+});
+
+describe("token endpoint throttling", () => {
+  test("junk requests naming a public client_id from one address do not throttle that client elsewhere", async () => {
+    const { client, tokens } = await connected();
+    for (let i = 0; i < 70; i += 1) {
+      await token({ grant_type: "junk", client_id: client.client_id }, { "x-forwarded-for": "192.0.2.66" });
+    }
+    const legit = await refresh(client.client_id, tokens.refresh_token);
+    expect(legit.status).toBe(200);
+    const flooded = await token({ grant_type: "junk", client_id: client.client_id }, { "x-forwarded-for": "192.0.2.66" });
+    expect(flooded.status).toBe(429);
   });
 });
 
@@ -478,6 +508,41 @@ describe("token endpoint: refresh_token", () => {
     const { client, tokens } = await connected();
     h.clock.advance(90 * 24 * 60 * 60 * 1000);
     await expectOAuthError(await refresh(client.client_id, tokens.refresh_token), 400, "invalid_grant");
+  });
+});
+
+describe("key share destruction", () => {
+  test("after use, rotation and revocation, no old credential can unwrap the DEK", async () => {
+    const { client, code, tokens, browser } = await connected();
+    const rotated = tokenResponse.parse(await (await refresh(client.client_id, tokens.refresh_token)).json());
+    const grant = await grantOf(browser.userId);
+    expect((await OAuthGrants.revokeOwned(h.ctx.db, browser.userId, grant.id, h.clock.now())).unwrap()).toBe(true);
+
+    const credentials = [
+      AuthorizationCode.parse(code),
+      RefreshToken.parse(tokens.refresh_token),
+      RefreshToken.parse(rotated.refresh_token),
+    ];
+    for (const credential of credentials) {
+      if (!credential) throw new Error("expected a parsable credential");
+      const [row] = await h.ctx.db.select().from(keySlot).where(eq(keySlot.id, credential.slotId));
+      if (!row) throw new Error("expected the slot row to remain for replay detection");
+      expect(KeySlot.verify(h.ctx.vault, row, credential).isOk()).toBe(true);
+      expect(KeySlot.unwrap(h.ctx.vault, row, credential).isErr()).toBe(true);
+    }
+  });
+
+  test("an unredeemed, expired code loses its key share on the user's next token write", async () => {
+    const { client, tokens, browser } = await connected();
+    const { challenge } = OAuthTesting.pkce();
+    const { code } = await approve(browser, client.client_id, challenge);
+    h.clock.advance(60_000);
+    expect((await refresh(client.client_id, tokens.refresh_token)).status).toBe(200);
+    const credential = AuthorizationCode.parse(code);
+    if (!credential) throw new Error("expected a parsable code");
+    const [row] = await h.ctx.db.select().from(keySlot).where(eq(keySlot.id, credential.slotId));
+    if (!row) throw new Error("expected the code slot row");
+    expect(KeySlot.unwrap(h.ctx.vault, row, credential).isErr()).toBe(true);
   });
 });
 

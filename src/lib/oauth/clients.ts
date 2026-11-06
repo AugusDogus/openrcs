@@ -1,11 +1,12 @@
 import { createHash, randomBytes } from "node:crypto";
 import { Result } from "better-result";
-import { eq } from "drizzle-orm";
+import { and, eq, lt, notExists } from "drizzle-orm";
 import { z } from "zod";
 import type { Database } from "@/lib/db/client";
 import {
   OAUTH_CLIENT_AUTH_METHODS,
   oauthClient,
+  oauthGrant,
   type OAuthClientAuthMethod,
 } from "@/lib/db/vault-schema";
 import { Base64Url } from "@/lib/vault/base64url";
@@ -192,6 +193,30 @@ const logStorageError = (error: OAuthStorageError): Response => {
   );
 };
 
+/**
+ * Registrations that hold no grant are dropped after this long. Real clients
+ * authorize right after registering; one that comes back later gets "unknown
+ * client" and registers again.
+ */
+export const UNUSED_CLIENT_TTL_MS = 24 * 60 * 60 * 1000;
+
+const pruneUnused = (db: Database, now: number): Promise<Result<void, OAuthStorageError>> =>
+  Result.tryPromise({
+    try: async () => {
+      await db
+        .delete(oauthClient)
+        .where(
+          and(
+            lt(oauthClient.createdAt, now - UNUSED_CLIENT_TTL_MS),
+            notExists(
+              db.select({ id: oauthGrant.id }).from(oauthGrant).where(eq(oauthGrant.clientId, oauthClient.clientId)),
+            ),
+          ),
+        );
+    },
+    catch: (cause) => OAuthErrors.storage("prune unused clients", cause),
+  });
+
 /** POST /oauth/register (RFC 7591). */
 const register = async (ctx: OAuthContext, request: Request): Promise<Response> => {
   const now = ctx.vault.now();
@@ -211,6 +236,13 @@ const register = async (ctx: OAuthContext, request: Request): Promise<Response> 
   const parsed = parseRegistration(body.value);
   if (parsed.isErr()) return OAuthHttp.protocolError(parsed.error);
   const registration = parsed.value;
+
+  // Counted only for valid registrations, which are the ones that store a row.
+  const global = await RequestThrottle.hit(ctx.db, "register:global", RequestThrottle.rules.registerGlobal, now);
+  if (global.isErr()) return logStorageError(global.error);
+  if (!global.value.allowed) {
+    return OAuthHttp.protocolError(tooManyRequests(global.value.retryAfterSeconds));
+  }
 
   const clientId = Base64Url.encode(randomBytes(18));
   const clientSecret =
@@ -235,6 +267,11 @@ const register = async (ctx: OAuthContext, request: Request): Promise<Response> 
     catch: (cause) => OAuthErrors.storage("register client", cause),
   });
   if (inserted.isErr()) return logStorageError(inserted.error);
+
+  // Maintenance: the client is registered either way, so failures are only logged.
+  for (const pruned of [await pruneUnused(ctx.db, now), await RequestThrottle.prune(ctx.db, now)]) {
+    if (pruned.isErr()) OAuthLog.failure(pruned.error.operation, pruned.error.cause);
+  }
 
   return OAuthHttp.json(
     {

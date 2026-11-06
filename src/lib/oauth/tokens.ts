@@ -15,6 +15,12 @@ export const REFRESH_TOKEN_PREFIX = "ort_";
 export const ACCESS_TOKEN_PREFIX = "oat_";
 
 export const AUTHORIZATION_CODE_TTL_MS = 60 * 1000;
+/**
+ * A used code replayed by its own client within this long after redemption
+ * revokes the grant (RFC 6749 section 4.1.2). Later replays only fail: an old
+ * code from browser history or logs must not let anyone disconnect the user.
+ */
+export const AUTHORIZATION_CODE_REPLAY_WINDOW_MS = 10 * 60 * 1000;
 export const REFRESH_TOKEN_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 export const ACCESS_TOKEN_TTL_SECONDS = 60 * 60;
 /** A rotated refresh token replayed within this window is a client retry, not theft. */

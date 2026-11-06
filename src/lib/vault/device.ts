@@ -1,5 +1,7 @@
+import { createHash } from "node:crypto";
 import { Result } from "better-result";
 import type { Database } from "@/lib/db/client";
+import { Base64Url } from "./base64url";
 import { VaultConfig, type DeviceCookieSettings } from "./config";
 import type { Dek } from "./dek";
 import { VaultLockedError, type KeySlotRejection, type VaultStorageError } from "./errors";
@@ -7,7 +9,9 @@ import { KeySlot, SlotCredential } from "./key-slot";
 
 /**
  * The browser key slot. Its secret lives only in an HttpOnly cookie
- * `<slotId>.<base64url secret>`; see docs/security.md.
+ * `<slotId>.<base64url secret>`, one per account: `DEVICE_COOKIE + "-" + <16
+ * chars of base64url(SHA-256(userId))>`, so accounts that share a browser
+ * never overwrite each other's key. See docs/security.md.
  */
 export const DEVICE_COOKIE = VaultConfig.SECURE_DEVICE_COOKIE;
 
@@ -23,27 +27,42 @@ const cookieAttributes = (settings: DeviceCookieSettings, maxAgeSeconds: number)
     ...(settings.secure ? ["Secure"] : []),
   ].join("; ");
 
+const USER_TAG_LENGTH = 16;
+
+/** The device cookie name of `userId` (the user id itself never appears in it). */
+const nameFor = (settings: DeviceCookieSettings, userId: string): string =>
+  `${settings.name}-${Base64Url.encode(createHash("sha256").update(userId, "utf8").digest()).slice(0, USER_TAG_LENGTH)}`;
+
+const readNamed = (name: string, cookieHeader: string): string | undefined => {
+  for (const part of cookieHeader.split(";")) {
+    const index = part.indexOf("=");
+    if (index === -1) continue;
+    if (part.slice(0, index).trim() === name) return part.slice(index + 1).trim();
+  }
+  return undefined;
+};
+
 export const DeviceCookie = {
-  /** The raw cookie value from a Cookie header, if present. */
-  read: (settings: DeviceCookieSettings, cookieHeader: string | null): string | undefined => {
+  nameFor,
+  /**
+   * `userId`'s raw device cookie value from a Cookie header, if present.
+   * Falls back to the unscoped cookie (`settings.name`) that browsers paired
+   * before per-account names hold; it only ever unlocks its own account.
+   */
+  read: (settings: DeviceCookieSettings, userId: string, cookieHeader: string | null): string | undefined => {
     if (!cookieHeader) return undefined;
-    for (const part of cookieHeader.split(";")) {
-      const index = part.indexOf("=");
-      if (index === -1) continue;
-      if (part.slice(0, index).trim() === settings.name) return part.slice(index + 1).trim();
-    }
-    return undefined;
+    return readNamed(nameFor(settings, userId), cookieHeader) ?? readNamed(settings.name, cookieHeader);
   },
   parse: (value: string): SlotCredential | undefined => SlotCredential.parse("", value),
-  /** Set-Cookie header value storing `credential` for one year. */
-  serialize: (settings: DeviceCookieSettings, credential: SlotCredential): string =>
-    `${settings.name}=${SlotCredential.format("", credential)}; ${cookieAttributes(
+  /** Set-Cookie header value storing `userId`'s `credential` for one year. */
+  serialize: (settings: DeviceCookieSettings, userId: string, credential: SlotCredential): string =>
+    `${nameFor(settings, userId)}=${SlotCredential.format("", credential)}; ${cookieAttributes(
       settings,
       DEVICE_SLOT_TTL_MS / 1000,
     )}`,
-  /** Set-Cookie header value deleting the device cookie. */
-  clear: (settings: DeviceCookieSettings): string =>
-    `${settings.name}=; ${cookieAttributes(settings, 0)}`,
+  /** Set-Cookie header value deleting `userId`'s device cookie (other accounts' stay). */
+  clear: (settings: DeviceCookieSettings, userId: string): string =>
+    `${nameFor(settings, userId)}=; ${cookieAttributes(settings, 0)}`,
 } as const;
 
 const describe: Record<VaultLockedError["reason"], string> = {
@@ -73,7 +92,7 @@ const unlockWith = async (
   userId: string,
   cookieHeader: string | null,
 ): Promise<Result<Dek, VaultLockedError | VaultStorageError>> => {
-  const value = DeviceCookie.read(config.deviceCookie, cookieHeader);
+  const value = DeviceCookie.read(config.deviceCookie, userId, cookieHeader);
   if (value === undefined) return Result.err(locked(userId, "no_cookie"));
   const credential = DeviceCookie.parse(value);
   if (!credential) return Result.err(locked(userId, "malformed_cookie"));

@@ -16,6 +16,12 @@ export async function POST(request: Request): Promise<Response> {
 
   const unpaired = await unpairUser(getDb(), signedIn.value);
   if (unpaired.isErr()) {
+    if (unpaired.error._tag === "RcsPhoneBusyError") {
+      return RequestGuard.errorResponse(
+        409,
+        "openrcs is still busy with your phone (a sync, send or pairing). Nothing was deleted; try Unpair again in a minute.",
+      );
+    }
     console.error(`[api:unpair] failed: ${describeForLog(unpaired.error)}`);
     return RequestGuard.errorResponse(
       503,
@@ -24,6 +30,6 @@ export async function POST(request: Request): Promise<Response> {
   }
   return Response.json(
     { ok: true, phoneNotified: unpaired.value.phoneNotified },
-    { headers: { "cache-control": "no-store", "set-cookie": Vault.clearDeviceCookie() } },
+    { headers: { "cache-control": "no-store", "set-cookie": Vault.clearDeviceCookie(signedIn.value.userId) } },
   );
 }

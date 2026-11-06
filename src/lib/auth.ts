@@ -18,6 +18,13 @@ export type AuthConfig = {
   readonly database: ReturnType<typeof drizzleAdapter>;
 };
 
+/**
+ * openrcs never calls GitHub after sign-in, so provider tokens are dropped
+ * before every account write instead of sitting in the database (a dump
+ * alone would otherwise yield working GitHub tokens).
+ */
+const withoutProviderTokens = { accessToken: null, refreshToken: null, idToken: null } as const;
+
 export const createAuth = (config: AuthConfig) =>
   betterAuth({
     appName: "openrcs",
@@ -28,6 +35,12 @@ export const createAuth = (config: AuthConfig) =>
       github: {
         clientId: config.github.clientId,
         clientSecret: config.github.clientSecret,
+      },
+    },
+    databaseHooks: {
+      account: {
+        create: { before: async (account) => ({ data: { ...account, ...withoutProviderTokens } }) },
+        update: { before: async (account) => ({ data: { ...account, ...withoutProviderTokens } }) },
       },
     },
     // Serverless instances do not share memory, so counters live in the database.

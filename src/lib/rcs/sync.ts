@@ -257,10 +257,14 @@ export const syncUser = async (
     waitForQuiet: quietWindow(clock),
     ...opts.phone,
   });
-  // Busy (another invocation is syncing) and cancelled runs are not sync failures.
+  // Busy (another invocation is syncing) and cancelled runs are not sync
+  // failures, and with no paired phone (e.g. just unpaired) there is no sync
+  // state to keep.
   const recorded = result.isOk()
     ? await SyncState.recordSuccess(db, ctx.userId, new Date(clock.now()))
-    : result.error._tag === "RcsPhoneBusyError" || result.error._tag === "RcsAbortedError"
+    : result.error._tag === "RcsPhoneBusyError" ||
+        result.error._tag === "RcsAbortedError" ||
+        result.error._tag === "RcsNotPairedError"
       ? Result.ok(undefined)
       : await SyncState.recordFailure(db, ctx.userId, describePhoneError(result.error));
   if (recorded.isErr()) {
