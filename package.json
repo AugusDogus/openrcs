@@ -6,18 +6,37 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "gen:proto": "buf generate"
   },
   "dependencies": {
+    "@better-auth/cimd": "^1.7.18",
+    "@better-auth/mcp": "^1.7.18",
+    "@better-auth/oauth-provider": "^1.7.18",
+    "@bufbuild/protobuf": "^2.17.0",
+    "@libsql/client": "^0.18.0",
+    "@modelcontextprotocol/server": "^2.4.0",
+    "better-auth": "^1.7.18",
+    "better-result": "^3.0.1",
+    "drizzle-orm": "^0.45.4",
     "next": "16.4.5",
+    "qrcode": "^1.5.4",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@bufbuild/buf": "^1.75.0",
+    "@bufbuild/protoc-gen-es": "^2.17.0",
     "@tailwindcss/turbopack": "^4",
+    "@types/bun": "^1.4.4",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
     "tailwindcss": "^4",
@@ -29,6 +48,8 @@
     "unrs-resolver"
   ],
   "trustedDependencies": [
+    "@bufbuild/buf",
+    "esbuild",
     "sharp",
     "unrs-resolver"
   ]
