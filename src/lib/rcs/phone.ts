@@ -78,6 +78,21 @@ const failureNeedsRepair = (error: TaggedFailure): boolean =>
 const isPhoneFailure = (error: TaggedFailure): boolean =>
   error._tag === "RcsPhoneError" || error._tag.startsWith("GM");
 
+/**
+ * Non-secret fields of a failure for logs: tag, HTTP status, action, the
+ * auth-expiry reason and Google's own error text. Never cookies, tokens or
+ * message content (src/lib/gm errors do not carry them).
+ */
+const diagnose = (error: TaggedFailure): string => {
+  const parts = [`tag=${error._tag}`];
+  const field = (name: string) => (name in error ? Reflect.get(error, name) : undefined);
+  for (const name of ["gmTag", "status", "reason", "action", "errorType", "googleMessage"]) {
+    const value = field(name);
+    if (typeof value === "string" || typeof value === "number") parts.push(`${name}=${value}`);
+  }
+  return parts.join(" ");
+};
+
 /** Plain-language text for any error a phone-backed operation can return. */
 export const describePhoneError = (error: TaggedFailure): string =>
   error._tag.startsWith("GM") ? GmFailure.describe(error) : error.message;
@@ -115,7 +130,11 @@ const runConnected = async <T, E extends TaggedFailure>(
 
   const events = new EventBuffer();
   // Mutated from the event callback, so kept in an object TS does not narrow.
-  const seen: { authDirty: boolean; fatal: SessionSignal | null } = { authDirty: false, fatal: null };
+  const seen: { authDirty: boolean; fatal: SessionSignal | null; diagnosis: string | null } = {
+    authDirty: false,
+    fatal: null,
+    diagnosis: null,
+  };
   const client = (opts.createClient ?? GMClient.create)({
     authData: session.authData,
     fetch: opts.fetch,
@@ -131,9 +150,11 @@ const runConnected = async <T, E extends TaggedFailure>(
           break;
         case "gaiaLoggedOut":
           seen.fatal = { type: "gaiaLoggedOut", error: GmFailure.repairMessage };
+          seen.diagnosis = "event=gaiaLoggedOut (logged-out frame on GET_UPDATES)";
           break;
         case "listenFatal":
           seen.fatal = { type: "listenFatal", error: GmFailure.repairMessage };
+          seen.diagnosis = `event=listenFatal ${diagnose(event.error)}`;
           break;
         default:
           break;
@@ -147,6 +168,7 @@ const runConnected = async <T, E extends TaggedFailure>(
     const connected = await client.connect({ signal: opts.signal });
     if (connected.isErr()) {
       const phoneError = GmFailure.toPhoneError(ctx.userId, `${operation}.connect`, connected.error);
+      seen.diagnosis ??= `stage=connect ${diagnose(connected.error)}`;
       outcome = phoneError.needsRepair
         ? { type: "authExpired", error: phoneError.message }
         : { type: "failed", error: phoneError.message };
@@ -155,6 +177,7 @@ const runConnected = async <T, E extends TaggedFailure>(
       const value = await fn(client);
       if (value.isErr()) {
         const error = value.error;
+        seen.diagnosis ??= `stage=${operation} ${diagnose(error)}`;
         outcome = failureNeedsRepair(error)
           ? { type: "authExpired", error: describePhoneError(error) }
           : { type: "connected", error: isPhoneFailure(error) ? describePhoneError(error) : null };
@@ -176,6 +199,9 @@ const runConnected = async <T, E extends TaggedFailure>(
   }
 
   const signal: SessionSignal = seen.fatal ?? outcome;
+  if (signal.type !== "connected" || signal.error !== null) {
+    log("warn", `${operation} for user ${ctx.userId} ended with ${signal.type}: ${seen.diagnosis ?? "no diagnosis"}`);
+  }
   const recorded = await SessionStore.record(db, ctx.userId, signal);
   if (recorded.isErr()) log("warn", `recording session outcome failed: ${describeForLog(recorded.error)}`);
   return result;
