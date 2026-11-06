@@ -40,13 +40,19 @@ export type GmSessionKind = (typeof GM_SESSION_KINDS)[number];
 export const GM_SESSION_STATUSES = ["paired", "needs_repair", "unpaired"] as const;
 export type GmSessionStatus = (typeof GM_SESSION_STATUSES)[number];
 
-/** One paired Google Messages web session per user. `auth_data_enc` is a secret-box envelope. */
+/**
+ * One paired Google Messages web session per user. `auth_data_enc` is a
+ * DataBox envelope sealed with the user's DEK (docs/security.md). `dek_id`
+ * identifies the DEK generation; key slots carry the same id so a stale slot
+ * is detected instead of failing to decrypt.
+ */
 export const gmSession = sqliteTable(
   "gm_session",
   {
     userId: userIdRef().primaryKey(),
     kind: text("kind", { enum: GM_SESSION_KINDS }).notNull(),
     status: text("status", { enum: GM_SESSION_STATUSES }).notNull(),
+    dekId: text("dek_id").notNull(),
     authDataEnc: text("auth_data_enc").notNull(),
     phoneLabel: text("phone_label"),
     lastConnectedAt: integer("last_connected_at", { mode: "timestamp_ms" }),
@@ -71,19 +77,25 @@ export const phoneLease = sqliteTable("phone_lease", {
   expiresAt: integer("expires_at").notNull(),
 });
 
+/**
+ * Conversations. `content_enc` is a DataBox envelope (user's DEK) holding
+ * JSON `{ name, participants, lastMessagePreview }`; everything else is
+ * non-sensitive metadata used for ordering and filtering.
+ */
 export const conversation = sqliteTable(
   "conversation",
   {
     userId: userIdRef(),
     conversationId: text("conversation_id").notNull(),
-    name: text("name").notNull(),
+    contentEnc: text("content_enc").notNull(),
     isGroup: integer("is_group", { mode: "boolean" }).notNull(),
-    participantsJson: text("participants_json").notNull(),
     /** Unix epoch milliseconds of the latest message. */
     lastMessageTs: integer("last_message_ts").notNull(),
-    lastMessagePreview: text("last_message_preview").notNull(),
+    /** Newest message timestamp (ms) already fetched into `message`; drives incremental sync. */
+    syncedMessageTs: integer("synced_message_ts"),
     unread: integer("unread", { mode: "boolean" }).notNull(),
     readOnly: integer("read_only", { mode: "boolean" }).notNull(),
+    status: text("status").notNull(),
     updatedAt: updatedAt(),
   },
   (table) => [
@@ -93,14 +105,10 @@ export const conversation = sqliteTable(
 );
 
 /**
- * Messages. `(user_id, message_id)` is the logical key (unique index, use it as
- * the upsert conflict target). `id` is an INTEGER PRIMARY KEY rowid alias so
- * the external-content FTS5 index (`message_fts`, created in a raw SQL
- * migration) has a stable rowid that VACUUM cannot renumber.
- *
- * Write with `INSERT ... ON CONFLICT (user_id, message_id) DO UPDATE`, never
- * `INSERT OR REPLACE`: REPLACE deletes rows without firing delete triggers, which
- * would leave stale entries in `message_fts`.
+ * Messages. `(user_id, message_id)` is the logical key (unique index; use it
+ * as the upsert conflict target). `content_enc` is a DataBox envelope (user's
+ * DEK) holding JSON `{ body, senderName, senderNumber, media, reactions }`.
+ * Search decrypts candidate rows in memory; there is no plaintext index.
  */
 export const message = sqliteTable(
   "message",
@@ -109,16 +117,14 @@ export const message = sqliteTable(
     userId: userIdRef(),
     messageId: text("message_id").notNull(),
     conversationId: text("conversation_id").notNull(),
-    senderName: text("sender_name").notNull(),
-    senderNumber: text("sender_number").notNull(),
     fromMe: integer("from_me", { mode: "boolean" }).notNull(),
-    body: text("body").notNull(),
+    contentEnc: text("content_enc").notNull(),
     /** Unix epoch milliseconds. */
     timestamp: integer("timestamp").notNull(),
     status: text("status").notNull(),
-    mediaJson: text("media_json"),
     replyToId: text("reply_to_id"),
-    reactionsJson: text("reactions_json"),
+    /** Client temp id for messages we sent, until the phone echoes the real one. */
+    tmpId: text("tmp_id"),
     updatedAt: updatedAt(),
   },
   (table) => [

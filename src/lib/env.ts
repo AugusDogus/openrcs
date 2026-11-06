@@ -9,7 +9,7 @@ import { z } from "zod";
  * without secrets being present.
  */
 
-const SESSION_KEY_BYTES = 32;
+const KEY_PEPPER_BYTES = 32;
 
 const base64Pattern = /^[A-Za-z0-9+/]+={0,2}$/;
 
@@ -24,18 +24,8 @@ const AuthEnvSchema = z.object({
     32,
     "must be at least 32 characters (generate one with `openssl rand -base64 32`)",
   ),
-  ALLOWED_EMAILS: nonEmpty("ALLOWED_EMAILS")
-    .transform((value) =>
-      value
-        .split(",")
-        .map((email) => email.trim().toLowerCase())
-        .filter((email) => email.length > 0),
-    )
-    .pipe(
-      z
-        .array(z.email({ error: "contains an entry that is not an email address" }))
-        .min(1, "must list at least one email address"),
-    ),
+  GITHUB_CLIENT_ID: nonEmpty("GITHUB_CLIENT_ID"),
+  GITHUB_CLIENT_SECRET: nonEmpty("GITHUB_CLIENT_SECRET"),
 });
 
 const DatabaseEnvSchema = z.object({
@@ -50,28 +40,21 @@ const DatabaseEnvSchema = z.object({
     .transform((value) => (value === undefined || value === "" ? undefined : value)),
 });
 
-const SecretBoxEnvSchema = z.object({
-  SESSION_ENCRYPTION_KEY: nonEmpty("SESSION_ENCRYPTION_KEY").refine(
+/** Server key share for the split-key vault (docs/security.md). */
+const VaultEnvSchema = z.object({
+  KEY_PEPPER: nonEmpty("KEY_PEPPER").refine(
     (value) =>
       base64Pattern.test(value) &&
-      Buffer.from(value, "base64").byteLength === SESSION_KEY_BYTES,
-    `must be base64 that decodes to exactly ${SESSION_KEY_BYTES} bytes (generate one with \`openssl rand -base64 32\`)`,
-  ),
-});
-
-const CronEnvSchema = z.object({
-  CRON_SECRET: nonEmpty("CRON_SECRET").min(
-    16,
-    "must be at least 16 characters (generate one with `openssl rand -base64 32`)",
+      Buffer.from(value, "base64").byteLength === KEY_PEPPER_BYTES,
+    `must be base64 that decodes to exactly ${KEY_PEPPER_BYTES} bytes (generate one with \`openssl rand -base64 32\`)`,
   ),
 });
 
 export type AuthEnv = z.infer<typeof AuthEnvSchema>;
 export type DatabaseEnv = z.infer<typeof DatabaseEnvSchema>;
-export type SecretBoxEnv = z.infer<typeof SecretBoxEnvSchema>;
-export type CronEnv = z.infer<typeof CronEnvSchema>;
+export type VaultEnv = z.infer<typeof VaultEnvSchema>;
 
-export type EnvSection = "auth" | "database" | "secretBox" | "cron";
+export type EnvSection = "auth" | "database" | "vault";
 
 export type EnvIssue = { readonly variable: string; readonly problem: string };
 
@@ -133,23 +116,18 @@ const lazySection = <T>(parse: (source: EnvSource) => Result<T, InvalidEnvError>
 const parseAuth = (source: EnvSource) => parseSection("auth", AuthEnvSchema, source);
 const parseDatabase = (source: EnvSource) =>
   parseSection("database", DatabaseEnvSchema, source);
-const parseSecretBox = (source: EnvSource) =>
-  parseSection("secretBox", SecretBoxEnvSchema, source);
-const parseCron = (source: EnvSource) => parseSection("cron", CronEnvSchema, source);
+const parseVault = (source: EnvSource) => parseSection("vault", VaultEnvSchema, source);
 
 export const Env = {
-  /** BETTER_AUTH_URL (no trailing slash), BETTER_AUTH_SECRET, ALLOWED_EMAILS (lowercased). */
+  /** BETTER_AUTH_URL (no trailing slash), BETTER_AUTH_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET. */
   auth: lazySection(parseAuth),
   /** TURSO_DATABASE_URL and optional TURSO_AUTH_TOKEN. */
   database: lazySection(parseDatabase),
-  /** SESSION_ENCRYPTION_KEY (base64, 32 bytes). */
-  secretBox: lazySection(parseSecretBox),
-  /** CRON_SECRET. */
-  cron: lazySection(parseCron),
+  /** KEY_PEPPER (base64, 32 bytes): the server's key share. */
+  vault: lazySection(parseVault),
   parseAuth,
   parseDatabase,
-  parseSecretBox,
-  parseCron,
+  parseVault,
   /** Canonical MCP resource URL: `${BETTER_AUTH_URL}/api/mcp`. */
   mcpResourceUrl: (): string => `${Env.auth().BETTER_AUTH_URL}/api/mcp`,
 } as const;

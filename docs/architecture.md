@@ -22,13 +22,15 @@ vectors), create a module under `/tmp/` that requires
 ## Stack
 
 - Next.js 16 App Router (Node.js runtime only), React 19, Tailwind v4
-- Better Auth (email + password, sign-up restricted to an allowlist) with the
-  `@better-auth/mcp` plugin (OAuth 2.1 authorization server, dynamic client
-  registration, JWT access tokens via the `jwt` plugin)
-- MCP server: `@modelcontextprotocol/server` v2 `createMcpHandler`, wrapped by
-  `requireMcpAuth` from `@better-auth/mcp`
+- Better Auth for GitHub sign-in and browser sessions only (open sign-up)
+- Our own OAuth 2.1 authorization server for MCP in `src/lib/oauth` (DCR,
+  PKCE, refresh rotation) whose tokens carry a client-held key share; see
+  docs/security.md
+- MCP server: `@modelcontextprotocol/server` v2 `createMcpHandler`, behind
+  our bearer-token check
 - Turso (libSQL) via `@libsql/client` + Drizzle ORM. Local dev/tests use
-  `file:` URLs. FTS5 is available on Turso.
+  `file:` URLs. Message content is encrypted per user (docs/security.md), so
+  there is no plaintext full-text index.
 - Protobuf: `@bufbuild/protobuf` v2; generated code in `src/gen/gmproto`
   (`bun run gen:proto`, never hand-edit). The custom option
   `pblite.pblite_binary` is the `pblite_binary` extension in
@@ -60,9 +62,11 @@ src/
     pair-qr.ts            QR pairing
     errors.ts             tagged errors
   lib/db/                 Drizzle schema + client (auth tables + app tables)
-  lib/auth.ts             Better Auth server config
+  lib/auth.ts             Better Auth server config (GitHub only)
   lib/auth-client.ts      Better Auth React client
-  lib/secret-box.ts       AES-256-GCM envelope for secrets at rest (key from env)
+  lib/vault/              split-key vault: DEK, key slots, DataBox, device unlock
+  lib/oauth/              OAuth 2.1 authorization server for MCP
+  lib/secret-box.ts       AES-256-GCM envelope primitive
   lib/env.ts              validated env (zod)
   lib/rcs/                service layer: phone lease, session persistence, sync, search, send
   app/                    routes and pages
@@ -75,7 +79,8 @@ inside one function invocation:
 
 1. Acquire a per-user phone lease (DB row with expiry) so only one invocation
    talks to the phone at a time.
-2. Load and decrypt the user's `AuthData`.
+2. Load the user's `AuthData` and decrypt it with the DEK unwrapped from the
+   caller's key slot or access token (docs/security.md).
 3. Refresh the tachyon token if it expires within 1 hour.
 4. Open the `ReceiveMessages` long poll (streaming fetch), set the active
    session (`GET_UPDATES`), then issue RPCs. RPC responses arrive on the long
@@ -84,28 +89,22 @@ inside one function invocation:
 6. Persist `AuthData` changes (token, cookies), ack received messages, close
    the stream, release the lease.
 
-Reads and search serve from Turso, populated by sync (Vercel cron plus
-on-demand refresh). Sends always go to the phone.
+Reads and search serve from Turso (encrypted per user), populated by a
+backfill at pairing and a throttled incremental sync whenever a client calls
+in. There is no unattended background sync: the server cannot decrypt
+anything without a client's key share. Sends always go to the phone.
 
 ## Security
 
-- Google cookies and pairing keys are encrypted at rest with AES-256-GCM using
-  `SESSION_ENCRYPTION_KEY` (32 random bytes, base64) from the environment.
-  Never log cookies, tokens, keys or message bodies.
-- Sign-up allowed only for emails in `ALLOWED_EMAILS` (comma-separated).
-- MCP access requires an OAuth access token issued by this app for the MCP
-  resource (`${BETTER_AUTH_URL}/api/mcp`). Each token maps to one user; tools
-  only touch that user's data.
-- Cron endpoints require `Authorization: Bearer ${CRON_SECRET}`.
+See docs/security.md (split-key vault, OAuth design, breach analysis).
 
 ## Environment
 
 | Name | Purpose |
 | --- | --- |
-| `BETTER_AUTH_URL` | Public origin, e.g. `https://openrcs.vercel.app` |
+| `BETTER_AUTH_URL` | Public origin, e.g. `https://openrcs.vercel.app` (also the OAuth issuer) |
 | `BETTER_AUTH_SECRET` | Better Auth secret |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub App (or OAuth app) used for sign-in |
 | `TURSO_DATABASE_URL` | `libsql://...` or `file:./.data/dev.db` |
 | `TURSO_AUTH_TOKEN` | Turso token (unset for `file:`) |
-| `SESSION_ENCRYPTION_KEY` | base64 32-byte key for secret-box |
-| `ALLOWED_EMAILS` | comma-separated sign-up allowlist |
-| `CRON_SECRET` | Vercel cron auth |
+| `KEY_PEPPER` | base64 32-byte server key share for the vault (docs/security.md) |
