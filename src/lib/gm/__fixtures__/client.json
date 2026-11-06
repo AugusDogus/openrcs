@@ -1,0 +1,1162 @@
+{
+  "qr": {
+    "keys": {
+      "aesKey": "8c20e8666358f56ff9bb8890df027cc8d6b6081a7d3248f363716c62789427f9",
+      "hmacKey": "5f8997e5010342f88ab10b6cf58c903549b2871ce59be52f4e2456c6140fc3c3",
+      "refreshKeyD": "eb2862e218b160e51760fd4fb3501beb0f85f3c55242ef6584ef49f6983fc2b5",
+      "sessionId": "00000000-0000-0000-0000-000000000000"
+    },
+    "registerPhoneRelay": {
+      "name": "RegisterPhoneRelay",
+      "url": "https://instantmessaging-pa.googleapis.com/$rpc/google.internal.communications.instantmessaging.v1.Pairing/RegisterPhoneRelay",
+      "requestId": "09fec597-4402-42ce-8532-80c3bbb7f5b8",
+      "auth": {
+        "token": "49284d8b15b1d7dc03b63860c24bc9011b68cda0",
+        "ttlMicros": "86400000000",
+        "mobile": "",
+        "browser": "",
+        "destRegId": ""
+      },
+      "body": "\n:\n$09fec597-4402-42ce-8532-80c3bbb7f5b8\u001a\u0005Bugle:\u000b\u0018�\u000f \u0003(\u00128\u0004H\u0006\u001ar\neMozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36\u0010\u0001\u001a\u0005libgm0\u0002\"a2_\b\u0002\u0012[0Y0\u0013\u0006\u0007*�H�=\u0002\u0001\u0006\b*�H�=\u0003\u0001\u0007\u0003B\u0000\u0004e����\u0014���\u001fS4�QW�\u0019K7\u0006hx6P�\b�,ͨ\u001eOb��A,U�a��h�k%�z[�c�\u000e��*�\u0006|�\f�",
+      "bodyHex": "0a3a0a2430396665633539372d343430322d343263652d383533322d3830633362626237663562381a054275676c653a0b18ea0f20032812380448061a720a654d6f7a696c6c612f352e3020284c696e75783b20416e64726f696420313429204170706c655765624b69742f3533372e333620284b48544d4c2c206c696b65204765636b6f29204368726f6d652f3134362e302e302e30205361666172692f3533372e333610011a056c6962676d30022261325f0802125b3059301306072a8648ce3d020106082a8648ce3d030107034200046580a9acfb1488e3cc1f533493515781194b370668783650be089d2ccda81e4fc28762aabf412c55a261a2e168976b25a77a5b8d63c50ebcdd2ac2067ca80cd5",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/x-protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    },
+    "qr": {
+      "pairingKey": "2710ded87e26cff96361b389324d1f1872ffe3728c5180cbacb972aa03b9e58b",
+      "url": "https://support.google.com/messages/?p=web_computer#?c=CiAnEN7YfibP+WNhs4kyTR8Ycv/jcoxRgMusuXKqA7nlixIgjCDoZmNY9W/5u4iQ3wJ8yNa2CBp9MkjzY3FsYniUJ/kaIF+Jl+UBA0L4irELbPWMkDVJsocc5ZvlL04kVsYUD8PD"
+    },
+    "receiveMessagesPairing": {
+      "name": "ReceiveMessages (pairing)",
+      "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/ReceiveMessages",
+      "requestId": "5792cfb6-75a5-4ffd-9c7f-5b7bb678bf36",
+      "auth": {
+        "token": "49284d8b15b1d7dc03b63860c24bc9011b68cda0",
+        "ttlMicros": "86400000000",
+        "mobile": "",
+        "browser": "",
+        "destRegId": ""
+      },
+      "body": "[[\"5792cfb6-75a5-4ffd-9c7f-5b7bb678bf36\",null,null,null,null,\"SShNixWx19wDtjhgwkvJARtozaA=\",[null,null,2026,3,18,null,4,null,6]],null,null,[null,[]]]",
+      "bodyHex": "5b5b2235373932636662362d373561352d346666642d396337662d356237626236373862663336222c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c225353684e6978577831397744746a6867776b764a4152746f7a61413d222c5b6e756c6c2c6e756c6c2c323032362c332c31382c6e756c6c2c342c6e756c6c2c365d5d2c6e756c6c2c6e756c6c2c5b6e756c6c2c5b5d5d5d",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/json+protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    },
+    "refreshPhoneRelay": {
+      "name": "RefreshPhoneRelay",
+      "url": "https://instantmessaging-pa.googleapis.com/$rpc/google.internal.communications.instantmessaging.v1.Pairing/RefreshPhoneRelay",
+      "requestId": "ac832965-5b89-43a4-b32f-0d91b34b5b63",
+      "auth": {
+        "token": "49284d8b15b1d7dc03b63860c24bc9011b68cda0",
+        "ttlMicros": "86400000000",
+        "mobile": "",
+        "browser": "",
+        "destRegId": ""
+      },
+      "body": "\nP\n$ac832965-5b89-43a4-b32f-0d91b34b5b63\u001a\u0005Bugle2\u0014I(M�\u0015���\u0003�8`�K�\u0001\u001bh͠:\u000b\u0018�\u000f \u0003(\u00128\u0004H\u0006",
+      "bodyHex": "0a500a2461633833323936352d356238392d343361342d623332662d3064393162333462356236331a054275676c65321449284d8b15b1d7dc03b63860c24bc9011b68cda03a0b18ea0f2003281238044806",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/x-protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    },
+    "qrRefreshed": {
+      "pairingKey": "d748c39f8b6fff19cf6c456e2b01c33440d99e614e9f6e0309af28b613f474b0",
+      "url": "https://support.google.com/messages/?p=web_computer#?c=CiDXSMOfi2//Gc9sRW4rAcM0QNmeYU6fbgMJryi2E/R0sBIgjCDoZmNY9W/5u4iQ3wJ8yNa2CBp9MkjzY3FsYniUJ/kaIF+Jl+UBA0L4irELbPWMkDVJsocc5ZvlL04kVsYUD8PD"
+    },
+    "registerRefresh": {
+      "name": "RegisterRefresh",
+      "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Registration/RegisterRefresh",
+      "requestId": "10e05176-345e-4d12-a3ce-6314174bb610",
+      "auth": {
+        "token": "97b4280eb1802bc60b5fd2e6cd35d890e71a20e215816b9d",
+        "ttlMicros": "86400000000",
+        "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+        "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+        "destRegId": ""
+      },
+      "body": "[[\"10e05176-345e-4d12-a3ce-6314174bb610\",null,null,null,null,\"l7QoDrGAK8YLX9LmzTXYkOcaIOIVgWud\",[null,null,2026,3,18,null,4,null,6]],[123456789,\"browser-source-id\",\"Bugle\"],1793998936321000,\"MEUCIQDMBsd3K18+LwQXyiUqqJC0DCQp3zqR3jW+zJxo4YvmOAIgTVtt9JVMQ9rM9yk8nfBPwsE7wCN4ymXUZf6F9JPY7vE=\",null,null,null,null,null,null,null,null,[null,null,null,null,null,null,null,null,[],null,null,null,null,null,null,null,null,null,null,null,null,null,null],null,null,2]",
+      "bodyHex": "5b5b2231306530353137362d333435652d346431322d613363652d363331343137346262363130222c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c226c37516f447247414b38594c58394c6d7a5458596b4f6361494f495667577564222c5b6e756c6c2c6e756c6c2c323032362c332c31382c6e756c6c2c342c6e756c6c2c365d5d2c5b3132333435363738392c2262726f777365722d736f757263652d6964222c224275676c65225d2c313739333939383933363332313030302c224d4555434951444d427364334b31382b4c77515879695571714a433044435170337a7152336a572b7a4a786f3459766d4f41496754567474394a564d5139724d39796b386e6642507773453777434e34796d58555a663646394a50593776453d222c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c5b6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c5b5d2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c5d2c6e756c6c2c6e756c6c2c325d",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/json+protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      },
+      "timestampMicros": "1793998936321000",
+      "signature": "3045022100cc06c7772b5f3e2f0417ca252aa890b40c2429df3a91de35becc9c68e18be63802204d5b6df4954c43daccf7293c9df04fc2c13bc02378ca65d465fe85f493d8eef1"
+    },
+    "outgoing": [
+      {
+        "name": "SetActiveSession",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 16,
+        "messageType": 2,
+        "ttl": "0",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "none",
+        "plaintext": "",
+        "iv": "",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"6695c55d-b330-4952-9896-945d85b3614b\",19,null,null,null,null,null,null,null,null,null,\"CiQ2Njk1YzU1ZC1iMzMwLTQ5NTItOTg5Ni05NDVkODViMzYxNGIQEDIkNjY5NWM1NWQtYjMzMC00OTUyLTk4OTYtOTQ1ZDg1YjM2MTRi\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"6695c55d-b330-4952-9896-945d85b3614b\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,null,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "ListConversations first",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "91acd9c9-8e1a-4e39-8321-b40e5cf674e8",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 1,
+        "messageType": 16,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "10192001",
+        "iv": "439adaf6670b3f9ce7976f073388d672",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"91acd9c9-8e1a-4e39-8321-b40e5cf674e8\",19,null,null,null,null,null,null,null,null,null,\"CiQ5MWFjZDljOS04ZTFhLTRlMzktODMyMS1iNDBlNWNmNjc0ZTgQASo01Ye9yUOa2vZnCz+c55dvBzOI1nKzNz1Z51nUfsnTkxRTiOwDdJInUj8koEjzoov//kF8hDIkNjY5NWM1NWQtYjMzMC00OTUyLTk4OTYtOTQ1ZDg1YjM2MTRi\",null,null,null,null,null,null,null,null,null,null,[[],16]],[\"91acd9c9-8e1a-4e39-8321-b40e5cf674e8\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "ListConversations cursor",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "febe83f6-571c-4a40-a665-7eadf76fe95c",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 1,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "103220022a140a096c6173742d6974656d10c084ace0cedd9003",
+        "iv": "395a0c0454d51bdf5fa0bf121bf6710f",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"febe83f6-571c-4a40-a665-7eadf76fe95c\",19,null,null,null,null,null,null,null,null,null,\"CiRmZWJlODNmNi01NzFjLTRhNDAtYTY2NS03ZWFkZjc2ZmU5NWMQASpKK3JXw6ix7IxeQ3jmhG80le3fhaSVCTgQvjI5WgwEVNUb31+gvxIb9nEPd2FIEpRoN32lk0jh8l6Uu1ADsXPi+/QIqNLCvB7N/KoyJDY2OTVjNTVkLWIzMzAtNDk1Mi05ODk2LTk0NWQ4NWIzNjE0Yg==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"febe83f6-571c-4a40-a665-7eadf76fe95c\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "FetchMessages",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "401da754-109d-484d-9eb1-6fa8375da5d6",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 2,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "1206636f6e762d31181e2a140a096c6173742d6974656d10c084ace0cedd9003",
+        "iv": "7fe9252f21be367357f56dbbe4d685eb",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"401da754-109d-484d-9eb1-6fa8375da5d6\",19,null,null,null,null,null,null,null,null,null,\"CiQ0MDFkYTc1NC0xMDlkLTQ4NGQtOWViMS02ZmE4Mzc1ZGE1ZDYQAipQCgPPxwYuXPieXNby+z/H3vj1DTXSsF9sfFHCEstj5QN/6SUvIb42c1f1bbvk1oXrM0WObj8SzoE18hNCr7+UqOYXKgKpWx4hn7i+C1ryeBUyJDY2OTVjNTVkLWIzMzAtNDk1Mi05ODk2LTk0NWQ4NWIzNjE0Yg==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"401da754-109d-484d-9eb1-6fa8375da5d6\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "GetConversation",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "03612d9e-9188-4f64-9974-f1b500e96c85",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 43,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "0a06636f6e762d31",
+        "iv": "f950ee59e99173945146ece88b11ff50",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"03612d9e-9188-4f64-9974-f1b500e96c85\",19,null,null,null,null,null,null,null,null,null,\"CiQwMzYxMmQ5ZS05MTg4LTRmNjQtOTk3NC1mMWI1MDBlOTZjODUQKyo4CsfpLYbI09v5UO5Z6ZFzlFFG7OiLEf9QmfiPxxa7UJ69FOTshCJ1g0etv6TdSBxc6na1K4Su+ecyJDY2OTVjNTVkLWIzMzAtNDk1Mi05ODk2LTk0NWQ4NWIzNjE0Yg==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"03612d9e-9188-4f64-9974-f1b500e96c85\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "GetOrCreateConversation",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "e10eddef-e7bb-452e-9a86-2c98b290c474",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 9,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "121e0807120c2b31353535313233343536371a0c2b3135353531323334353637",
+        "iv": "c26326f27dcbcd3228b6f7d798a55df6",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"e10eddef-e7bb-452e-9a86-2c98b290c474\",19,null,null,null,null,null,null,null,null,null,\"CiRlMTBlZGRlZi1lN2JiLTQ1MmUtOWE4Ni0yYzk4YjI5MGM0NzQQCSpQY3U6aOn6TBiKO0BpmrbUvtTq6XY4D1zAklSqAfhuUO/CYybyfcvNMii299eYpV32Biqa4QBRpHKBQYw4eSpSgVkMTG4yB/rn3obt/oYlzawyJDY2OTVjNTVkLWIzMzAtNDk1Mi05ODk2LTk0NWQ4NWIzNjE0Yg==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"e10eddef-e7bb-452e-9a86-2c98b290c474\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "SendMessage",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "d206e92a-85e5-4f37-88fa-2b10b7c0a9d1",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 3,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "1206636f6e762d311a520a10746d705f3030303030303030303030373a06636f6e762d314a0c2b3135353530303031313131521612140a1268656c6c6f20e29ca8202271756f746564226210746d705f3030303030303030303030372204080210012a10746d705f303030303030303030303037",
+        "iv": "52b25e37ec6cb74f0fe8d01c53563231",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"d206e92a-85e5-4f37-88fa-2b10b7c0a9d1\",19,null,null,null,null,null,null,null,null,null,\"CiRkMjA2ZTkyYS04NWU1LTRmMzctODhmYS0yYjEwYjdjMGE5ZDEQAyqkAVGrnoyGeEssrC/0eysU5q0ufP4T3e9tDijroKkJTy26bn9dc04kaIEfzx4gXAGAnFY5MmAUzFJlZhTF5AasUy0ejw9mwgPhuQwa5TvL8Z9y8KINxssxKmKg3RT8C53bGYKXg5Zp53+++13IQhnnv59COfBlUrJeN+xst08P6NAcU1YyMfFkAXK+cBq3TjKRAY3rwFxOGonxO13JMK6JhXDnIHJFMiQ2Njk1YzU1ZC1iMzMwLTQ5NTItOTg5Ni05NDVkODViMzYxNGI=\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"d206e92a-85e5-4f37-88fa-2b10b7c0a9d1\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "MarkRead",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "d6de1c94-4715-4ba7-9925-bd6382eaf0f2",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 10,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "1206636f6e762d311a056d73672d31",
+        "iv": "fa20e644001b4300a507146c79df4b22",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"d6de1c94-4715-4ba7-9925-bd6382eaf0f2\",19,null,null,null,null,null,null,null,null,null,\"CiRkNmRlMWM5NC00NzE1LTRiYTctOTkyNS1iZDYzODJlYWYwZjIQCio/mlotadtjxCMQku+YaQXK+iDmRAAbQwClBxRsed9LIlhFOp8T/OZYP36/A03yWneC2ggoCr4A8ersiyURvQ5QMiQ2Njk1YzU1ZC1iMzMwLTQ5NTItOTg5Ni05NDVkODViMzYxNGI=\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"d6de1c94-4715-4ba7-9925-bd6382eaf0f2\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "ListContacts",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "93d8712f-4e67-426b-8e23-a9d1268ac26d",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 6,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "280130de023832",
+        "iv": "cc6090f413803ad66637118337a55410",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"93d8712f-4e67-426b-8e23-a9d1268ac26d\",19,null,null,null,null,null,null,null,null,null,\"CiQ5M2Q4NzEyZi00ZTY3LTQyNmItOGUyMy1hOWQxMjY4YWMyNmQQBio3+WBQZqbN08xgkPQTgDrWZjcRgzelVBAX1bu1zWFdPKWguIvVWHTtBMTKSUj3gIIya9cR3TFk9TIkNjY5NWM1NWQtYjMzMC00OTUyLTk4OTYtOTQ1ZDg1YjM2MTRi\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"93d8712f-4e67-426b-8e23-a9d1268ac26d\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "ListTopContacts",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "fc9ea60c-16fa-40f7-b370-07ac4916d06c",
+        "sessionId": "6695c55d-b330-4952-9896-945d85b3614b",
+        "action": 28,
+        "messageType": 2,
+        "ttl": "72000000000",
+        "auth": {
+          "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+          "ttlMicros": "72000000000",
+          "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+          "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+          "destRegId": ""
+        },
+        "payload": "encrypted",
+        "plaintext": "0808",
+        "iv": "b927d23dda438687dc7f8de7ccc5d68d",
+        "body": "[[987654321,\"mobile-source-id\",\"Bugle\"],[\"fc9ea60c-16fa-40f7-b370-07ac4916d06c\",19,null,null,null,null,null,null,null,null,null,\"CiRmYzllYTYwYy0xNmZhLTQwZjctYjM3MC0wN2FjNDkxNmQwNmMQHCoym9a5J9I92kOGh9x/jefMxdaNrAjP6GQleYl7gcmIKIIVPmJzC+jBawvQhmpJD5bAyAsyJDY2OTVjNTVkLWIzMzAtNDk1Mi05ODk2LTk0NWQ4NWIzNjE0Yg==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"fc9ea60c-16fa-40f7-b370-07ac4916d06c\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,72000000000,null,null,null,null]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "content-type": "application/json+protobuf",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      }
+    ],
+    "frames": [
+      {
+        "name": "LIST_CONVERSATIONS response",
+        "json": "[null,[\"resp-0-ü\",19,1762435200000000,null,2,1762435200000100,100,[987654321,\"mobile-source-id\",\"Bugle\"],[123456789,\"browser-source-id\",\"Bugle\"],null,null,\"Cg9saXN0LXJlcXVlc3QtaWQYgcCk4M7dkAMgAULoAWn9iQlPAqox3pHYlhbnn4GuhKMssM5Q0R6LsPoIkQUxQXEpITwkubQkLteshwdpOwTpx91T+bwQbxC5taxStUTuWAqCHVvaG9An1JMpyf5sK+VUfpQ81dkYyhICC67IYgCcfNmkIfQczYn7e0qIPeI9B7JFAE5qAs2NA6B2BMu2w7OMkiaGytPQebHoNMyLTGplzCKAngH67zaV9ZXv8suLRe7P8zPgQbVsGSQJ1Bwkrm7gVMkBXOrsHTvgbRnVKjhxQBIeuSYY/u9R6pMqPlcUzl9StBdv+V4EI5zidfjICNx4CMWng24=\",null,null,null,null,\"sig-\\\"]\\\\[\",null,null,null,\"1762435200\",null,null],null,null,null]",
+        "responseId": "resp-0-ü",
+        "route": 19,
+        "action": 1,
+        "decryptedData": "12a2010a06636f6e762d311219c39c6ec3af636f646520f09f988020226e616d6522205b785d221a0a0c73656520796f7520f09f918b220a467269656e642054776f28c084ace0cedd90033001a2011f0a150801120c2b31353535303030313131311a03702d3130013a0408021001a201330a150801120c2b31353535303030323232321a03702d321a0a467269656e642054776f7a0e2835353529203030302d323232322a110a06636f6e762d3110c084ace0cedd9003",
+        "decodedType": "client.ListConversationsResponse",
+        "decoded": "12a2010a06636f6e762d311219c39c6ec3af636f646520f09f988020226e616d6522205b785d221a0a0c73656520796f7520f09f918b220a467269656e642054776f28c084ace0cedd90033001a2011f0a150801120c2b31353535303030313131311a03702d3130013a0408021001a201330a150801120c2b31353535303030323232321a03702d321a0a467269656e642054776f7a0e2835353529203030302d323232322a110a06636f6e762d3110c084ace0cedd9003",
+        "hasPayload": true,
+        "hasUnencrypted": false,
+        "hasAccountField": false,
+        "accountSwitch": false,
+        "pair": ""
+      },
+      {
+        "name": "GET_UPDATES message event",
+        "json": "[null,[\"resp-1-ü\",19,1762435200000000,null,2,1762435200000100,100,[987654321,\"mobile-source-id\",\"Bugle\"],[123456789,\"browser-source-id\",\"Bugle\"],null,null,\"CiQ2Njk1YzU1ZC1iMzMwLTQ5NTItOTg5Ni05NDVkODViMzYxNGIYgsCk4M7dkAMgEELQAX+1kAuKudHlv59t5NX/J0bVFA9kGl0654bFUO58KbQkcr/M0XN6bMEALb5NEaouJGti7Ln1Eph/fxeZOb9SebFWAVP3tqQC6WVquvpv2L5gAc2u/o9Ri2EdZVZro2fYivjv9BTeRVlnWSiboxOwsHkJqUJy5dV+G9jVWlEGaiGUrEMOfXAnuYtPZ7XxwREyBOwoWdDKoMUxSwi6ID+e5AYVkSM86NNNGvV3Gm4Lfe/MZEErA1cM7CZuCNOsGi6hh+AAq579gNLUgNG1U9yqJXs=\",null,null,null,null,\"sig-\\\"]\\\\[\",null,null,null,\"1762435200\",null,null],null,null,null]",
+        "responseId": "resp-1-ü",
+        "route": 19,
+        "action": 16,
+        "decryptedData": "1a9d01129a010a056d73672d392202106428c0fdbe8fcfdd90033a06636f6e762d314a03702d32521912170a15696e636f6d696e6720e29c89efb88f205c20227822521b1a190803220970686f746f2e706e6728b9604a077468756d622d319a01140a080a06e29da4efb88f1203702d311203702d32aa01070a056d73672d38ca011d0a13120c2b31353535303030323232321a03702d321206467269656e64",
+        "decodedType": "events.UpdateEvents",
+        "decoded": "1a9d01129a010a056d73672d392202106428c0fdbe8fcfdd90033a06636f6e762d314a03702d32521912170a15696e636f6d696e6720e29c89efb88f205c20227822521b1a190803220970686f746f2e706e6728b9604a077468756d622d319a01140a080a06e29da4efb88f1203702d311203702d32aa01070a056d73672d38ca011d0a13120c2b31353535303030323232321a03702d321206467269656e64",
+        "hasPayload": true,
+        "hasUnencrypted": false,
+        "hasAccountField": false,
+        "accountSwitch": false,
+        "pair": ""
+      },
+      {
+        "name": "GET_UPDATES account change (field 11)",
+        "json": "[null,[\"resp-2-ü\",19,1762435200000000,null,2,1762435200000100,100,[987654321,\"mobile-source-id\",\"Bugle\"],[123456789,\"browser-source-id\",\"Bugle\"],null,null,\"CiQ2Njk1YzU1ZC1iMzMwLTQ5NTItOTg5Ni05NDVkODViMzYxNGIYg8Ck4M7dkAMgEFpJ4aOoPNkkE6gk4MIpyGthqIVp4fIb+zYnF3sc4s728kmt0T+7Ig30rczpLP2/Jdq8JCGIc0TucKcmqDTHNQHWsCjM3Be/XL7jXg==\",null,null,null,null,\"sig-\\\"]\\\\[\",null,null,null,\"1762435200\",null,null],null,null,null]",
+        "responseId": "resp-2-ü",
+        "route": 19,
+        "action": 16,
+        "decryptedData": "12170a13736f6d656f6e65406578616d706c652e636f6d1001",
+        "decodedType": "events.UpdateEvents",
+        "decoded": "",
+        "hasPayload": false,
+        "hasUnencrypted": false,
+        "hasAccountField": true,
+        "accountSwitch": true,
+        "pair": ""
+      },
+      {
+        "name": "GET_UPDATES logged out",
+        "json": "[null,[\"resp-3-ü\",19,1762435200000000,null,2,1762435200000100,100,[987654321,\"mobile-source-id\",\"Bugle\"],[123456789,\"browser-source-id\",\"Bugle\"],null,null,\"CiQ2Njk1YzU1ZC1iMzMwLTQ5NTItOTg5Ni05NDVkODViMzYxNGIYhMCk4M7dkAMgECoCcgA=\",null,null,null,null,\"sig-\\\"]\\\\[\",null,null,null,\"1762435200\",null,null],null,null,null]",
+        "responseId": "resp-3-ü",
+        "route": 19,
+        "action": 16,
+        "decryptedData": "",
+        "decodedType": "events.UpdateEvents",
+        "decoded": "",
+        "hasPayload": false,
+        "hasUnencrypted": true,
+        "hasAccountField": false,
+        "accountSwitch": false,
+        "pair": ""
+      },
+      {
+        "name": "PairEvent paired",
+        "json": "[null,[\"resp-4-ü\",14,1762435200000000,null,2,1762435200000100,100,[987654321,\"mobile-source-id\",\"Bugle\"],[123456789,\"browser-source-id\",\"Bugle\"],null,null,\"IlgKGAgBEg1wYWlyZWQtbW9iaWxlGgVCdWdsZRIhChhxNismYDlll1m7AW+wykdgJs8h18pvdQIQgMDd7sECGhkIAhIOcGFpcmVkLWJyb3dzZXIaBUJ1Z2xl\",null,null,null,null,\"sig-\\\"]\\\\[\",null,null,null,\"1762435200\",null,null],null,null,null]",
+        "responseId": "resp-4-ü",
+        "route": 14,
+        "action": 0,
+        "decryptedData": "",
+        "decodedType": "",
+        "decoded": "",
+        "hasPayload": false,
+        "hasUnencrypted": false,
+        "hasAccountField": false,
+        "accountSwitch": false,
+        "pair": "22580a180801120d7061697265642d6d6f62696c651a054275676c6512210a1871362b266039659759bb016fb0ca476026cf21d7ca6f75021080c0ddeec1021a190802120e7061697265642d62726f777365721a054275676c65"
+      }
+    ],
+    "events": [
+      {
+        "type": "message",
+        "message": "0a056d73672d392202106428c0fdbe8fcfdd90033a06636f6e762d314a03702d32521912170a15696e636f6d696e6720e29c89efb88f205c20227822521b1a190803220970686f746f2e706e6728b9604a077468756d622d319a01140a080a06e29da4efb88f1203702d311203702d32aa01070a056d73672d38ca011d0a13120c2b31353535303030323232321a03702d321206467269656e64"
+      },
+      {
+        "type": "accountChange",
+        "account": "someone@example.com",
+        "isFake": true
+      },
+      {
+        "type": "gaiaLoggedOut"
+      }
+    ],
+    "receiveMessagesLoggedIn": {
+      "name": "ReceiveMessages (logged in)",
+      "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/ReceiveMessages",
+      "requestId": "7b6fed9d-2be8-4b77-b365-b6d63e21ca1f",
+      "auth": {
+        "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+        "ttlMicros": "72000000000",
+        "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+        "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+        "destRegId": ""
+      },
+      "body": "[[\"7b6fed9d-2be8-4b77-b365-b6d63e21ca1f\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],null,null,[null,[]]]",
+      "bodyHex": "5b5b2237623666656439642d326265382d346237372d623336352d623664363365323163613166222c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c224b42436b4d6a56666c57546f5336506c32384f313136794a6234334845747259222c5b6e756c6c2c6e756c6c2c323032362c332c31382c6e756c6c2c342c6e756c6c2c365d5d2c6e756c6c2c6e756c6c2c5b6e756c6c2c5b5d5d5d",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/json+protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    },
+    "ack": {
+      "name": "AckMessages",
+      "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/AckMessages",
+      "requestId": "68f22bfa-6c23-4b1c-b545-fe4a78292e6a",
+      "auth": {
+        "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+        "ttlMicros": "72000000000",
+        "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+        "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+        "destRegId": ""
+      },
+      "body": "[[\"68f22bfa-6c23-4b1c-b545-fe4a78292e6a\",null,null,null,null,\"KBCkMjVflWToS6Pl28O116yJb43HEtrY\",[null,null,2026,3,18,null,4,null,6]],[],null,[[\"resp-0-ü\",[123456789,\"browser-source-id\",\"Bugle\"]],[\"resp-1-ü\",[123456789,\"browser-source-id\",\"Bugle\"]],[\"resp-2-ü\",[123456789,\"browser-source-id\",\"Bugle\"]],[\"resp-3-ü\",[123456789,\"browser-source-id\",\"Bugle\"]]]]",
+      "bodyHex": "5b5b2236386632326266612d366332332d346231632d623534352d666534613738323932653661222c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c224b42436b4d6a56666c57546f5336506c32384f313136794a6234334845747259222c5b6e756c6c2c6e756c6c2c323032362c332c31382c6e756c6c2c342c6e756c6c2c365d5d2c5b5d2c6e756c6c2c5b5b22726573702d302dc3bc222c5b3132333435363738392c2262726f777365722d736f757263652d6964222c224275676c65225d5d2c5b22726573702d312dc3bc222c5b3132333435363738392c2262726f777365722d736f757263652d6964222c224275676c65225d5d2c5b22726573702d322dc3bc222c5b3132333435363738392c2262726f777365722d736f757263652d6964222c224275676c65225d5d2c5b22726573702d332dc3bc222c5b3132333435363738392c2262726f777365722d736f757263652d6964222c224275676c65225d5d5d5d",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/json+protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      },
+      "ackIds": [
+        "resp-0-ü",
+        "resp-1-ü",
+        "resp-2-ü",
+        "resp-3-ü"
+      ]
+    },
+    "revokeRelayPairing": {
+      "name": "RevokeRelayPairing",
+      "url": "https://instantmessaging-pa.googleapis.com/$rpc/google.internal.communications.instantmessaging.v1.Pairing/RevokeRelayPairing",
+      "requestId": "41f5ec00-51b4-4a97-83aa-4f7b69e87098",
+      "auth": {
+        "token": "2810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad8",
+        "ttlMicros": "72000000000",
+        "mobile": "08b1d1f9d60312106d6f62696c652d736f757263652d69641a054275676c65",
+        "browser": "08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+        "destRegId": ""
+      },
+      "body": "\nM\n$41f5ec00-51b4-4a97-83aa-4f7b69e870982\u0018(\u0010�25_�d�K���õ׬�o��\u0012��:\u000b\u0018�\u000f \u0003(\u00128\u0004H\u0006\u0012\u001f\b���:\u0012\u0011browser-source-id\u001a\u0005Bugle",
+      "bodyHex": "0a4d0a2434316635656330302d353162342d346139372d383361612d34663762363965383730393832182810a432355f9564e84ba3e5dbc3b5d7ac896f8dc712dad83a0b18ea0f2003281238044806121f08959aef3a121162726f777365722d736f757263652d69641a054275676c65",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "content-type": "application/x-protobuf",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    }
+  },
+  "gaia": {
+    "keys": {
+      "aesKey": "1e21f0f3ab6891e03639889b5fe242c92f356b837127e828e003202ca661740f",
+      "hmacKey": "a2f999fbf73e32160c9f5536026e4ba7519dc30477708f28751378288e622c2d",
+      "refreshKeyD": "90b2c562baa3cd25e3ce5ba62cbfbe0e3beaaba5fa618b1289a9f60c231b3cb0",
+      "sessionId": "00000000-0000-0000-0000-000000000000"
+    },
+    "cookies": {
+      "APISID": "apisid-value",
+      "HSID": "hsid-value",
+      "OSID": "osid-value",
+      "SAPISID": "sapisid/Value_1",
+      "SID": "sid-value",
+      "SSID": "ssid-value",
+      "__Secure-1PSID": "secure-1psid"
+    },
+    "signInGaia": {
+      "name": "SignInGaia",
+      "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Registration/SignInGaia",
+      "requestId": "c5bc5ade-8496-4cdb-b8fc-44e6b3b2a3c7",
+      "auth": {
+        "token": "",
+        "ttlMicros": "",
+        "mobile": "",
+        "browser": "",
+        "destRegId": ""
+      },
+      "body": "[[\"c5bc5ade-8496-4cdb-b8fc-44e6b3b2a3c7\",null,\"GDitto\",null,null,null,[null,null,2026,3,18,null,4,null,6]],[[3,\"messages-web-00000000000000000000000000000000\"],null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,null,\"GlswWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASajnAQWCk40TxmuwueZBKU7dE/6DgG74uMUqGEvqwg7P0h44zCdMtb4hSw7cX41L7cLBDhCeRzxYIuHzs1M0bv\"],null,\"GDitto\"]",
+      "bodyHex": "5b5b2263356263356164652d383439362d346364622d623866632d343465366233623261336337222c6e756c6c2c2247446974746f222c6e756c6c2c6e756c6c2c6e756c6c2c5b6e756c6c2c6e756c6c2c323032362c332c31382c6e756c6c2c342c6e756c6c2c365d5d2c5b5b332c226d657373616765732d7765622d3030303030303030303030303030303030303030303030303030303030303030225d2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c6e756c6c2c22476c73775754415442676371686b6a4f5051494242676771686b6a4f50514d4242774e43414153616a6e415157436b343054786d757775655a424b553764452f364467473734754d55714745767177673750306834347a43644d74623468537737635834314c37634c4244684365527a78594975487a73314d306276225d2c6e756c6c2c2247446974746f225d",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+        "content-type": "application/json+protobuf",
+        "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    },
+    "receiveMessages": {
+      "name": "ReceiveMessages (gaia)",
+      "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/ReceiveMessages",
+      "requestId": "4d3a6201-8933-4afd-94d8-9d7ba542271a",
+      "auth": {
+        "token": "0a871e376af71da8076a7585cecc27525de5ef618201b2f1",
+        "ttlMicros": "86400000000",
+        "mobile": "0892211213676169612d62726f777365722d736f757263651a0647446974746f",
+        "browser": "0892211213474149412d42726f777365722d536f757263651a0647446974746f",
+        "destRegId": "5879f060-124b-5203-8122-e6524e1c6c4f"
+      },
+      "body": "[[\"4d3a6201-8933-4afd-94d8-9d7ba542271a\",null,\"GDitto\",null,null,\"CoceN2r3HagHanWFzswnUl3l72GCAbLx\",[null,null,2026,3,18,null,4,null,6]],null,null,[null,[]]]",
+      "bodyHex": "5b5b2234643361363230312d383933332d346166642d393464382d396437626135343232373161222c6e756c6c2c2247446974746f222c6e756c6c2c6e756c6c2c22436f63654e32723348616748616e57467a73776e556c336c3732474341624c78222c5b6e756c6c2c6e756c6c2c323032362c332c31382c6e756c6c2c342c6e756c6c2c365d5d2c6e756c6c2c6e756c6c2c5b6e756c6c2c5b5d5d5d",
+      "headers": {
+        "accept": "*/*",
+        "accept-language": "en-US,en;q=0.9",
+        "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+        "content-type": "application/json+protobuf",
+        "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+        "origin": "https://messages.google.com",
+        "referer": "https://messages.google.com/",
+        "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+        "sec-ch-ua-mobile": "?1",
+        "sec-ch-ua-platform": "\"Android\"",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "cross-site",
+        "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+        "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+        "x-user-agent": "grpc-web-javascript/0.1"
+      }
+    },
+    "outgoing": [
+      {
+        "name": "CREATE_GAIA_PAIRING_CLIENT_INIT",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "182ac1a6-6721-43ce-aae8-0cd72f0191b9",
+        "sessionId": "",
+        "action": 44,
+        "messageType": 20,
+        "ttl": "300000000",
+        "auth": {
+          "token": "0a871e376af71da8076a7585cecc27525de5ef618201b2f1",
+          "ttlMicros": "86400000000",
+          "mobile": "0892211213676169612d62726f777365722d736f757263651a0647446974746f",
+          "browser": "0892211213474149412d42726f777365722d536f757263651a0647446974746f",
+          "destRegId": "5879f060-124b-5203-8122-e6524e1c6c4f"
+        },
+        "payload": "plain",
+        "plaintext": "0a2434663062633134312d616361382d346138302d383237632d33393836363362363465333612720a654d6f7a696c6c612f352e3020284c696e75783b20416e64726f696420313429204170706c655765624b69742f3533372e333620284b48544d4c2c206c696b65204765636b6f29204368726f6d652f3134362e302e302e30205361666172692f3533372e333610011a056c6962676d30021890b2ad959b3422880108021283010801122087e194a58e8ef61441658bcfc9a7fa57aa758c44864c20a257d215fc53cf59e61a44086412409190143d019c9b4b4a1d4d94ce8715b93d87ac6341eb19bbc01f89df9b2071e0e4e7ca8ede1bcb23be493f450e7dec28750e045fa3c3775092d617f234e0d64d22174145535f3235365f4342432d484d41435f53484132353628013001",
+        "iv": "",
+        "body": "[[4242,\"gaia-browser-source\",\"GDitto\"],[\"182ac1a6-6721-43ce-aae8-0cd72f0191b9\",19,null,null,null,null,null,null,null,null,null,\"CiQxODJhYzFhNi02NzIxLTQzY2UtYWFlOC0wY2Q3MmYwMTkxYjkQLBqwAgokNGYwYmMxNDEtYWNhOC00YTgwLTgyN2MtMzk4NjYzYjY0ZTM2EnIKZU1vemlsbGEvNS4wIChMaW51eDsgQW5kcm9pZCAxNCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0Ni4wLjAuMCBTYWZhcmkvNTM3LjM2EAEaBWxpYmdtMAIYkLKtlZs0IogBCAISgwEIARIgh+GUpY6O9hRBZYvPyaf6V6p1jESGTCCiV9IV/FPPWeYaRAhkEkCRkBQ9AZybS0odTZTOhxW5PYesY0HrGbvAH4nfmyBx4OTnyo7eG8sjvkk/RQ597Ch1DgRfo8N3UJLWF/I04NZNIhdBRVNfMjU2X0NCQy1ITUFDX1NIQTI1NigBMAE=\",null,null,null,null,null,null,null,null,null,null,[[],20]],[\"182ac1a6-6721-43ce-aae8-0cd72f0191b9\",null,null,null,null,\"CoceN2r3HagHanWFzswnUl3l72GCAbLx\",[null,null,2026,3,18,null,4,null,6]],null,300000000,null,null,null,[\"NTg3OWYwNjAtMTI0Yi01MjAzLTgxMjItZTY1MjRlMWM2YzRm\"]]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+          "content-type": "application/json+protobuf",
+          "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "CANCEL_GAIA_PAIRING (init timeout)",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "4f0bc141-aca8-4a80-827c-398663b64e36",
+        "sessionId": "",
+        "action": 47,
+        "messageType": 20,
+        "ttl": "300000000",
+        "auth": {
+          "token": "0a871e376af71da8076a7585cecc27525de5ef618201b2f1",
+          "ttlMicros": "86400000000",
+          "mobile": "0892211213676169612d62726f777365722d736f757263651a0647446974746f",
+          "browser": "0892211213474149412d42726f777365722d536f757263651a0647446974746f",
+          "destRegId": "5879f060-124b-5203-8122-e6524e1c6c4f"
+        },
+        "payload": "none",
+        "plaintext": "",
+        "iv": "",
+        "body": "[[4242,\"gaia-browser-source\",\"GDitto\"],[\"4f0bc141-aca8-4a80-827c-398663b64e36\",19,null,null,null,null,null,null,null,null,null,\"CiQ0ZjBiYzE0MS1hY2E4LTRhODAtODI3Yy0zOTg2NjNiNjRlMzYQLw==\",null,null,null,null,null,null,null,null,null,null,[[],20]],[\"4f0bc141-aca8-4a80-827c-398663b64e36\",null,null,null,null,\"CoceN2r3HagHanWFzswnUl3l72GCAbLx\",[null,null,2026,3,18,null,4,null,6]],null,300000000,null,null,null,[\"NTg3OWYwNjAtMTI0Yi01MjAzLTgxMjItZTY1MjRlMWM2YzRm\"]]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+          "content-type": "application/json+protobuf",
+          "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "CREATE_GAIA_PAIRING_CLIENT_FINISHED",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "10cbc133-7643-45f0-9d7a-7eec8d7af5a3",
+        "sessionId": "",
+        "action": 45,
+        "messageType": 2,
+        "ttl": "300000000",
+        "auth": {
+          "token": "0a871e376af71da8076a7585cecc27525de5ef618201b2f1",
+          "ttlMicros": "86400000000",
+          "mobile": "0892211213676169612d62726f777365722d736f757263651a0647446974746f",
+          "browser": "0892211213474149412d42726f777365722d536f757263651a0647446974746f",
+          "destRegId": "5879f060-124b-5203-8122-e6524e1c6c4f"
+        },
+        "payload": "plain",
+        "plaintext": "0a2434663062633134312d616361382d346138302d383237632d33393836363362363465333612720a654d6f7a696c6c612f352e3020284c696e75783b20416e64726f696420313429204170706c655765624b69742f3533372e333620284b48544d4c2c206c696b65204765636b6f29204368726f6d652f3134362e302e302e30205361666172692f3533372e333610011a056c6962676d30021890b2ad959b3422500804124c0a4a080112460a2100a2ff04ca4757ad7564e395b744507ae9bdf57a44633ea8e25e024977aabd286f122100f9578e0103068216c52da6eab750af83ac9ec644cb65cecf6e5c2ac209419333",
+        "iv": "",
+        "body": "[[4242,\"gaia-browser-source\",\"GDitto\"],[\"10cbc133-7643-45f0-9d7a-7eec8d7af5a3\",19,null,null,null,null,null,null,null,null,null,\"CiQxMGNiYzEzMy03NjQzLTQ1ZjAtOWQ3YS03ZWVjOGQ3YWY1YTMQLRrzAQokNGYwYmMxNDEtYWNhOC00YTgwLTgyN2MtMzk4NjYzYjY0ZTM2EnIKZU1vemlsbGEvNS4wIChMaW51eDsgQW5kcm9pZCAxNCkgQXBwbGVXZWJLaXQvNTM3LjM2IChLSFRNTCwgbGlrZSBHZWNrbykgQ2hyb21lLzE0Ni4wLjAuMCBTYWZhcmkvNTM3LjM2EAEaBWxpYmdtMAIYkLKtlZs0IlAIBBJMCkoIARJGCiEAov8EykdXrXVk45W3RFB66b31ekRjPqjiXgJJd6q9KG8SIQD5V44BAwaCFsUtpuq3UK+DrJ7GRMtlzs9uXCrCCUGTMw==\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"10cbc133-7643-45f0-9d7a-7eec8d7af5a3\",null,null,null,null,\"CoceN2r3HagHanWFzswnUl3l72GCAbLx\",[null,null,2026,3,18,null,4,null,6]],null,300000000,null,null,null,[\"NTg3OWYwNjAtMTI0Yi01MjAzLTgxMjItZTY1MjRlMWM2YzRm\"]]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+          "content-type": "application/json+protobuf",
+          "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "CANCEL_GAIA_PAIRING (finish cancelled)",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "4f0bc141-aca8-4a80-827c-398663b64e36",
+        "sessionId": "",
+        "action": 47,
+        "messageType": 20,
+        "ttl": "300000000",
+        "auth": {
+          "token": "0a871e376af71da8076a7585cecc27525de5ef618201b2f1",
+          "ttlMicros": "86400000000",
+          "mobile": "0892211213676169612d62726f777365722d736f757263651a0647446974746f",
+          "browser": "0892211213474149412d42726f777365722d536f757263651a0647446974746f",
+          "destRegId": "5879f060-124b-5203-8122-e6524e1c6c4f"
+        },
+        "payload": "none",
+        "plaintext": "",
+        "iv": "",
+        "body": "[[4242,\"gaia-browser-source\",\"GDitto\"],[\"4f0bc141-aca8-4a80-827c-398663b64e36\",19,null,null,null,null,null,null,null,null,null,\"CiQ0ZjBiYzE0MS1hY2E4LTRhODAtODI3Yy0zOTg2NjNiNjRlMzYQLw==\",null,null,null,null,null,null,null,null,null,null,[[],20]],[\"4f0bc141-aca8-4a80-827c-398663b64e36\",null,null,null,null,\"CoceN2r3HagHanWFzswnUl3l72GCAbLx\",[null,null,2026,3,18,null,4,null,6]],null,300000000,null,null,null,[\"NTg3OWYwNjAtMTI0Yi01MjAzLTgxMjItZTY1MjRlMWM2YzRm\"]]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+          "content-type": "application/json+protobuf",
+          "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      },
+      {
+        "name": "UNPAIR_GAIA_PAIRING",
+        "url": "https://instantmessaging-pa.clients6.google.com/$rpc/google.internal.communications.instantmessaging.v1.Messaging/SendMessage",
+        "requestId": "ecf22c3a-d4a2-4bcd-980f-780f9254b663",
+        "sessionId": "",
+        "action": 46,
+        "messageType": 2,
+        "ttl": "86400000000",
+        "auth": {
+          "token": "0a871e376af71da8076a7585cecc27525de5ef618201b2f1",
+          "ttlMicros": "86400000000",
+          "mobile": "0892211213676169612d62726f777365722d736f757263651a0647446974746f",
+          "browser": "0892211213474149412d42726f777365722d536f757263651a0647446974746f",
+          "destRegId": "5879f060-124b-5203-8122-e6524e1c6c4f"
+        },
+        "payload": "encrypted",
+        "plaintext": "0a2434663062633134312d616361382d346138302d383237632d333938363633623634653336",
+        "iv": "36bb78dc33962007f29e460f2679511f",
+        "body": "[[4242,\"gaia-browser-source\",\"GDitto\"],[\"ecf22c3a-d4a2-4bcd-980f-780f9254b663\",19,null,null,null,null,null,null,null,null,null,\"CiRlY2YyMmMzYS1kNGEyLTRiY2QtOTgwZi03ODBmOTI1NGI2NjMQLipWV40WUYTZo4gf4DSDsACfjEJgDGY7SZdeVhyH3PHFP4EYvtWXF9E2u3jcM5YgB/KeRg8meVEf2oMTLad/ylddm7b8Y0ZsmeIDhn6PGoOmrDHbGBFdnUI=\",null,null,null,null,null,null,null,null,null,null,[[],2]],[\"ecf22c3a-d4a2-4bcd-980f-780f9254b663\",null,null,null,null,\"CoceN2r3HagHanWFzswnUl3l72GCAbLx\",[null,null,2026,3,18,null,4,null,6]],null,86400000000,null,null,null,[\"NTg3OWYwNjAtMTI0Yi01MjAzLTgxMjItZTY1MjRlMWM2YzRm\"]]",
+        "headers": {
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9",
+          "authorization": "SAPISIDHASH 1793998936_ff2ab945dfb98bb64a8abe7e1ad204390f4c744b",
+          "content-type": "application/json+protobuf",
+          "cookie": "APISID=apisid-value; HSID=hsid-value; OSID=osid-value; SAPISID=sapisid/Value_1; SID=sid-value; SSID=ssid-value; __Secure-1PSID=secure-1psid",
+          "origin": "https://messages.google.com",
+          "referer": "https://messages.google.com/",
+          "sec-ch-ua": "\"Google Chrome\";v=\"146\", \"Chromium\";v=\"146\", \"Not-A.Brand\";v=\"24\"",
+          "sec-ch-ua-mobile": "?1",
+          "sec-ch-ua-platform": "\"Android\"",
+          "sec-fetch-dest": "empty",
+          "sec-fetch-mode": "cors",
+          "sec-fetch-site": "cross-site",
+          "user-agent": "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36",
+          "x-goog-api-key": "AIzaSyCA4RsOZUFrm9whhtGosPlJLmVPnfSHKz8",
+          "x-user-agent": "grpc-web-javascript/0.1"
+        }
+      }
+    ],
+    "initPayload": "08021283010801122087e194a58e8ef61441658bcfc9a7fa57aa758c44864c20a257d215fc53cf59e61a44086412409190143d019c9b4b4a1d4d94ce8715b93d87ac6341eb19bbc01f89df9b2071e0e4e7ca8ede1bcb23be493f450e7dec28750e045fa3c3775092d617f234e0d64d22174145535f3235365f4342432d484d41435f534841323536",
+    "attemptId": "4f0bc141-aca8-4a80-827c-398663b64e36",
+    "startMillis": 1793998936336
+  },
+  "sendPayload": {
+    "conversationId": "conv-42",
+    "text": "héllo 😀 <b>&amp;",
+    "replyToId": "reply-msg-7",
+    "participantId": "+15550001111",
+    "simTwo": 2,
+    "simNumber": 1,
+    "tmpId": "tmp_000000000042",
+    "binary": "1207636f6e762d34321a550a10746d705f3030303030303030303034323a07636f6e762d34324a0c2b3135353530303031313131521812160a1468c3a96c6c6f20f09f9880203c623e26616d703b6210746d705f3030303030303030303034322204080210012a10746d705f303030303030303030303432420d0a0b7265706c792d6d73672d37"
+  },
+  "acceptance": {
+    "keys": {
+      "aesKey": "780a96142040baf2e170246ac077c32c88e8f411feffef7b429ad11ab7c41f99",
+      "hmacKey": "540c4a64f50d7b11aeb9367d4d2d8594aa389e2a95522b577eabbfa03c978ba6",
+      "refreshKeyD": "",
+      "sessionId": ""
+    },
+    "destRegId": "c5e78c51-b0be-5fdf-8053-342fd9fbdcbf",
+    "cases": [
+      {
+        "name": "payload answers a listing",
+        "session": "qr",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSABQjZgI2JfR2p9SWKYYqzBQtSF3CNUhP5nTlAqwViG1gycySqrvpzmMKjMaeQqsAd1zoby7nZtLkI=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "header-only answers a listing",
+        "session": "qr",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAB\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "header-only cannot answer an object lookup",
+        "session": "qr",
+        "waiterAction": 43,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAr\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": false
+      },
+      {
+        "name": "field 5 only, listing",
+        "session": "qr",
+        "waiterAction": 2,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSACKgMBAgM=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": false,
+        "delivered": false
+      },
+      {
+        "name": "field 5 only, object lookup",
+        "session": "qr",
+        "waiterAction": 43,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSArKgMBAgM=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": false,
+        "delivered": false
+      },
+      {
+        "name": "field 5 with payload",
+        "session": "qr",
+        "waiterAction": 2,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSACKgEBQjZ2vVCjctnV+6tYCItsSDjecAY9W9oASTYTyMRQGp0vBl7AZCT4LUy8XLW/1XvZsIo0ZzR4CrE=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "field 11 account only, listing",
+        "session": "qr",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSABWkeEcigNhSmcu20ZrB6EhhuaCSfoKV/HVnxJcKqjR3v8/5aC5o1Ud5O0k6X6FJVwGYG8kR8a9JjcWhXNR8glnjz9S3HaClaQSw==\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": false
+      },
+      {
+        "name": "field 11 account only, send",
+        "session": "qr",
+        "waiterAction": 3,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSADWkeEcigNhSmcu20ZrB6EhhuaCSfoKV/HVnxJcKqjR3v8/5aC5o1Ud5O0k6X6FJVwGYG8kR8a9JjcWhXNR8glnjz9S3HaClaQSw==\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "header-only answers a send",
+        "session": "qr",
+        "waiterAction": 3,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAD\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "field 5 only, Gaia CLIENT_INIT (exempt)",
+        "session": "qr",
+        "waiterAction": 44,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAsKgIJCQ==\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "another request's answer",
+        "session": "qr",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-2\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMiABQjZgI2JfR2p9SWKYYqzBQtSF3CNUhP5nTlAqwViG1gycySqrvpzmMKjMaeQqsAd1zoby7nZtLkI=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": false,
+        "delivered": false
+      },
+      {
+        "name": "payload answers a listing",
+        "session": "gaiaNoCookies",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSABQjZgI2JfR2p9SWKYYqzBQtSF3CNUhP5nTlAqwViG1gycySqrvpzmMKjMaeQqsAd1zoby7nZtLkI=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "header-only answers a listing",
+        "session": "gaiaNoCookies",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAB\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "header-only cannot answer an object lookup",
+        "session": "gaiaNoCookies",
+        "waiterAction": 43,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAr\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": false
+      },
+      {
+        "name": "field 5 only, listing",
+        "session": "gaiaNoCookies",
+        "waiterAction": 2,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSACKgMBAgM=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "field 5 only, object lookup",
+        "session": "gaiaNoCookies",
+        "waiterAction": 43,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSArKgMBAgM=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "field 5 with payload",
+        "session": "gaiaNoCookies",
+        "waiterAction": 2,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSACKgEBQjZ2vVCjctnV+6tYCItsSDjecAY9W9oASTYTyMRQGp0vBl7AZCT4LUy8XLW/1XvZsIo0ZzR4CrE=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "field 11 account only, listing",
+        "session": "gaiaNoCookies",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSABWkeEcigNhSmcu20ZrB6EhhuaCSfoKV/HVnxJcKqjR3v8/5aC5o1Ud5O0k6X6FJVwGYG8kR8a9JjcWhXNR8glnjz9S3HaClaQSw==\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": false
+      },
+      {
+        "name": "field 11 account only, send",
+        "session": "gaiaNoCookies",
+        "waiterAction": 3,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSADWkeEcigNhSmcu20ZrB6EhhuaCSfoKV/HVnxJcKqjR3v8/5aC5o1Ud5O0k6X6FJVwGYG8kR8a9JjcWhXNR8glnjz9S3HaClaQSw==\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "header-only answers a send",
+        "session": "gaiaNoCookies",
+        "waiterAction": 3,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAD\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "field 5 only, Gaia CLIENT_INIT (exempt)",
+        "session": "gaiaNoCookies",
+        "waiterAction": 44,
+        "json": "[null,[\"resp-req-1\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMSAsKgIJCQ==\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": true,
+        "delivered": true
+      },
+      {
+        "name": "another request's answer",
+        "session": "gaiaNoCookies",
+        "waiterAction": 1,
+        "json": "[null,[\"resp-req-2\",19,null,null,2,null,null,null,null,null,null,\"CgVyZXEtMiABQjZgI2JfR2p9SWKYYqzBQtSF3CNUhP5nTlAqwViG1gycySqrvpzmMKjMaeQqsAd1zoby7nZtLkI=\",null,null,null,null,null,null,null,null,null,null,null],null,null,null]",
+        "consumed": false,
+        "delivered": false
+      }
+    ]
+  }
+}
