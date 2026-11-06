@@ -101,18 +101,20 @@ function GaiaInstructions() {
   return (
     <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-6">
       <li>
-        On a computer, open{" "}
-        <a href="https://messages.google.com/web" target="_blank" rel="noreferrer" className="text-accent underline">
-          messages.google.com/web
-        </a>{" "}
-        in Chrome, signed in to the Google account your phone&apos;s Google Messages uses.
+        Open a new Incognito window in Chrome (Cmd+Shift+N, or Ctrl+Shift+N on Windows), go to{" "}
+        <code className="font-mono text-xs">messages.google.com/web</code>, and sign in with the Google account
+        your phone&apos;s Google Messages uses.
       </li>
       <li>Open DevTools (F12, or Cmd+Option+I on a Mac), select the Network tab, then reload the page.</li>
       <li>
         Right-click any request to <code className="font-mono text-xs">messages.google.com</code> and choose
         Copy &gt; Copy as cURL.
       </li>
-      <li>Paste it below and start pairing.</li>
+      <li>
+        Close the Incognito window without signing out. This gives openrcs its own Google session that no
+        browser keeps changing; signing out would end it.
+      </li>
+      <li>Paste the copied command below and start pairing.</li>
     </ol>
   );
 }
