@@ -51,8 +51,15 @@ export type PreparedPairingKey = {
   readonly setCookie: string | null;
 };
 export const PairingKeys = {
-  prepare(db: Database, userId: string, cookieHeader: string | null):
-    Promise<Result<PreparedPairingKey, VaultStorageError>>;
+  /** mode "pairing": use the device slot's DEK if valid, else mint a new DEK
+   *  (always succeeds). mode "consent" (OAuth approval): same, except that if
+   *  the user already has a gm_session and this browser cannot unlock it,
+   *  return VaultLockedError instead of minting (minting would orphan the
+   *  paired session). So a user can authorize an MCP client before pairing:
+   *  the DEK and device slot are created at consent, and pairing later in the
+   *  same browser reuses them. */
+  prepare(db: Database, userId: string, cookieHeader: string | null, opts: { mode: "pairing" | "consent" }):
+    Promise<Result<PreparedPairingKey, VaultLockedError | VaultStorageError>>;
   /** After the phone confirms. If isNewKey: revoke every old slot and grant of
    *  the user and call `onKeyRotated` (the service layer deletes the user's old
    *  conversations/messages/sync_state there) BEFORE the caller writes the new
@@ -87,6 +94,13 @@ export type McpAuth = {
 
 `/api/mcp/route.ts` (security core) authenticates the bearer token, then calls
 `createRcsMcpServer({ auth })` (service layer) per request.
+
+Dashboard component owned by the security core:
+`src/app/dashboard/_components/connected-clients.tsx` exports
+`ConnectedClients({ userId }: { userId: string })` (async server component:
+lists the user's active grants with client name, scopes, created/last used,
+and a revoke button posting to a security-core route). The service layer's
+dashboard page renders it.
 
 ## `src/lib/mcp` (service layer)
 
