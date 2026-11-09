@@ -200,10 +200,11 @@ export function PairingFlow({ resetsData }: { resetsData: boolean }) {
                 </a>
                 ). Google cookies grant broad access to your Google account.
               </p>
-              <label htmlFor="cookies" className="flex flex-col gap-1.5">
+              <label htmlFor="curl-command" className="flex flex-col gap-1.5">
                 <span className="text-sm font-medium">Copied cURL command</span>
+                {/* Never id="cookies": cookie-banner ad-block lists hide "#cookies.py-2". */}
                 <textarea
-                  id="cookies"
+                  id="curl-command"
                   value={cookies}
                   onChange={(event) => setCookies(event.target.value)}
                   rows={6}
