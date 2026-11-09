@@ -25,6 +25,24 @@ export type AuthConfig = {
  */
 const withoutProviderTokens = { accessToken: null, refreshToken: null, idToken: null } as const;
 
+/**
+ * One Better Auth log argument, safe to print. Drizzle puts a failed query's
+ * parameters (such as session tokens) in its error message, and Better Auth
+ * logs that error as-is, so errors keep only their names and messages up to
+ * "params:", and other values only their type.
+ */
+export const describeAuthLogArg = (arg: unknown): string => {
+  if (!(arg instanceof Error)) return `<${typeof arg}>`;
+  const parts: string[] = [];
+  let current: unknown = arg;
+  for (let depth = 0; current instanceof Error && depth < 4; depth += 1) {
+    const message = current.message.split("params:")[0]?.trim() ?? "";
+    parts.push(`${current.name}: ${message.slice(0, 300)}`);
+    current = current.cause;
+  }
+  return parts.join(" <- caused by ");
+};
+
 export const createAuth = (config: AuthConfig) =>
   betterAuth({
     appName: "openrcs",
@@ -41,6 +59,12 @@ export const createAuth = (config: AuthConfig) =>
       account: {
         create: { before: async (account) => ({ data: { ...account, ...withoutProviderTokens } }) },
         update: { before: async (account) => ({ data: { ...account, ...withoutProviderTokens } }) },
+      },
+    },
+    logger: {
+      log: (level, message, ...args: unknown[]) => {
+        const details = args.map(describeAuthLogArg).join(" | ");
+        console[level](`[better-auth] ${message}${details === "" ? "" : ` ${details}`}`);
       },
     },
     // Serverless instances do not share memory, so counters live in the database.

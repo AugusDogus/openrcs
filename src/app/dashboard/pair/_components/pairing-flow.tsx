@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { Alert, buttonClass, Card } from "@/app/_components/ui";
 import { PairingEvent } from "@/lib/rcs/pairing-event";
 
@@ -141,7 +141,19 @@ export function PairingFlow({ resetsData }: { resetsData: boolean }) {
   const [cookies, setCookies] = useState("");
   const abortRef = useRef<AbortController | null>(null);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  // Next keeps this page mounted but hidden after navigating away (Activity,
+  // docs: guides/preserving-ui-state), and a Link back restores it. Reset on
+  // hide so returning shows the form, not a finished or aborted flow, and
+  // pasted cookies do not linger in the hidden page.
+  useLayoutEffect(
+    () => () => {
+      abortRef.current?.abort();
+      abortRef.current = null;
+      setState({ stage: "idle" });
+      setCookies("");
+    },
+    [],
+  );
 
   function start() {
     abortRef.current?.abort();
