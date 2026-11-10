@@ -154,5 +154,10 @@ Scopes: `messages:read`, `messages:send`.
   phone numbers.
 - `KEY_PEPPER` is 32 random bytes (base64). Rotating it makes every slot and
   access token unusable (users re-pair and re-authorize).
-- Sign-in is GitHub only, open to anyone. The app is AGPL-3.0 (it ports
+- Self-hosted (docs/self-hosting.md), sign-in instead trusts the
+  `Tailscale-User-Login` header that Tailscale Serve sets, so the server must
+  listen on loopback only. `KEY_PEPPER` then lives in the data folder beside
+  the database: a copy of that folder is the "database and environment" row
+  of the breach table, and still decrypts nothing without a client's secret.
+- On the hosted deployment sign-in is GitHub only, open to anyone. The app is AGPL-3.0 (it ports
   libgm from mautrix-gmessages); the footer links to the source.

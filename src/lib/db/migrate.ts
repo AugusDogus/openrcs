@@ -2,6 +2,7 @@
  * Applies the SQL migrations in ./drizzle to TURSO_DATABASE_URL.
  * Works for `file:` (local dev, creates the parent directory) and remote
  * `libsql://` databases. Run with `bun run db:migrate`; Bun loads .env.local.
+ * The Docker image runs a bundled copy on every start (docker/entrypoint.sh).
  */
 import { mkdirSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -10,7 +11,9 @@ import { migrate } from "drizzle-orm/libsql/migrator";
 import { createDatabase } from "@/lib/db/client";
 import { Env, InvalidEnvError } from "@/lib/env";
 
-const migrationsFolder = resolve(dirname(fileURLToPath(import.meta.url)), "../../../drizzle");
+// The Docker image bundles this script, so it names the folder explicitly.
+const migrationsFolder =
+  process.env.OPENRCS_MIGRATIONS_DIR ?? resolve(dirname(fileURLToPath(import.meta.url)), "../../../drizzle");
 
 const ensureLocalDirectory = (url: string) => {
   if (!url.startsWith("file:")) return;

@@ -35,6 +35,29 @@ describe("Env.parseAuth", () => {
   });
 });
 
+describe("Env.parseAuth with AUTH_PROVIDER", () => {
+  const base = { BETTER_AUTH_URL: "https://openrcs.tail1234.ts.net", BETTER_AUTH_SECRET: "x".repeat(32) };
+
+  test("defaults to github, which needs the GitHub pair", () => {
+    expect(Env.parseAuth(validAuth).unwrap().AUTH_PROVIDER).toBe("github");
+    expect(issueVariables(Env.parseAuth({ ...base, AUTH_PROVIDER: "" })).sort()).toEqual([
+      "GITHUB_CLIENT_ID",
+      "GITHUB_CLIENT_SECRET",
+    ]);
+  });
+
+  test("tailscale needs no GitHub variables", () => {
+    expect(Env.parseAuth({ ...base, AUTH_PROVIDER: "tailscale" }).unwrap()).toEqual({
+      ...base,
+      AUTH_PROVIDER: "tailscale",
+    });
+  });
+
+  test("rejects an unknown provider by name", () => {
+    expect(issueVariables(Env.parseAuth({ ...base, AUTH_PROVIDER: "google" }))).toEqual(["AUTH_PROVIDER"]);
+  });
+});
+
 describe("Env.parseVault", () => {
   test("accepts 32 random bytes in base64", () => {
     const pepper = randomBytes(32).toString("base64");

@@ -19,7 +19,7 @@ const appAuth = () =>
   createAuth({
     baseURL: "https://openrcs.test",
     secret: randomBytes(32).toString("base64"),
-    github: { clientId: "test-client", clientSecret: "test-secret" },
+    provider: { kind: "github", clientId: "test-client", clientSecret: "test-secret" },
     database: drizzleAdapter(t.db, { provider: "sqlite", schema }),
   });
 

@@ -38,7 +38,9 @@ vectors), create a module under `/tmp/` that requires
   from `@bufbuild/protobuf`).
 - Errors as values via `better-result` for expected failures; tagged error
   classes. Tests with `bun:test` (`bun test`).
-- Deploy: Vercel (team `augies-projects`), Fluid compute, `iad1`.
+- Deploy: Vercel (team `augies-projects`), Fluid compute, `iad1`; or the
+  Docker image behind Tailscale Serve (docs/self-hosting.md), which runs the
+  same code with a SQLite file and Tailscale sign-in.
 
 ## Directory layout
 
@@ -67,7 +69,8 @@ src/
     errors.ts             tagged errors
     testing/              fake Google + fake phone harness for tests
   lib/db/                 Drizzle schema + client (auth tables + app tables)
-  lib/auth.ts             Better Auth server config (GitHub only)
+  lib/auth.ts             Better Auth server config (GitHub, or Tailscale when self-hosted)
+  lib/auth-tailscale.ts   sign-in from Tailscale Serve identity headers
   lib/auth-client.ts      Better Auth React client
   lib/vault/              split-key vault: DEK, key slots, DataBox, device unlock
   lib/oauth/              OAuth 2.1 authorization server for MCP
@@ -111,7 +114,8 @@ See docs/security.md (split-key vault, OAuth design, breach analysis).
 | --- | --- |
 | `BETTER_AUTH_URL` | Public origin, e.g. `https://openrcs.vercel.app` (also the OAuth issuer) |
 | `BETTER_AUTH_SECRET` | Better Auth secret |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub App (or OAuth app) used for sign-in |
+| `AUTH_PROVIDER` | `github` (default) or `tailscale` (self-hosted behind Tailscale Serve, docs/self-hosting.md) |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub App (or OAuth app) used for sign-in; not needed with `AUTH_PROVIDER=tailscale` |
 | `TURSO_DATABASE_URL` | `libsql://...` or `file:./.data/dev.db` |
 | `TURSO_AUTH_TOKEN` | Turso token (unset for `file:`) |
 | `KEY_PEPPER` | base64 32-byte server key share for the vault (docs/security.md) |
