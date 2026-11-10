@@ -16,7 +16,7 @@ const base64Pattern = /^[A-Za-z0-9+/]+={0,2}$/;
 const nonEmpty = (name: string) =>
   z.string({ error: `${name} is not set` }).trim().min(1, `${name} is empty`);
 
-const AuthEnvSchema = z.object({
+const AuthBaseSchema = z.object({
   BETTER_AUTH_URL: nonEmpty("BETTER_AUTH_URL")
     .pipe(z.url({ protocol: /^https?$/, error: "must be an absolute http(s) URL" }))
     .transform((value) => value.replace(/\/+$/, "")),
@@ -24,9 +24,31 @@ const AuthEnvSchema = z.object({
     32,
     "must be at least 32 characters (generate one with `openssl rand -base64 32`)",
   ),
-  GITHUB_CLIENT_ID: nonEmpty("GITHUB_CLIENT_ID"),
-  GITHUB_CLIENT_SECRET: nonEmpty("GITHUB_CLIENT_SECRET"),
 });
+
+/**
+ * How people sign in. `github` (the default) is for a public deployment;
+ * `tailscale` is for a self-hosted one reached only through Tailscale Serve,
+ * which names the caller in request headers (docs/self-hosting.md).
+ */
+const AuthEnvSchema = z.preprocess(
+  (source) =>
+    typeof source === "object" && source !== null && !("AUTH_PROVIDER" in source && source.AUTH_PROVIDER)
+      ? { ...source, AUTH_PROVIDER: "github" }
+      : source,
+  z.discriminatedUnion(
+    "AUTH_PROVIDER",
+    [
+      AuthBaseSchema.extend({
+        AUTH_PROVIDER: z.literal("github"),
+        GITHUB_CLIENT_ID: nonEmpty("GITHUB_CLIENT_ID"),
+        GITHUB_CLIENT_SECRET: nonEmpty("GITHUB_CLIENT_SECRET"),
+      }),
+      AuthBaseSchema.extend({ AUTH_PROVIDER: z.literal("tailscale") }),
+    ],
+    { error: 'must be "github" or "tailscale"' },
+  ),
+);
 
 const DatabaseEnvSchema = z.object({
   TURSO_DATABASE_URL: nonEmpty("TURSO_DATABASE_URL").refine(
@@ -72,7 +94,7 @@ const describeIssues = (section: EnvSection, issues: readonly EnvIssue[]): strin
   return [
     `Invalid server environment (${section}). The following variables need attention:`,
     ...lines,
-    "Set them in .env.local for local development (see .env.example) or in the Vercel project settings, then restart the server.",
+    "Set them in .env.local for local development (see .env.example), in the Vercel project settings, or in the container environment when self-hosting, then restart the server.",
   ].join("\n");
 };
 
@@ -119,7 +141,7 @@ const parseDatabase = (source: EnvSource) =>
 const parseVault = (source: EnvSource) => parseSection("vault", VaultEnvSchema, source);
 
 export const Env = {
-  /** BETTER_AUTH_URL (no trailing slash), BETTER_AUTH_SECRET, GITHUB_CLIENT_ID, GITHUB_CLIENT_SECRET. */
+  /** BETTER_AUTH_URL (no trailing slash), BETTER_AUTH_SECRET, AUTH_PROVIDER, and the GitHub pair when it is "github". */
   auth: lazySection(parseAuth),
   /** TURSO_DATABASE_URL and optional TURSO_AUTH_TOKEN. */
   database: lazySection(parseDatabase),

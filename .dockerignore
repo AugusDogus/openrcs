@@ -1,0 +1,14 @@
+.git
+.next
+.vercel
+.data
+.env*
+!.env.example
+node_modules
+tsconfig.tsbuildinfo
+next-env.d.ts
+docker-compose*.yml
+unraid
+docs
+tools
+*.md

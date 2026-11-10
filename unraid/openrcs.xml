@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>openrcs</Name>
+  <Repository>ghcr.io/augusdogus/openrcs:latest</Repository>
+  <Registry>https://github.com/AugusDogus/openrcs/pkgs/container/openrcs</Registry>
+  <Network>bridge</Network>
+  <MyIP/>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/AugusDogus/openrcs/issues</Support>
+  <Project>https://github.com/AugusDogus/openrcs</Project>
+  <Overview>Google Messages (SMS/RCS) for AI agents over MCP, reachable only on your tailnet. Leave "Use Tailscale" on with Tailscale Serve on port 3000: the app listens on loopback inside the container and publishes no ports. On first start, open the container log and follow the Tailscale login link. Setup guide: docs/self-hosting.md in the project.</Overview>
+  <Category>Tools: Network:Messenger</Category>
+  <WebUI/>
+  <TemplateURL/>
+  <Icon>https://raw.githubusercontent.com/AugusDogus/openrcs/main/assets/icon.svg</Icon>
+  <ExtraParams/>
+  <PostArgs/>
+  <CPUset/>
+  <DonateText/>
+  <DonateLink/>
+  <Requires>A Tailscale account with MagicDNS and HTTPS certificates enabled.</Requires>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/openrcs" Mode="rw" Description="Database, generated secrets and Tailscale state. Back up this folder as a whole." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/openrcs</Config>
+  <Config Name="OPENRCS_URL" Target="OPENRCS_URL" Default="" Mode="" Description="Leave empty with 'Use Tailscale' on: the container detects its https://name.tailnet.ts.net address. Set it only if Tailscale runs outside this container." Type="Variable" Display="advanced" Required="false" Mask="false"/>
+  <Config Name="KEY_PEPPER" Target="KEY_PEPPER" Default="" Mode="" Description="Optional. Leave empty to generate one into the data folder on first start. base64 of 32 bytes." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <Config Name="BETTER_AUTH_SECRET" Target="BETTER_AUTH_SECRET" Default="" Mode="" Description="Optional. Leave empty to generate one into the data folder on first start." Type="Variable" Display="advanced" Required="false" Mask="true"/>
+  <TailscaleEnabled>true</TailscaleEnabled>
+  <TailscaleIsExitNode>false</TailscaleIsExitNode>
+  <TailscaleHostname>openrcs</TailscaleHostname>
+  <TailscaleSSH>false</TailscaleSSH>
+  <TailscaleUserspaceNetworking>true</TailscaleUserspaceNetworking>
+  <TailscaleServe>serve</TailscaleServe>
+  <TailscaleWebUI>https://[hostname][magicdns]/</TailscaleWebUI>
+  <TailscaleServePort>3000</TailscaleServePort>
+  <TailscaleServeTarget>http://127.0.0.1</TailscaleServeTarget>
+  <TailscaleServeProtocol>https</TailscaleServeProtocol>
+  <TailscaleServeProtocolPort>443</TailscaleServeProtocolPort>
+  <TailscaleStateDir>/data/.tailscale_state</TailscaleStateDir>
+</Container>

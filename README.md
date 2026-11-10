@@ -2,8 +2,9 @@
 
 # openrcs
 
-A hosted bridge from your Android phone's Google Messages (SMS/RCS) to AI
-agents. Sign in with GitHub, pair your phone as a "Messages for web" device,
+A bridge from your Android phone's Google Messages (SMS/RCS) to AI agents,
+hosted on Vercel or [self-hosted on your tailnet](#self-hosting-docker--tailscale).
+Sign in, pair your phone as a "Messages for web" device,
 then connect an MCP client (Claude Code, Claude Desktop, Cursor, executor.sh)
 to list, read, search and send your messages.
 
@@ -121,6 +122,25 @@ Over `http://localhost` the device cookies are named `__openrcs-device-<tag>`
 | `bun test` | Unit tests (`bun:test`, temp databases with the real migrations) |
 | `bun run db:migrate` | Apply `drizzle/` migrations to `TURSO_DATABASE_URL` |
 | `bun run gen:proto` | Regenerate `src/gen/gmproto` from `proto/` |
+
+## Self-hosting (Docker + Tailscale)
+
+Run it on your own box (Unraid, a NAS, any Docker host), reachable only over
+your tailnet: no Vercel, Turso or GitHub app. You sign in with your Tailscale
+identity, the database is a SQLite file, and secrets are generated into the
+data volume on first start, never baked into the image.
+
+```sh
+cp .env.selfhost.example .env      # set OPENRCS_URL and TS_AUTHKEY
+docker compose up -d --build
+```
+
+Then open `https://openrcs.<your-tailnet>.ts.net` from a tailnet device, pair
+your phone, and point agents at `https://openrcs.<your-tailnet>.ts.net/api/mcp`.
+
+Full guide, including the Unraid template (`unraid/openrcs.xml`), tailnet
+access rules, backups and troubleshooting:
+[docs/self-hosting.md](docs/self-hosting.md).
 
 ## Deploying (Vercel + Turso)
 

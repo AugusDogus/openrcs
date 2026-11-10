@@ -43,3 +43,7 @@ next-env.d.ts
 # local data
 /.data/
 !.env.example
+!.env.selfhost.example
+
+# self-hosting data and env
+/data/
