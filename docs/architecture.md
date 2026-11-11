@@ -49,6 +49,7 @@ src/
     pblite.ts             pblite JSON <-> protobuf-es messages
     constants.ts          URLs, headers values, ConfigVersion, API key, UA strings
     crypto/aes-ctr.ts     AES-256-CTR + HMAC-SHA256 request crypto
+    crypto/aes-gcm.ts     chunked AES-256-GCM attachment crypto
     crypto/jwk.ts         ECDSA P-256 refresh key (JWK), ASN.1 signing, SPKI export
     crypto/ukey2.ts       Gaia pairing session: UKEY2 payloads, server init, emoji, key derivation
     crypto/emoji.ts       pairing emoji tables v0/v1
@@ -62,6 +63,7 @@ src/
     pair-gaia.ts          Google-account pairing
     pair-qr.ts            QR pairing (protocol only; the app offers Google-account pairing alone)
     message.ts            plain message/conversation extraction, send payloads
+    media.ts              attachment download (libgm DownloadMedia)
     errors.ts             tagged errors
     testing/              fake Google + fake phone harness for tests
   lib/db/                 Drizzle schema + client (auth tables + app tables)
@@ -71,7 +73,8 @@ src/
   lib/oauth/              OAuth 2.1 authorization server for MCP
   lib/secret-box.ts       AES-256-GCM envelope primitive
   lib/env.ts              validated env (zod)
-  lib/rcs/                service layer: phone lease, session persistence, sync, search, send, pairing
+  lib/rcs/                service layer: phone lease, session persistence, sync, search, send, pairing,
+                          attachments and their download links
   lib/mcp/                MCP server and tools (one file per tool)
   app/                    routes and pages
 ```

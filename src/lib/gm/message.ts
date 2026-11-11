@@ -18,7 +18,14 @@ import type { SIMPayload } from "@/gen/gmproto/settings_pb";
 // ExtractSenderInfo, MessageIsFromMe) and internal/app/gm.go payload builders
 // (ExtractSIMAndParticipant, BuildSendPayloadWithTmpID, NewContactNumbers).
 
-export type PlainMedia = { mediaId: string; mimeType: string; name: string; size: number };
+export type PlainMedia = {
+  mediaId: string;
+  mimeType: string;
+  name: string;
+  size: number;
+  /** Base64 AES-256-GCM key that decrypts the media at `mediaId`; null when the phone sent none. Secret. */
+  key: string | null;
+};
 export type PlainReaction = { emoji: string; count: number; participantIds: string[] };
 export type PlainMessage = {
   messageId: string;
@@ -77,9 +84,16 @@ const extractMedia = (m: Message): PlainMedia | null => {
     if (mimeType === "") {
       mimeType = mc.format >= MediaFormats.IMAGE_JPEG && mc.format <= 7 ? "image/jpeg" : "application/octet-stream";
     }
-    // No full-size media id: fall back to the thumbnail.
-    const mediaId = mc.mediaID === "" && mc.thumbnailMediaID !== "" ? mc.thumbnailMediaID : mc.mediaID;
-    return { mediaId, mimeType, name: mc.mediaName, size: Number(mc.size) };
+    // No full-size media id: fall back to the thumbnail (and its key).
+    const thumbnail = mc.mediaID === "" && mc.thumbnailMediaID !== "";
+    const key = thumbnail ? mc.thumbnailDecryptionKey : mc.decryptionKey;
+    return {
+      mediaId: thumbnail ? mc.thumbnailMediaID : mc.mediaID,
+      mimeType,
+      name: mc.mediaName,
+      size: Number(mc.size),
+      key: key.length === 0 ? null : Buffer.from(key).toString("base64"),
+    };
   }
   return null;
 };

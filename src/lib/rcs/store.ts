@@ -1,5 +1,5 @@
 import { Result } from "better-result";
-import { and, count, desc, eq, gte, inArray, lt, sql, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, gt, gte, inArray, lt, sql, type SQL } from "drizzle-orm";
 import type { BatchItem } from "drizzle-orm/batch";
 import { z } from "zod";
 import { conversation, message, syncState } from "@/lib/db/app-schema";
@@ -39,7 +39,14 @@ export const MessageContentSchema = z.object({
   senderName: z.string().nullable(),
   senderNumber: z.string().nullable(),
   media: z
-    .object({ mediaId: z.string(), mimeType: z.string(), name: z.string(), size: z.number() })
+    .object({
+      mediaId: z.string(),
+      mimeType: z.string(),
+      name: z.string(),
+      size: z.number(),
+      /** Attachment key (base64). Absent on rows stored before keys were kept. */
+      key: z.string().nullable().default(null),
+    })
     .nullable(),
   reactions: z.array(
     z.object({ emoji: z.string(), count: z.number(), participantIds: z.array(z.string()) }),
@@ -468,6 +475,52 @@ const getMessages = async (
   return Result.ok({ messages: messages.reverse(), unreadable });
 };
 
+/** One stored message by id, or null when it is not stored or cannot be decrypted. */
+const getMessage = async (
+  db: Database,
+  ctx: RcsContext,
+  messageId: string,
+): Promise<Result<StoredMessage | null, RcsStorageError>> => {
+  const rows = await Result.tryPromise({
+    try: () =>
+      db
+        .select(messageColumns)
+        .from(message)
+        .where(and(eq(message.userId, ctx.userId), eq(message.messageId, messageId)))
+        .limit(1),
+    catch: (cause) => storageError("store.getMessage", ctx.userId, cause),
+  });
+  if (rows.isErr()) return Result.err(rows.error);
+  const [row] = rows.value;
+  return Result.ok(row === undefined ? null : openMessage(ctx, row));
+};
+
+/** The oldest message of the conversation that is newer than `timestampMs`, or null. */
+const nextNewerMessage = (
+  db: Database,
+  userId: string,
+  conversationId: string,
+  timestampMs: number,
+): Promise<Result<{ messageId: string; timestampMs: number } | null, RcsStorageError>> =>
+  Result.tryPromise({
+    try: async () => {
+      const [row] = await db
+        .select({ messageId: message.messageId, timestampMs: message.timestamp })
+        .from(message)
+        .where(
+          and(
+            eq(message.userId, userId),
+            eq(message.conversationId, conversationId),
+            gt(message.timestamp, timestampMs),
+          ),
+        )
+        .orderBy(asc(message.timestamp), asc(message.id))
+        .limit(1);
+      return row ?? null;
+    },
+    catch: (cause) => storageError("store.nextNewerMessage", userId, cause),
+  });
+
 /**
  * Decrypt-and-scan search. SQL narrows candidates by user, conversation and
  * time window (newest first, keyset-paginated in batches); each batch is
@@ -670,6 +723,8 @@ export const Store = {
   listConversations,
   getConversation,
   getMessages,
+  getMessage,
+  nextNewerMessage,
   searchMessages,
   counts,
   syncedTimestamps,

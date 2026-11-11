@@ -68,12 +68,35 @@ Encrypted with the DEK (`DataBox`, AES-256-GCM, versioned envelope, AAD binds
 user id, table and row key so ciphertexts cannot be swapped between rows or
 users): `gm_session.auth_data_enc`; conversation name, participants and last
 message preview; message body, sender name/number, media metadata and
-reactions. Plaintext: user id, Google's opaque conversation/message ids,
+reactions (media metadata includes the attachment's own decryption key, see
+"Attachments"). Plaintext: user id, Google's opaque conversation/message ids,
 timestamps, from-me flag, delivery status, unread/read-only/group flags.
 
 Search decrypts candidate rows in memory (filtered first by user, optional
 conversation, and time window in SQL), newest first, with a scan cap that the
 result reports when hit. There is no plaintext full-text index.
+
+## Attachments
+
+Google stores each attachment encrypted under a key that travels inside its
+message. openrcs keeps that key with the message's media metadata, inside
+the DEK-sealed content, and never stores attachment bytes. The `get_media`
+tool (scope `messages:read`, read-only) downloads from Google with the
+session's tachyon token and decrypts in memory. `get_messages` and
+`search_messages` never return the key.
+
+Attachments that are not returned inline get a download link,
+`/api/media/<id>.<secret>`, valid for 10 minutes. The link is a bearer
+capability for that one file, because the person or tool that fetches it has
+no access token. The row behind it (`media-link:<id>` in the `verification`
+table) holds the media id, the attachment key and the tachyon token, sealed
+with `HKDF(secret, salt = KEY_PEPPER, info = "openrcs/media-link/v1")`. The
+secret exists only in the link, so the database, the pepper, or both do not
+open a row; a link plus the pepper and the row does, until the row expires.
+Expired rows are refused and deleted when the next link is created. Request
+logs contain link paths, so a log reader can download a file within those 10
+minutes. Downloads are always served as attachments (`Content-Disposition:
+attachment`, `nosniff`, a sandboxing CSP), never rendered on this origin.
 
 ## OAuth 2.1 authorization server for MCP
 

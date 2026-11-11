@@ -79,8 +79,10 @@ phone. There are no API keys.
 - **executor.sh**: add a remote MCP service with the URL and approve the OAuth
   sign-in.
 
-Tools: `get_status`, `list_conversations`, `get_messages`, `search_messages`,
-`send_message`, `list_contacts`, `sync_messages`. Scopes: `messages:read` for
+Tools: `get_status`, `list_conversations`, `get_messages`, `get_media`,
+`search_messages`, `send_message`, `list_contacts`, `sync_messages`.
+`get_media` returns an image attachment as image content, and other
+attachments as a download link that lasts 10 minutes. Scopes: `messages:read` for
 reading, `messages:send` for sending.
 
 ## Local development

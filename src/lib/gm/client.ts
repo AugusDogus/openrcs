@@ -74,6 +74,7 @@ import { actionName, IncomingRpc, type DataRpc, type GMEvent } from "./events";
 import { GMHttp, type FetchFn, type HttpContext } from "./http";
 import { GMLogger } from "./logger";
 import { LongPoll, type LongPollFrame } from "./longpoll";
+import { GMMedia, type GMMediaError } from "./media";
 import { Pblite } from "./pblite";
 import {
   DEFAULT_ACK_INTERVAL_MS,
@@ -729,6 +730,8 @@ export type GMClient = {
   markRead(conversationId: string, messageId: string): Promise<Result<void, GMRpcError>>;
   listContacts(): Promise<Result<ListContactsResponse, GMRpcError>>;
   listTopContacts(): Promise<Result<ListTopContactsResponse, GMRpcError>>;
+  /** Download an attachment from Google and decrypt it with the key from its message (no phone RPC). */
+  downloadMedia(req: { mediaId: string; key: Uint8Array; signal?: AbortSignal }): Promise<Result<ReadableStream<Uint8Array>, GMMediaError>>;
   /** Best-effort unpair (Gaia: UNPAIR_GAIA_PAIRING; QR: RevokeRelayPairing). */
   unpair(): Promise<Result<void, GMRpcError | GMHttpError>>;
 };
@@ -964,6 +967,10 @@ const createClient = (opts: GMClientOptions): GMClient => {
 
     listTopContacts() {
       return call(GMRequests.listTopContacts(), ListTopContactsResponseSchema);
+    },
+
+    downloadMedia(req) {
+      return GMMedia.download({ fetch: opts.fetch ?? fetch, credentials: GMMedia.credentials(authData), ...req });
     },
 
     async unpair() {

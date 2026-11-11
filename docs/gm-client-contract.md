@@ -96,6 +96,8 @@ export type GMClient = {
   markRead(conversationId: string, messageId: string): Promise<Result<void, GMRpcError>>;
   listContacts(): Promise<Result<ListContactsResponse, GMRpcError>>;
   listTopContacts(): Promise<Result<ListTopContactsResponse, GMRpcError>>;
+  // libgm DownloadMedia: decrypted attachment bytes (src/lib/gm/media.ts). HTTP only, no phone RPC.
+  downloadMedia(req: { mediaId: string; key: Uint8Array; signal?: AbortSignal }): Promise<Result<ReadableStream<Uint8Array>, GMMediaError>>;
   /** Best-effort unpair (Gaia: UNPAIR_GAIA_PAIRING; QR: RevokeRelayPairing). */
   unpair(): Promise<Result<void, GMRpcError | GMHttpError>>;
 };
@@ -157,7 +159,10 @@ Port of openmessage `internal/client/client.go` extraction helpers and
 `internal/app/gm.go` payload builders.
 
 ```ts
-export type PlainMedia = { mediaId: string; mimeType: string; name: string; size: number };
+export type PlainMedia = {
+  mediaId: string; mimeType: string; name: string; size: number;
+  key: string | null;            // base64 MediaContent.decryptionKey of `mediaId` (secret); null when absent
+};
 export type PlainReaction = { emoji: string; count: number; participantIds: string[] };
 export type PlainMessage = {
   messageId: string; conversationId: string; timestampMs: number;

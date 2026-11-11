@@ -12,7 +12,8 @@ import type { McpScope } from "@/lib/oauth/scopes";
 import { Store } from "@/lib/rcs/store";
 import { RcsTesting } from "@/lib/rcs/testing";
 import { Dek } from "@/lib/vault/dek";
-import { createRcsMcpServer } from "./server";
+import { GMMessage } from "@/lib/gm/message";
+import { createRcsMcpServer, type RcsMcpContext } from "./server";
 
 // Tools resolve the app database with getDb(); point it at a temp file before
 // the first call (never at the developer's .env.local database).
@@ -55,9 +56,9 @@ const callTool = async (
   scopes: readonly McpScope[],
   name: string,
   args: Record<string, unknown>,
-  opts: { authInfo?: AuthInfo; key?: Dek } = {},
+  opts: { authInfo?: AuthInfo; key?: Dek; testing?: RcsMcpContext["testing"] } = {},
 ) => {
-  const handler = createMcpHandler(() => createRcsMcpServer({ auth: auth(scopes, opts.key) }));
+  const handler = createMcpHandler(() => createRcsMcpServer({ auth: auth(scopes, opts.key), testing: opts.testing }));
   const response = await handler.fetch(
     new Request("http://localhost/api/mcp", {
       method: "POST",
@@ -88,6 +89,7 @@ describe("scope enforcement", () => {
   for (const [name, args] of [
     ["list_conversations", {}],
     ["get_messages", { conversation_id: "c1" }],
+    ["get_media", { message_id: "m1" }],
     ["search_messages", { query: "x" }],
     ["list_contacts", {}],
     ["sync_messages", {}],
@@ -173,5 +175,108 @@ describe("pairing gates", () => {
     );
     expect(result.isError).toBe(true);
     expect(result.content[0]?.text).toContain("exactly one of conversation_id");
+  });
+});
+
+describe("get_media", () => {
+  const key = new Uint8Array(32).fill(4);
+  const png = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 1, 2, 3]);
+  const MediaResultSchema = z.object({
+    result: z.object({
+      isError: z.boolean().optional(),
+      content: z.array(
+        z.discriminatedUnion("type", [
+          z.object({ type: z.literal("text"), text: z.string() }),
+          z.object({ type: z.literal("image"), data: z.string(), mimeType: z.string() }),
+        ]),
+      ),
+      structuredContent: z.record(z.string(), z.unknown()).optional(),
+    }),
+  });
+  const mediaResult = async (response: Response) => {
+    const text = await response.text();
+    const data = text.split("\n").find((line) => line.startsWith("data: "));
+    return MediaResultSchema.parse(JSON.parse(data === undefined ? text : data.slice(6))).result;
+  };
+  const attachment = (id: string, mimeType: string, name: string) =>
+    GMMessage.toPlain(
+      RcsTesting.message({
+        id,
+        conversationId: "c1",
+        timestampMs: Date.UTC(2026, 10, 6),
+        text: "",
+        media: { id: `media-${id}`, key, mimeType, name, size: png.length },
+      }),
+    );
+  const phone = RcsTesting.fakePhone({ media: new Map([["media-shot", { key, data: png }]]) });
+  const testing = (): RcsMcpContext["testing"] => ({
+    phone: { createClient: RcsTesting.fakeClient(phone) },
+    mediaLink: { db: getDb(), origin: "https://openrcs.test", pepper: new Uint8Array(32).fill(8), now: Date.now },
+  });
+
+  beforeAll(async () => {
+    const ctx = { userId, dek };
+    await RcsTesting.pair(getDb(), ctx);
+    (await Store.upsertMessages(getDb(), ctx, [
+      attachment("shot", "image/png", "IMG_2375.png"),
+      attachment("clip", "video/mp4", "clip.mp4"),
+    ])).unwrap();
+  });
+
+  test("an image comes back as an MCP image content block", async () => {
+    const result = await mediaResult(
+      await callTool(["messages:read"], "get_media", { message_id: "shot" }, { testing: testing() }),
+    );
+    expect(result.isError).toBeUndefined();
+    expect(result.content).toEqual([
+      { type: "text", text: "IMG_2375.png (image/png, 12 bytes) from message shot:" },
+      { type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" },
+    ]);
+    expect(result.structuredContent).toEqual({
+      message_id: "shot",
+      conversation_id: "c1",
+      media_id: "media-shot",
+      mime_type: "image/png",
+      name: "IMG_2375.png",
+      size: 12,
+      delivery: "image",
+      download_url: null,
+      download_expires_at: null,
+    });
+  });
+
+  test("other attachments, and images on request, come back as a short-lived download link", async () => {
+    for (const args of [{ message_id: "clip" }, { message_id: "shot", as_link: true }]) {
+      const result = await mediaResult(await callTool(["messages:read"], "get_media", args, { testing: testing() }));
+      expect(result.isError).toBeUndefined();
+      expect(result.content.map((c) => c.type)).toEqual(["text"]);
+      expect(result.structuredContent).toMatchObject({ message_id: args.message_id, delivery: "link" });
+      const url = z.string().parse(result.structuredContent?.download_url);
+      expect(url).toMatch(/^https:\/\/openrcs\.test\/api\/media\/[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/);
+      const expires = Date.parse(z.string().parse(result.structuredContent?.download_expires_at));
+      expect(expires - Date.now()).toBeGreaterThan(9 * 60_000);
+      expect(expires - Date.now()).toBeLessThanOrEqual(10 * 60_000);
+    }
+  });
+
+  test("get_messages never exposes the attachment key", async () => {
+    const result = await toolResult(
+      await callTool(["messages:read"], "get_messages", { conversation_id: "c1", refresh: false }),
+    );
+    expect(JSON.stringify(result)).not.toContain(Buffer.from(key).toString("base64"));
+    expect(result.structuredContent?.messages).toContainEqual(
+      expect.objectContaining({
+        message_id: "shot",
+        media: { media_id: "media-shot", mime_type: "image/png", name: "IMG_2375.png", size: 12 },
+      }),
+    );
+  });
+
+  test("a message without an attachment is an error that says so", async () => {
+    const result = await mediaResult(
+      await callTool(["messages:read"], "get_media", { message_id: "missing" }, { testing: testing() }),
+    );
+    expect(result.isError).toBe(true);
+    expect(result.content[0]).toMatchObject({ type: "text", text: expect.stringContaining("No stored message") });
   });
 });

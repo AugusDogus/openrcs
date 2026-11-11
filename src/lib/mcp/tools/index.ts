@@ -1,4 +1,5 @@
 import type { RcsToolRegistrar } from "../context";
+import { registerGetMediaTool } from "./get-media";
 import { registerGetMessagesTool } from "./get-messages";
 import { registerGetStatusTool } from "./get-status";
 import { registerListContactsTool } from "./list-contacts";
@@ -12,6 +13,7 @@ export const rcsTools: readonly RcsToolRegistrar[] = [
   registerGetStatusTool,
   registerListConversationsTool,
   registerGetMessagesTool,
+  registerGetMediaTool,
   registerSearchMessagesTool,
   registerSendMessageTool,
   registerListContactsTool,

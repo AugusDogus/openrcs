@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -34,6 +35,7 @@ func generate(outDir string) error {
 		fn   func() (any, error)
 	}{
 		{"crypto-aes-ctr.json", genAesCtr},
+		{"crypto-aes-gcm.json", genAesGcm},
 		{"crypto-jwk.json", genJwk},
 		{"crypto-emoji.json", genEmoji},
 		{"crypto-ukey2.json", genUkey2},
@@ -125,6 +127,48 @@ func genAesCtr() (any, error) {
 			return nil, fmt.Errorf("go accepted rejected case %q", r.name)
 		}
 		fx.Rejected = append(fx.Rejected, aesRejected{Name: r.name, Input: hex.EncodeToString(r.input), GoError: err.Error()})
+	}
+	return fx, nil
+}
+
+// ---- AES-GCM (media) ----
+
+type gcmCase struct {
+	// Plaintext is seeded("aes-gcm/plaintext/<size>", size); only its hash is stored.
+	Size            int    `json:"size"`
+	PlaintextSha256 string `json:"plaintextSha256"`
+	Ciphertext      string `json:"ciphertext"`
+}
+
+type gcmFixture struct {
+	Key   string    `json:"key"`
+	Cases []gcmCase `json:"cases"`
+}
+
+func genAesGcm() (any, error) {
+	key := seeded("aes-gcm/key", 32)
+	helper, err := crypto.NewAESGCMHelper(key)
+	if err != nil {
+		return nil, err
+	}
+	fx := gcmFixture{Key: hex.EncodeToString(key)}
+	// 32740 bytes fill exactly one 32 KiB chunk; 32741 spill into a second.
+	for _, n := range []int{1, 100, 32740, 32741} {
+		pt := seeded(fmt.Sprintf("aes-gcm/plaintext/%d", n), n)
+		ct, err := helper.EncryptData(pt)
+		if err != nil {
+			return nil, err
+		}
+		back, err := helper.DecryptData(bytes.Clone(ct))
+		if err != nil || !bytes.Equal(back, pt) {
+			return nil, fmt.Errorf("go round trip failed for %d bytes: %v", n, err)
+		}
+		sum := sha256.Sum256(pt)
+		fx.Cases = append(fx.Cases, gcmCase{
+			Size:            n,
+			PlaintextSha256: hex.EncodeToString(sum[:]),
+			Ciphertext:      base64.StdEncoding.EncodeToString(ct),
+		})
 	}
 	return fx, nil
 }

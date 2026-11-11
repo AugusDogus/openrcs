@@ -76,6 +76,20 @@ export class RcsAbortedError extends TaggedError("RcsAbortedError")<{
   message: string;
 }> {}
 
+/**
+ * An attachment could not be returned: the message or its attachment is not
+ * there, the phone sent no key for it, or Google refused the download.
+ */
+export class RcsMediaError extends TaggedError("RcsMediaError")<{
+  userId: string;
+  reason: "noMessage" | "noMedia" | "notUploaded" | "noKey" | "download";
+  /** HTTP status of a refused download, for logs. */
+  status: number | null;
+  /** Always false: a failed download says nothing about the session (read by withPhone). */
+  needsRepair: false;
+  message: string;
+}> {}
+
 /** Errors any phone-backed operation can return. */
 export type RcsPhoneAccessError =
   | RcsStorageError

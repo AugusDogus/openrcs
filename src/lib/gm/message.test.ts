@@ -37,7 +37,7 @@ describe("GMMessage.toPlain (openmessage Extract* helpers)", () => {
       senderNumber: "(555) 123",
       body: "first text",
       status: "OUTGOING_DELIVERED",
-      media: { mediaId: "thumb", mimeType: "image/jpeg", name: "a.png", size: 99 },
+      media: { mediaId: "thumb", mimeType: "image/jpeg", name: "a.png", size: 99, key: null },
       replyToId: "m0",
       reactions: [{ emoji: "👍", count: 2, participantIds: ["p1", "p2"] }],
       tmpId: "tmp_000000000001",

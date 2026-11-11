@@ -30,7 +30,7 @@ import {
 import type { Database } from "@/lib/db/client";
 import { AuthData } from "@/lib/gm/auth-data";
 import type { GMClient, GMClientOptions, GMEvent } from "@/lib/gm/client";
-import { GMRequestError, type GMConnectError, type GMRpcError } from "@/lib/gm/errors";
+import { GMHttpError, GMRequestError, type GMConnectError, type GMRpcError } from "@/lib/gm/errors";
 import { Dek } from "@/lib/vault/dek";
 import { VaultTesting } from "@/lib/vault/testing";
 import type { RcsContext } from "./context";
@@ -90,13 +90,32 @@ const message = (opts: {
   senderName?: string;
   senderNumber?: string;
   tmpId?: string;
+  media?: { id: string; key: Uint8Array; mimeType: string; name: string; size: number };
 }): Message =>
   create(MessageSchema, {
     messageID: opts.id,
     conversationID: opts.conversationId,
     timestamp: msToMicros(opts.timestampMs),
     tmpID: opts.tmpId ?? "",
-    messageInfo: [{ data: { case: "messageContent", value: { content: opts.text } } }],
+    messageInfo: [
+      { data: { case: "messageContent", value: { content: opts.text } } },
+      ...(opts.media === undefined
+        ? []
+        : [
+            {
+              data: {
+                case: "mediaContent" as const,
+                value: {
+                  mediaID: opts.media.id,
+                  decryptionKey: opts.media.key,
+                  mimeType: opts.media.mimeType,
+                  mediaName: opts.media.name,
+                  size: BigInt(opts.media.size),
+                },
+              },
+            },
+          ]),
+    ],
     messageStatus: {
       status: opts.fromMe ? MessageStatusType.OUTGOING_DELIVERED : MessageStatusType.INCOMING_COMPLETE,
     },
@@ -118,6 +137,8 @@ export type FakePhone = {
   connectError: GMConnectError | null;
   sendStatus: SendMessageResponse_Status;
   sendError: GMRpcError | null;
+  /** Decrypted attachment bytes by media id; a missing id answers HTTP 404. */
+  media: Map<string, { key: Uint8Array; data: Uint8Array }>;
   /** Called before every RPC (tests advance a fake clock here). */
   beforeRpc: () => void;
   readonly calls: {
@@ -127,6 +148,7 @@ export type FakePhone = {
     fetchMessages: { conversationId: string; count: number; cursor: Cursor | undefined }[];
     sendMessage: SendMessageRequest[];
     getOrCreate: number;
+    downloadMedia: string[];
   };
 };
 
@@ -138,9 +160,10 @@ const fakePhone = (init: Partial<Omit<FakePhone, "calls">> = {}): FakePhone => (
   connectError: null,
   sendStatus: SendMessageResponse_Status.SUCCESS,
   sendError: null,
+  media: new Map(),
   beforeRpc: () => {},
   ...init,
-  calls: { connect: 0, close: 0, listConversations: [], fetchMessages: [], sendMessage: [], getOrCreate: 0 },
+  calls: { connect: 0, close: 0, listConversations: [], fetchMessages: [], sendMessage: [], getOrCreate: 0, downloadMedia: [] },
 });
 
 const newestFirst = (messages: readonly Message[]) =>
@@ -240,6 +263,16 @@ const fakeClient =
         return Result.ok(create(ListContactsResponseSchema, { contacts: phone.contacts }));
       },
       listTopContacts: async () => Result.ok(create(ListTopContactsResponseSchema, {})),
+      downloadMedia: async (req) => {
+        phone.calls.downloadMedia.push(req.mediaId);
+        const found = phone.media.get(req.mediaId);
+        if (found === undefined || Buffer.compare(found.key, req.key) !== 0) {
+          return Result.err(
+            new GMHttpError({ status: found === undefined ? 404 : 403, action: "downloading media", message: "media refused" }),
+          );
+        }
+        return Result.ok(new Blob([new Uint8Array(found.data)]).stream());
+      },
       unpair: async () => Result.ok(undefined),
     };
   };
