@@ -29,8 +29,10 @@ export type MediaInfo = {
   readonly mediaId: string;
   readonly mimeType: string;
   readonly name: string;
-  /** Size the phone reported; 0 when it reported none. */
+  /** Size the phone reported for the original; 0 when it reported none. */
   readonly size: number;
+  /** True when this is the reduced-size preview: the phone did not provide the original. */
+  readonly preview: boolean;
 };
 
 /** Everything a later download needs, with no further access to the vault. Secret. */
@@ -50,14 +52,19 @@ export type OpenedMedia = {
 export type OpenMediaOptions = {
   /** Download the bytes too when the type is listed and they are at most `maxBytes`. */
   readonly inline?: { readonly mimeTypes: readonly string[]; readonly maxBytes: number };
+  /** How long to wait for the phone to upload an original it only sent a preview of. Default 20 s, polled every 1.5 s. */
+  readonly original?: { readonly waitMs: number; readonly pollMs: number };
   readonly signal?: AbortSignal;
   /** Passed to `withPhone` (tests inject `createClient`). */
   readonly phone?: WithPhoneOptions;
 };
 
+/** The direct lookup starts at the message itself (or at the newest message), so a short page is enough. */
+const ANCHORED_PAGE = 5;
 const REFETCH_PAGE = 50;
 /** Pages read from the newest message when the direct lookup misses. */
 const REFETCH_MAX_PAGES = 6;
+const DEFAULT_ORIGINAL_WAIT = { waitMs: 20_000, pollMs: 1_500 } as const;
 
 const mediaError = (
   userId: string,
@@ -90,8 +97,8 @@ const downloadFailure = (userId: string, error: GMMediaError): RcsMediaError => 
 /**
  * Fetch the message from the phone again (storing every message of the pages
  * read, keys included) and return its attachment, or null when the phone no
- * longer lists the message. One page starting at the message itself, then a
- * few pages from the newest message in case that cursor is not honoured.
+ * longer lists the message. One short page starting at the message itself,
+ * then a few pages from the newest message in case that cursor is not honoured.
  */
 const refetch = async (
   client: GMClient,
@@ -107,12 +114,14 @@ const refetch = async (
     newer.value === null
       ? undefined
       : create(CursorSchema, { lastItemID: newer.value.messageId, lastItemTimestamp: BigInt(newer.value.timestampMs) });
-  const attempts: { cursor: Cursor | undefined; pages: number }[] =
-    anchor === undefined ? [{ cursor: undefined, pages: REFETCH_MAX_PAGES }] : [{ cursor: anchor, pages: 1 }, { cursor: undefined, pages: REFETCH_MAX_PAGES }];
+  const attempts: { cursor: Cursor | undefined; pages: number; count: number }[] = [
+    { cursor: anchor, pages: 1, count: ANCHORED_PAGE },
+    { cursor: undefined, pages: REFETCH_MAX_PAGES, count: REFETCH_PAGE },
+  ];
   for (const attempt of attempts) {
     let cursor = attempt.cursor;
     for (let page = 0; page < attempt.pages && signal?.aborted !== true; page += 1) {
-      const response = await client.fetchMessages({ conversationId: target.conversationId, count: REFETCH_PAGE, cursor });
+      const response = await client.fetchMessages({ conversationId: target.conversationId, count: attempt.count, cursor });
       if (response.isErr()) return Result.err(GmFailure.toPhoneError(ctx.userId, "media.fetchMessages", response.error));
       const messages = response.value.messages.map(GMMessage.toPlain);
       if (messages.length > 0) {
@@ -129,6 +138,38 @@ const refetch = async (
   return Result.ok(null);
 };
 
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Ask the phone to upload the original of a part it only sent a preview of,
+ * then re-read the message until it carries the original. Null when the phone
+ * refuses or does not deliver in time; the preview stays usable.
+ */
+const requestOriginal = async (
+  client: GMClient,
+  db: Database,
+  ctx: RcsContext,
+  target: StoredMessage,
+  partId: string,
+  opts: OpenMediaOptions,
+): Promise<PlainMedia | null> => {
+  const requested = await client.requestFullSizeImage(target.messageId, partId);
+  if (requested.isErr()) {
+    console.warn(`[rcs:media] full-size request failed: ${requested.error._tag}`);
+    return null;
+  }
+  const { waitMs, pollMs } = opts.original ?? DEFAULT_ORIGINAL_WAIT;
+  const deadline = Date.now() + waitMs;
+  while (Date.now() < deadline && opts.signal?.aborted !== true) {
+    await sleep(pollMs);
+    const fetched = await refetch(client, db, ctx, target, opts.signal);
+    if (fetched.isErr()) return null;
+    const media = fetched.value;
+    if (media !== null && !media.thumbnail && media.mediaId !== "" && media.key !== null) return media;
+  }
+  return null;
+};
+
 const noKey = (userId: string): RcsMediaError =>
   mediaError(
     userId,
@@ -138,8 +179,9 @@ const noKey = (userId: string): RcsMediaError =>
 
 /**
  * Resolve the attachment of a stored message into a download grant, and
- * optionally its decrypted bytes. Connects to the phone session (for a fresh
- * Google token, and to fetch the key when the stored message has none).
+ * optionally its decrypted bytes. Connects to the phone session for a fresh
+ * Google token, to fetch the key when the stored message has none, and to
+ * have the phone upload the original when Google only holds a preview.
  */
 const open = async (
   db: Database,
@@ -169,11 +211,14 @@ const open = async (
     ctx,
     async (client): Promise<Result<OpenedMedia, RcsMediaError | RcsPhoneError | RcsStorageError>> => {
       let media: PlainMedia = listed;
-      if (media.key === null || media.mediaId === "") {
+      // Stored before keys and part ids were kept, or still a preview: read the phone's current copy.
+      if (media.key === null || media.mediaId === "" || media.partId === null || media.thumbnail) {
         const fetched = await refetch(client, db, ctx, message, opts.signal);
         if (fetched.isErr()) return Result.err(fetched.error);
-        if (fetched.value === null) return Result.err(noKey(ctx.userId));
-        media = fetched.value;
+        if (fetched.value !== null) media = fetched.value;
+      }
+      if ((media.thumbnail || media.mediaId === "") && media.partId !== null) {
+        media = (await requestOriginal(client, db, ctx, message, media.partId, opts)) ?? media;
       }
       if (media.mediaId === "") {
         return Result.err(
@@ -193,6 +238,7 @@ const open = async (
         mimeType: media.mimeType,
         name: media.name,
         size: media.size,
+        preview: media.thumbnail,
       };
       const key = new Uint8Array(Buffer.from(media.key, "base64"));
       const grant: MediaGrant = { mediaId: media.mediaId, key, credentials: GMMedia.credentials(client.authData) };

@@ -42,6 +42,8 @@ const outputSchema = z.object({
   name: z.string(),
   /** Bytes returned inline, else the size the phone reported (0 when unknown). */
   size: z.number(),
+  /** True when only the reduced-size preview was available (the phone did not provide the original in time). */
+  preview: z.boolean(),
   /** "image": the image is in this result's content. "link": fetch download_url. */
   delivery: z.enum(["image", "link"]),
   download_url: z.url().nullable(),
@@ -68,7 +70,7 @@ export const registerGetMediaTool: RcsToolRegistrar = (server, ctx) => {
     {
       title: "Get media",
       description:
-        "Fetches the attachment of one message (a message whose `media` is not null in get_messages or search_messages). PNG, JPEG, GIF and WebP images up to 3 MB are returned as image content you can look at. Every other attachment (video, audio, HEIC, files, larger images) is returned as download_url, a link that works without credentials for 10 minutes; give it to the user or fetch it. Read-only: nothing is sent and the message is not marked read. Needs the phone to be paired.",
+        "Fetches the attachment of one message (a message whose `media` is not null in get_messages or search_messages), asking the phone for the original when only a preview has been synced (this can take up to about 30 seconds). PNG, JPEG, GIF and WebP images up to 3 MB are returned as image content you can look at. Every other attachment (video, audio, HEIC, files, larger images) is returned as download_url, a link that works without credentials for 10 minutes; give it to the user or fetch it. Read-only: nothing is sent and the message is not marked read. Needs the phone to be paired.",
       inputSchema,
       outputSchema,
       annotations: { readOnlyHint: true, openWorldHint: true },
@@ -97,8 +99,12 @@ export const registerGetMediaTool: RcsToolRegistrar = (server, ctx) => {
         conversation_id: info.conversationId,
         media_id: info.mediaId,
         name: info.name,
+        preview: info.preview,
       };
       const label = info.name === "" ? "attachment" : info.name;
+      const previewNote = info.preview
+        ? " This is the reduced-size preview: the phone has not provided the original yet. Call get_media again in a minute for the full-size file."
+        : "";
 
       const imageType = bytes === null ? null : sniffImage(bytes);
       if (bytes !== null && imageType !== null) {
@@ -112,7 +118,7 @@ export const registerGetMediaTool: RcsToolRegistrar = (server, ctx) => {
         };
         return {
           content: [
-            { type: "text", text: `${label} (${imageType}, ${bytes.length} bytes) from message ${info.messageId}:` },
+            { type: "text", text: `${label} (${imageType}, ${bytes.length} bytes) from message ${info.messageId}.${previewNote}` },
             { type: "image", data: Buffer.from(bytes).toString("base64"), mimeType: imageType },
           ],
           structuredContent: output,
@@ -142,7 +148,7 @@ export const registerGetMediaTool: RcsToolRegistrar = (server, ctx) => {
         content: [
           {
             type: "text",
-            text: `${label} (${info.mimeType}${info.size > 0 ? `, ${info.size} bytes` : ""}) from message ${info.messageId}: download it from ${link.value.url} (no credentials needed, valid until ${output.download_expires_at}).${why}`,
+            text: `${label} (${info.mimeType}${info.size > 0 ? `, ${info.size} bytes` : ""}) from message ${info.messageId}: download it from ${link.value.url} (no credentials needed, valid until ${output.download_expires_at}).${why}${previewNote}`,
           },
         ],
         structuredContent: output,

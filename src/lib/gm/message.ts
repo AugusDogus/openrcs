@@ -25,6 +25,10 @@ export type PlainMedia = {
   size: number;
   /** Base64 AES-256-GCM key that decrypts the media at `mediaId`; null when the phone sent none. Secret. */
   key: string | null;
+  /** True when `mediaId` is the reduced-size preview because the phone has not uploaded the original. */
+  thumbnail: boolean;
+  /** MessageInfo.actionMessageID of this part, needed to ask the phone for the original. */
+  partId: string | null;
 };
 export type PlainReaction = { emoji: string; count: number; participantIds: string[] };
 export type PlainMessage = {
@@ -93,6 +97,8 @@ const extractMedia = (m: Message): PlainMedia | null => {
       name: mc.mediaName,
       size: Number(mc.size),
       key: key.length === 0 ? null : Buffer.from(key).toString("base64"),
+      thumbnail,
+      partId: nonEmpty(info.actionMessageID ?? ""),
     };
   }
   return null;

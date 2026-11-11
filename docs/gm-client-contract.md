@@ -96,6 +96,9 @@ export type GMClient = {
   markRead(conversationId: string, messageId: string): Promise<Result<void, GMRpcError>>;
   listContacts(): Promise<Result<ListContactsResponse, GMRpcError>>;
   listTopContacts(): Promise<Result<ListTopContactsResponse, GMRpcError>>;
+  // libgm GetFullSizeImage: ask the phone to upload the original of a part that only has a preview.
+  // The phone then sends the message again with `mediaID` set.
+  requestFullSizeImage(messageId: string, partId: string): Promise<Result<void, GMRpcError>>;
   // libgm DownloadMedia: decrypted attachment bytes (src/lib/gm/media.ts). HTTP only, no phone RPC.
   downloadMedia(req: { mediaId: string; key: Uint8Array; signal?: AbortSignal }): Promise<Result<ReadableStream<Uint8Array>, GMMediaError>>;
   /** Best-effort unpair (Gaia: UNPAIR_GAIA_PAIRING; QR: RevokeRelayPairing). */
@@ -162,6 +165,8 @@ Port of openmessage `internal/client/client.go` extraction helpers and
 export type PlainMedia = {
   mediaId: string; mimeType: string; name: string; size: number;
   key: string | null;            // base64 MediaContent.decryptionKey of `mediaId` (secret); null when absent
+  thumbnail: boolean;            // `mediaId` is the preview: the phone has not uploaded the original
+  partId: string | null;         // MessageInfo.actionMessageID, for requestFullSizeImage
 };
 export type PlainReaction = { emoji: string; count: number; participantIds: string[] };
 export type PlainMessage = {

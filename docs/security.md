@@ -82,7 +82,9 @@ Google stores each attachment encrypted under a key that travels inside its
 message. openrcs keeps that key with the message's media metadata, inside
 the DEK-sealed content, and never stores attachment bytes. The `get_media`
 tool (scope `messages:read`, read-only) downloads from Google with the
-session's tachyon token and decrypts in memory. `get_messages` and
+session's tachyon token and decrypts in memory. When Google only holds a
+reduced-size preview, it first asks the phone to upload the original
+(libgm `GetFullSizeImage`), which changes nothing the user can see. `get_messages` and
 `search_messages` never return the key.
 
 Attachments that are not returned inline get a download link,

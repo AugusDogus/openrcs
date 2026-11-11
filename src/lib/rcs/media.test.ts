@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { GMMessage } from "@/lib/gm/message";
-import { Media } from "./media";
+import { Media, type OpenMediaOptions } from "./media";
 import { SessionStore } from "./session-store";
 import { MessageContentSchema, Store } from "./store";
 import { RcsTesting, type RcsTestEnv } from "./testing";
@@ -30,7 +30,11 @@ describe("Media.open", () => {
     await env.cleanup();
   });
 
-  const open = (phone: ReturnType<typeof RcsTesting.fakePhone>, messageId: string, opts = { inline }) =>
+  const open = (
+    phone: ReturnType<typeof RcsTesting.fakePhone>,
+    messageId: string,
+    opts: Pick<OpenMediaOptions, "inline" | "original"> = { inline },
+  ) =>
     Media.open(env.db, env.ctx, messageId, { ...opts, phone: { createClient: RcsTesting.fakeClient(phone) } });
 
   test("returns the bytes of a stored image with its key, without asking the phone for messages", async () => {
@@ -46,6 +50,7 @@ describe("Media.open", () => {
       mimeType: "image/png",
       name: "m1.png",
       size: png.length,
+      preview: false,
     });
     expect([...(opened.bytes ?? [])]).toEqual([...png]);
     expect([...opened.grant.key]).toEqual([...key]);
@@ -56,7 +61,7 @@ describe("Media.open", () => {
     const messages = [photo("m1", 1_000), photo("m2", 2_000), photo("m3", 3_000)];
     const legacy = messages.map((m) => {
       const plain = GMMessage.toPlain(m);
-      return { ...plain, media: plain.media === null ? null : { ...plain.media, key: null } };
+      return { ...plain, media: plain.media === null ? null : { ...plain.media, key: null, partId: null } };
     });
     (await Store.upsertMessages(env.db, env.ctx, legacy)).unwrap();
     const phone = RcsTesting.fakePhone({
@@ -67,8 +72,53 @@ describe("Media.open", () => {
     const opened = (await open(phone, "m2")).unwrap();
     expect([...(opened.bytes ?? [])]).toEqual([...png]);
     expect(phone.calls.fetchMessages).toHaveLength(1);
-    expect(phone.calls.fetchMessages[0]?.cursor).toMatchObject({ lastItemID: "m3", lastItemTimestamp: 3_000n });
+    expect(phone.calls.fetchMessages[0]).toMatchObject({ count: 5, cursor: { lastItemID: "m3", lastItemTimestamp: 3_000n } });
     expect((await Store.getMessage(env.db, env.ctx, "m2")).unwrap()?.media?.key).toBe(Buffer.from(key).toString("base64"));
+  });
+
+  test("a preview is upgraded to the original once the phone uploads it", async () => {
+    const preview = RcsTesting.message({
+      id: "m1",
+      conversationId: "c1",
+      timestampMs: 1_000,
+      text: "",
+      media: { id: "thumb-m1", key, mimeType: "image/png", name: "m1.png", size: 900, thumbnail: true, partId: "part-1" },
+    });
+    (await Store.upsertMessages(env.db, env.ctx, [GMMessage.toPlain(preview)])).unwrap();
+    const phone = RcsTesting.fakePhone({
+      messages: new Map([["c1", [preview]]]),
+      media: new Map([
+        ["thumb-m1", { key, data: new Uint8Array([1]) }],
+        ["media-m1", { key, data: png }],
+      ]),
+    });
+    phone.onFullSizeRequest = () => phone.messages.set("c1", [photo("m1", 1_000)]);
+
+    const opened = (await open(phone, "m1", { inline, original: { waitMs: 2_000, pollMs: 1 } })).unwrap();
+    expect(phone.calls.fullSize).toEqual([{ messageId: "m1", partId: "part-1" }]);
+    expect(opened.info).toMatchObject({ mediaId: "media-m1", preview: false });
+    expect([...(opened.bytes ?? [])]).toEqual([...png]);
+    expect((await Store.getMessage(env.db, env.ctx, "m1")).unwrap()?.media).toMatchObject({ mediaId: "media-m1", thumbnail: false });
+  });
+
+  test("a preview is returned, marked as one, when the phone does not deliver the original in time", async () => {
+    const preview = RcsTesting.message({
+      id: "m1",
+      conversationId: "c1",
+      timestampMs: 1_000,
+      text: "",
+      media: { id: "thumb-m1", key, mimeType: "image/png", name: "m1.png", size: 900, thumbnail: true, partId: "part-1" },
+    });
+    (await Store.upsertMessages(env.db, env.ctx, [GMMessage.toPlain(preview)])).unwrap();
+    const phone = RcsTesting.fakePhone({
+      messages: new Map([["c1", [preview]]]),
+      media: new Map([["thumb-m1", { key, data: png }]]),
+    });
+
+    const opened = (await open(phone, "m1", { inline, original: { waitMs: 20, pollMs: 5 } })).unwrap();
+    expect(phone.calls.fullSize).toHaveLength(1);
+    expect(opened.info).toMatchObject({ mediaId: "thumb-m1", preview: true });
+    expect([...(opened.bytes ?? [])]).toEqual([...png]);
   });
 
   test("other types and oversized images come back without bytes and without a download", async () => {
@@ -125,7 +175,15 @@ describe("stored attachment keys", () => {
       media: { mediaId: "m", mimeType: "image/png", name: "a.png", size: 1 },
       reactions: [],
     });
-    expect(parsed.media).toEqual({ mediaId: "m", mimeType: "image/png", name: "a.png", size: 1, key: null });
+    expect(parsed.media).toEqual({
+      mediaId: "m",
+      mimeType: "image/png",
+      name: "a.png",
+      size: 1,
+      key: null,
+      thumbnail: false,
+      partId: null,
+    });
   });
 
   test("toPlain keeps the key of the media id it reports", () => {

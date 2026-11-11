@@ -229,7 +229,7 @@ describe("get_media", () => {
     );
     expect(result.isError).toBeUndefined();
     expect(result.content).toEqual([
-      { type: "text", text: "IMG_2375.png (image/png, 12 bytes) from message shot:" },
+      { type: "text", text: "IMG_2375.png (image/png, 12 bytes) from message shot." },
       { type: "image", data: Buffer.from(png).toString("base64"), mimeType: "image/png" },
     ]);
     expect(result.structuredContent).toEqual({
@@ -239,6 +239,7 @@ describe("get_media", () => {
       mime_type: "image/png",
       name: "IMG_2375.png",
       size: 12,
+      preview: false,
       delivery: "image",
       download_url: null,
       download_expires_at: null,

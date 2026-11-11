@@ -46,6 +46,8 @@ export const MessageContentSchema = z.object({
       size: z.number(),
       /** Attachment key (base64). Absent on rows stored before keys were kept. */
       key: z.string().nullable().default(null),
+      thumbnail: z.boolean().default(false),
+      partId: z.string().nullable().default(null),
     })
     .nullable(),
   reactions: z.array(

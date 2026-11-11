@@ -15,6 +15,8 @@ import {
 import {
   GetConversationRequestSchema,
   GetConversationResponseSchema,
+  GetFullSizeImageRequestSchema,
+  GetFullSizeImageResponseSchema,
   GetOrCreateConversationRequestSchema,
   GetOrCreateConversationResponseSchema,
   ListContactsRequestSchema,
@@ -191,6 +193,14 @@ export const GMRequests = {
   listTopContacts: (): SendParams => ({
     action: ActionType.LIST_TOP_CONTACTS,
     payload: encrypted(ListTopContactsRequestSchema, create(ListTopContactsRequestSchema, { count: 8 })),
+  }),
+
+  getFullSizeImage: (messageId: string, partId: string): SendParams => ({
+    action: ActionType.GET_FULL_SIZE_IMAGE,
+    payload: encrypted(
+      GetFullSizeImageRequestSchema,
+      create(GetFullSizeImageRequestSchema, { messageID: messageId, actionMessageID: partId }),
+    ),
   }),
 
   ackBrowserPresence: (): SendParams => ({ action: ActionType.ACK_BROWSER_PRESENCE }),
@@ -730,6 +740,8 @@ export type GMClient = {
   markRead(conversationId: string, messageId: string): Promise<Result<void, GMRpcError>>;
   listContacts(): Promise<Result<ListContactsResponse, GMRpcError>>;
   listTopContacts(): Promise<Result<ListTopContactsResponse, GMRpcError>>;
+  /** libgm GetFullSizeImage: ask the phone to upload the original of a part that only has a preview. */
+  requestFullSizeImage(messageId: string, partId: string): Promise<Result<void, GMRpcError>>;
   /** Download an attachment from Google and decrypt it with the key from its message (no phone RPC). */
   downloadMedia(req: { mediaId: string; key: Uint8Array; signal?: AbortSignal }): Promise<Result<ReadableStream<Uint8Array>, GMMediaError>>;
   /** Best-effort unpair (Gaia: UNPAIR_GAIA_PAIRING; QR: RevokeRelayPairing). */
@@ -967,6 +979,11 @@ const createClient = (opts: GMClientOptions): GMClient => {
 
     listTopContacts() {
       return call(GMRequests.listTopContacts(), ListTopContactsResponseSchema);
+    },
+
+    async requestFullSizeImage(messageId, partId) {
+      const res = await call(GMRequests.getFullSizeImage(messageId, partId), GetFullSizeImageResponseSchema);
+      return res.isErr() ? Result.err(res.error) : Result.ok();
     },
 
     downloadMedia(req) {

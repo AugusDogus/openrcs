@@ -90,7 +90,16 @@ const message = (opts: {
   senderName?: string;
   senderNumber?: string;
   tmpId?: string;
-  media?: { id: string; key: Uint8Array; mimeType: string; name: string; size: number };
+  media?: {
+    id: string;
+    key: Uint8Array;
+    mimeType: string;
+    name: string;
+    size: number;
+    /** The id and key are the preview's; the original is not uploaded. */
+    thumbnail?: boolean;
+    partId?: string;
+  };
 }): Message =>
   create(MessageSchema, {
     messageID: opts.id,
@@ -103,11 +112,13 @@ const message = (opts: {
         ? []
         : [
             {
+              actionMessageID: opts.media.partId ?? `part-${opts.id}`,
               data: {
                 case: "mediaContent" as const,
                 value: {
-                  mediaID: opts.media.id,
-                  decryptionKey: opts.media.key,
+                  ...(opts.media.thumbnail === true
+                    ? { thumbnailMediaID: opts.media.id, thumbnailDecryptionKey: opts.media.key }
+                    : { mediaID: opts.media.id, decryptionKey: opts.media.key }),
                   mimeType: opts.media.mimeType,
                   mediaName: opts.media.name,
                   size: BigInt(opts.media.size),
@@ -139,6 +150,8 @@ export type FakePhone = {
   sendError: GMRpcError | null;
   /** Decrypted attachment bytes by media id; a missing id answers HTTP 404. */
   media: Map<string, { key: Uint8Array; data: Uint8Array }>;
+  /** Called when the original of a part is requested (tests swap in the upgraded message here). */
+  onFullSizeRequest: (messageId: string, partId: string) => void;
   /** Called before every RPC (tests advance a fake clock here). */
   beforeRpc: () => void;
   readonly calls: {
@@ -149,6 +162,7 @@ export type FakePhone = {
     sendMessage: SendMessageRequest[];
     getOrCreate: number;
     downloadMedia: string[];
+    fullSize: { messageId: string; partId: string }[];
   };
 };
 
@@ -161,9 +175,10 @@ const fakePhone = (init: Partial<Omit<FakePhone, "calls">> = {}): FakePhone => (
   sendStatus: SendMessageResponse_Status.SUCCESS,
   sendError: null,
   media: new Map(),
+  onFullSizeRequest: () => {},
   beforeRpc: () => {},
   ...init,
-  calls: { connect: 0, close: 0, listConversations: [], fetchMessages: [], sendMessage: [], getOrCreate: 0, downloadMedia: [] },
+  calls: { connect: 0, close: 0, listConversations: [], fetchMessages: [], sendMessage: [], getOrCreate: 0, downloadMedia: [], fullSize: [] },
 });
 
 const newestFirst = (messages: readonly Message[]) =>
@@ -263,6 +278,12 @@ const fakeClient =
         return Result.ok(create(ListContactsResponseSchema, { contacts: phone.contacts }));
       },
       listTopContacts: async () => Result.ok(create(ListTopContactsResponseSchema, {})),
+      requestFullSizeImage: async (messageId, partId) => {
+        phone.beforeRpc();
+        phone.calls.fullSize.push({ messageId, partId });
+        phone.onFullSizeRequest(messageId, partId);
+        return Result.ok(undefined);
+      },
       downloadMedia: async (req) => {
         phone.calls.downloadMedia.push(req.mediaId);
         const found = phone.media.get(req.mediaId);
