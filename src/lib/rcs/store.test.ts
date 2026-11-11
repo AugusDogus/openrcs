@@ -77,7 +77,8 @@ describe("encrypted storage", () => {
     const conversationRows = JSON.stringify((await db.$client.execute("select * from conversation")).rows);
     const messageRows = JSON.stringify((await db.$client.execute("select * from message")).rows);
     expect(conversationRows).toContain("conv-1");
-    for (const secret of ["Secret plans", "Zoë", "Zo\\u00eb", "Café", "555", "crème", "👍", "Saturday"]) {
+    // Phone numbers with their punctuation: bare digits such as "555" also occur in updated_at.
+    for (const secret of ["Secret plans", "Zoë", "Zo\\u00eb", "Café", "(555)", "+1555", "123-4567", "crème", "👍", "Saturday"]) {
       expect(conversationRows).not.toContain(secret);
       expect(messageRows).not.toContain(secret);
     }
