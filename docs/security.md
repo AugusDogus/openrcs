@@ -159,5 +159,12 @@ Scopes: `messages:read`, `messages:send`.
   listen on loopback only. `KEY_PEPPER` then lives in the data folder beside
   the database: a copy of that folder is the "database and environment" row
   of the breach table, and still decrypts nothing without a client's secret.
+- Self-hosted, the sign-in browser (src/lib/pairing-browser) holds a live
+  Google session while it is open: its profile is in RAM (`/dev/shm`), the
+  stream is served only after openrcs authorizes the request (the signed-in
+  user who opened it, while it is open, at most 15 minutes), and the profile
+  is deleted as soon as the cookies are read. The cookies then go only into
+  the DEK-sealed session, as with a pasted cURL command; captured cookies
+  nobody pairs with are dropped from memory after 5 minutes.
 - On the hosted deployment sign-in is GitHub only, open to anyone. The app is AGPL-3.0 (it ports
   libgm from mautrix-gmessages); the footer links to the source.
