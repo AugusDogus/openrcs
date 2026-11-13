@@ -15,7 +15,7 @@ type FlowState =
   | { readonly stage: "done"; readonly warning: string | null }
   | { readonly stage: "error"; readonly message: string };
 
-/** How the user gives openrcs their Google cookies. */
+/** How the user gives openrcs their Google cookies: the self-hosted sign-in browser, or (hosted) a pasted cURL command. */
 type Method = "browser" | "curl";
 
 const SECURITY_URL = "https://github.com/AugusDogus/openrcs/blob/main/docs/security.md";
@@ -184,14 +184,9 @@ function BrowserFrame({ live, placeholder }: { live: boolean; placeholder: strin
   );
 }
 
-/** Right-aligned action row; `start` sits on the left. */
-function Actions({ start, children }: { start?: ReactNode; children?: ReactNode }) {
-  return (
-    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <div>{start}</div>
-      <div className="flex flex-col-reverse gap-2 sm:flex-row">{children}</div>
-    </div>
-  );
+/** Right-aligned action row, main action last (stacked on top on phones). */
+function Actions({ children }: { children: ReactNode }) {
+  return <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{children}</div>;
 }
 
 function Progress({ done, total }: { done: number; total: number | null }) {
@@ -216,9 +211,8 @@ const initialState = (method: Method): FlowState =>
   method === "browser" ? { stage: "browserStarting" } : { stage: "idle" };
 
 export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean; browserSignIn: boolean }) {
-  const defaultMethod: Method = browserSignIn ? "browser" : "curl";
-  const [state, setState] = useState<FlowState>(initialState(defaultMethod));
-  const [method, setMethod] = useState<Method>(defaultMethod);
+  const method: Method = browserSignIn ? "browser" : "curl";
+  const [state, setState] = useState<FlowState>(initialState(method));
   const [cookies, setCookies] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   // The browser's sign-in is handed to pairing once, however many polls see it.
@@ -232,12 +226,11 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     () => () => {
       abortRef.current?.abort();
       abortRef.current = null;
-      setMethod(defaultMethod);
-      setState(initialState(defaultMethod));
+      setState(initialState(method));
       setCookies("");
-      if (browserSignIn) void browserAction("stop");
+      if (method === "browser") void browserAction("stop");
     },
-    [browserSignIn, defaultMethod],
+    [method],
   );
 
   function freshSignal(): AbortSignal {
@@ -247,13 +240,14 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     return controller.signal;
   }
 
-  function reset(next: Method) {
+  /** Start over with the same method (a fresh sign-in browser, or the empty form). */
+  function reset() {
     abortRef.current?.abort();
     abortRef.current = null;
     if (method === "browser") void browserAction("stop");
-    setMethod(next);
-    setState(initialState(next));
+    setState(initialState(method));
   }
+
 
   function pairFromBrowser(signal: AbortSignal) {
     if (handedOffRef.current) return;
@@ -334,20 +328,10 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
                 live={state.stage === "browser"}
                 placeholder={contacting ? "Signed in. Contacting Google…" : "Starting a private browser…"}
               />
-              <Actions
-                start={
-                  <p className="text-xs leading-5 text-muted">
-                    Runs on your openrcs server. openrcs keeps only the Google cookies it needs to pair and deletes
-                    the rest.
-                  </p>
-                }
-              >
-                {contacting ? null : (
-                  <button type="button" onClick={() => reset("curl")} className={buttonClass("ghost")}>
-                    Use a cURL command instead
-                  </button>
-                )}
-              </Actions>
+              <p className="text-xs leading-5 text-muted">
+                Runs on your openrcs server. openrcs keeps only the Google cookies it needs to pair and deletes the
+                rest.
+              </p>
             </>
           ) : null}
 
@@ -355,10 +339,7 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
             <>
               <Alert tone="danger">{state.message}</Alert>
               <Actions>
-                <button type="button" onClick={() => reset("curl")} className={buttonClass("ghost")}>
-                  Use a cURL command instead
-                </button>
-                <button type="button" onClick={() => reset("browser")} className={buttonClass("primary")}>
+                <button type="button" onClick={reset} className={buttonClass("primary")}>
                   Try again
                 </button>
               </Actions>
@@ -398,11 +379,6 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
               </label>
               {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
               <Actions>
-                {browserSignIn ? (
-                  <button type="button" onClick={() => reset("browser")} className={buttonClass("ghost")}>
-                    Sign in with Google instead
-                  </button>
-                ) : null}
                 <button
                   type="submit"
                   disabled={contacting || cookies.trim() === ""}
@@ -431,7 +407,7 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
                 <Spinner />
                 Waiting for your phone…
               </p>
-              <button type="button" onClick={() => reset(method)} className={buttonClass("ghost")}>
+              <button type="button" onClick={reset} className={buttonClass("ghost")}>
                 Cancel
               </button>
             </div>
