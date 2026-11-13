@@ -1,37 +1,19 @@
-# Self-hosted openrcs on your tailnet (docs/self-hosting.md).
-# Copy .env.selfhost.example to .env, fill it in, then: docker compose up -d
+# Self-hosted openrcs (docs/self-hosting.md). Copy .env.selfhost.example to
+# .env, set OPENRCS_URL, then: docker compose up -d --build
+# Then, on this machine: tailscale serve --bg --https=5443 http://127.0.0.1:5480
 services:
-  tailscale:
-    image: tailscale/tailscale:stable
-    hostname: ${TS_HOSTNAME:-openrcs}
-    environment:
-      TS_AUTHKEY: ${TS_AUTHKEY:?set TS_AUTHKEY in .env}
-      TS_HOSTNAME: ${TS_HOSTNAME:-openrcs}
-      TS_EXTRA_ARGS: ${TS_EXTRA_ARGS:-}
-      TS_STATE_DIR: /var/lib/tailscale
-      TS_SERVE_CONFIG: /config/serve.json
-      TS_USERSPACE: "true"
-      # Only needed for the first login; a stored node key is reused after that.
-      TS_AUTH_ONCE: "true"
-    volumes:
-      - ${OPENRCS_DATA:-./data}/tailscale:/var/lib/tailscale
-      - ./docker/tailscale:/config:ro
-    restart: unless-stopped
-
   openrcs:
     image: ${OPENRCS_IMAGE:-openrcs:local}
     build: .
-    # Shares the Tailscale container's network namespace and publishes no
-    # ports: the app listens on 127.0.0.1:3000 and only Tailscale Serve
-    # (HTTPS on 443, tailnet only) can reach it. nginx on 127.0.0.1:3000
-    # serves both the app and the sign-in browser stream.
-    network_mode: service:tailscale
+    # Reachable only from this machine's loopback, where Tailscale Serve
+    # picks it up. Sign-in trusts Serve's identity headers, so never publish
+    # it on another address. Compose gives it a network of its own.
+    ports:
+      - "127.0.0.1:${OPENRCS_PORT:-5480}:3000"
     # The sign-in browser (Chromium) keeps its throwaway profile in /dev/shm.
     shm_size: 1gb
-    depends_on:
-      - tailscale
     environment:
       OPENRCS_URL: ${OPENRCS_URL:?set OPENRCS_URL in .env}
     volumes:
-      - ${OPENRCS_DATA:-./data}/openrcs:/data
+      - ${OPENRCS_DATA:-./data}:/data
     restart: unless-stopped

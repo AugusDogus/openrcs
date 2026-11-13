@@ -43,6 +43,10 @@ export const createAuth = (config: AuthConfig) =>
     baseURL: config.baseURL,
     secret: config.secret,
     database: config.database,
+    // Its own cookie names: on a shared host (Tailscale Serve ports on one
+    // machine name) other Better Auth apps such as Executor would otherwise
+    // overwrite openrcs's session, since cookies ignore ports.
+    advanced: { cookiePrefix: "openrcs" },
     logger: {
       log: (level, message, ...args: unknown[]) => {
         const details = args.map(describeAuthLogArg).join(" | ");
