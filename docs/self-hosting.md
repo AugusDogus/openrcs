@@ -1,18 +1,18 @@
 # Self-hosting openrcs on your tailnet
 
 Run openrcs on your own machine (an Unraid server, a NAS, any Docker host)
-and reach it only over Tailscale. Nothing is published to the internet or to
-your LAN.
+that is already on your tailnet, and reach it only over Tailscale. Nothing is
+published to the internet or to your LAN.
 
 ```
 agent or browser on your tailnet
         |  HTTPS, tailnet only
         v
-Tailscale Serve  https://openrcs.<tailnet>.ts.net:443   (adds Tailscale-User-Login)
-        |  http://127.0.0.1:3000, same network namespace
+Tailscale Serve on the host  https://<machine>.<tailnet>.ts.net:5443   (adds Tailscale-User-Login)
+        |  http://127.0.0.1:5480, the host's loopback only
         v
-openrcs container
-  nginx 127.0.0.1:3000
+openrcs container (its own Docker network)
+  nginx :3000
     /                   -> openrcs (Next.js, 127.0.0.1:3100)  ->  /data
     /pairing-browser/   -> Selkies stream of the sign-in browser (only while
                            you are pairing, only for you)
@@ -29,10 +29,13 @@ it proxies and removes any copy a client sent. openrcs turns that into a
 normal session cookie as soon as the sign-in page loads. Each
 tailnet user gets their own account, pairing and messages.
 
-This is only safe when nothing but Serve can reach the app, so the container
-listens on `127.0.0.1` and publishes no ports. Do not add a port mapping, and
-do not set `OPENRCS_BIND` outside local testing: anything that can reach port
-3000 directly could claim to be any user.
+This is only safe when nothing but Serve can reach the app. So the container
+publishes its port on the host's loopback only (`127.0.0.1:5480`) and sits on
+a Docker network of its own. Never publish it on another address: anything
+that can reach it directly could claim to be any user.
+
+openrcs's cookies are named `openrcs.*`, so other apps served from the same
+machine name on other ports (cookies ignore ports) cannot overwrite them.
 
 Tagged devices and Funnel visitors carry no identity, so they cannot sign in
 to the dashboard. Agents do not need one: they call `/api/mcp` with the OAuth
@@ -62,103 +65,60 @@ clipboard only pastes into the browser.
 
 ## Before you start
 
-In the Tailscale admin console:
-
-1. Enable MagicDNS and HTTPS certificates (DNS page). Serve needs both.
-2. Note your tailnet name (`something.ts.net`). The app's address will be
-   `https://openrcs.<tailnet-name>.ts.net`.
-3. Optional but recommended: tag the node and limit who can reach it. In the
-   access controls file:
-
-   ```jsonc
-   {
-     "tagOwners": { "tag:mcp-servers": ["autogroup:admin"] },
-     "grants": [
-       // People and their agents may reach MCP servers on HTTPS only.
-       { "src": ["autogroup:member"], "dst": ["tag:mcp-servers"], "ip": ["tcp:443"] }
-     ]
-   }
-   ```
-
-   This is the shape Tailscale's own example uses for agents that join a
-   tailnet through [Tailscale OAuth apps](https://tailscale.com/blog/oauth-apps-ga):
-   the agent's device gets access to `tag:mcp-servers` on `tcp:443` and
-   nothing else.
-4. For Docker Compose, create an auth key (Settings > Keys): not reusable, not
-   ephemeral, with `tag:mcp-servers` if you use the tag. Unraid's built-in
-   Tailscale does not need a key; you log in from a link in the container log.
+1. The Docker host must be on your tailnet (`tailscale up`, or the Tailscale
+   plugin on Unraid).
+2. In the Tailscale admin console, enable MagicDNS and HTTPS certificates (DNS
+   page). Serve needs both.
+3. Pick a free HTTPS port for openrcs on that machine; these steps use `5443`.
+   The address will be `https://<machine>.<tailnet>.ts.net:5443`
+   (`tailscale status --self` shows the machine name).
 
 ## Docker Compose (any host)
 
 ```sh
 git clone https://github.com/AugusDogus/openrcs && cd openrcs
-cp .env.selfhost.example .env      # set OPENRCS_URL and TS_AUTHKEY
+cp .env.selfhost.example .env      # set OPENRCS_URL
 docker compose up -d --build
-docker compose logs -f openrcs     # wait for "Ready"
+tailscale serve --bg --https=5443 http://127.0.0.1:5480
 ```
 
-Then open `https://openrcs.<tailnet-name>.ts.net` from a device on your
-tailnet. The first HTTPS request can take a few seconds while Tailscale
-issues the certificate.
+Then open the address from a device on your tailnet. The first HTTPS request
+can take a few seconds while Tailscale issues the certificate. Serve keeps its
+configuration across restarts.
 
-`docker-compose.yml` starts two containers: the official `tailscale/tailscale`
-image (state in `data/tailscale`, Serve configured by
-`docker/tailscale/serve.json`) and openrcs, which shares its network
-namespace. After the first start you can remove `TS_AUTHKEY` from `.env`; the
-node key in `data/tailscale` is reused.
+## Unraid (Tailscale plugin)
 
-## Unraid
-
-Two ways. Both keep everything under `/mnt/user/appdata/openrcs`.
-
-### Option A: template with Unraid's built-in Tailscale (Unraid 7+)
-
-1. Get the image onto the server. Either pull a published image, or build it
-   on the server from a terminal:
+1. In a terminal, get the image onto the server, either by pulling a published
+   one or by building it:
 
    ```sh
    git clone https://github.com/AugusDogus/openrcs /mnt/user/appdata/openrcs-src
    docker build -t openrcs:local /mnt/user/appdata/openrcs-src
+   docker network create openrcs
    ```
 
 2. Copy `unraid/openrcs.xml` to
    `/boot/config/plugins/dockerMan/templates-user/my-openrcs.xml`.
-3. Docker tab > **Add Container** > Template: **openrcs**. If you built the
-   image locally, change **Repository** to `openrcs:local`.
-4. Check the Tailscale section: **Use Tailscale** on, hostname `openrcs`,
-   **Tailscale Serve** = Serve, port `3000`, userspace networking on, state
-   directory `/data/.tailscale_state`. Leave **Tailscale Funnel** off. Do not
-   add any port mappings. Keep `--shm-size=1g` in **Extra Parameters**: the
-   sign-in browser needs it.
-5. Apply, open the container log, and follow the
-   `https://login.tailscale.com/a/...` link once to add the node to your
-   tailnet. Tag it `tag:mcp-servers` in the admin console if you use the tag,
-   and disable key expiry for the node.
-6. Open the Tailscale WebUI link Unraid shows, or
-   `https://openrcs.<tailnet-name>.ts.net`.
-
-With this option the container finds its own address from Tailscale, so
-`OPENRCS_URL` stays empty. If you later rename the node, restart the
-container and re-authorize your agents: the address is the OAuth issuer.
-
-### Option B: Docker Compose Manager plugin
-
-Install **Docker Compose Manager** from Community Applications, add a stack
-pointing at this repository's `docker-compose.yml`, set
-`OPENRCS_DATA=/mnt/user/appdata/openrcs` and the other values from
-`.env.selfhost.example` in the stack's `.env`, then **Compose Up**. This is
-the same setup as the Docker Compose section above.
+3. Docker tab > **Add Container** > Template: **openrcs**. Set **OPENRCS_URL**
+   to `https://<server>.<tailnet>.ts.net:5443`. If you built the image, set
+   **Repository** to `openrcs:local`. Keep **Network** `openrcs` and the
+   **Extra Parameters** (`--shm-size=1g`, which the sign-in browser needs, and
+   `-p 127.0.0.1:5480:3000`). Leave **Use Tailscale** off: the server's own
+   Tailscale serves it.
+4. Apply, then in a terminal: `tailscale serve --bg --https=5443 http://127.0.0.1:5480`.
+5. Open `https://<server>.<tailnet>.ts.net:5443`.
 
 ## Pair your phone and connect agents
 
 1. Open openrcs (your Tailscale identity signs you in) and pair: sign in to
    Google in the browser on the page, then tap the emoji on your phone. Do it
    from the browser you will keep using, because that browser holds your key.
-2. Add `https://openrcs.<tailnet-name>.ts.net/api/mcp` to an MCP client that
-   runs on a tailnet device, for example:
+2. Add `https://<machine>.<tailnet>.ts.net:5443/api/mcp` to an MCP client
+   that runs on a tailnet device (or to a self-hosted MCP gateway such as
+   Executor on the same tailnet), for example:
 
    ```sh
-   claude mcp add --transport http openrcs https://openrcs.<tailnet-name>.ts.net/api/mcp
+   claude mcp add --transport http openrcs https://<machine>.<tailnet>.ts.net:5443/api/mcp
    ```
 
    The client opens the consent page in your browser; approve it there.
@@ -171,11 +131,11 @@ integration). Otherwise use an agent on one of your own devices.
 
 | Variable | Default | Meaning |
 | --- | --- | --- |
-| `OPENRCS_URL` | detected when Tailscale runs in the same container, otherwise required | Public origin, no trailing slash. Also the OAuth issuer, so changing it invalidates agent tokens |
+| `OPENRCS_URL` | required | The Tailscale Serve address, port included, no trailing slash. Also the OAuth issuer, so changing it invalidates agent tokens |
 | `KEY_PEPPER` | generated into `/data/secrets/key-pepper` | Server key share for the vault, base64 of 32 bytes |
 | `BETTER_AUTH_SECRET` | generated into `/data/secrets/auth-secret` | Signs session cookies |
 | `DATABASE_URL` | `file:/data/openrcs.db` | Any libSQL URL works |
-| `OPENRCS_BIND` | `127.0.0.1` | nginx listen address. Leave it alone (see "How sign-in works") |
+| `OPENRCS_BIND` | `0.0.0.0` | nginx listen address inside the container. Publish the port on `127.0.0.1` only (see "How sign-in works") |
 | `PUID` / `PGID` | `911` (Unraid template: `99` / `100`) | User and group that own `/data` and run the app |
 
 The image contains no secrets. Values you pass as env override the generated
@@ -195,8 +155,8 @@ files.
 | Symptom | Cause and fix |
 | --- | --- |
 | Sign-in page says the request carried no Tailscale identity | You reached the app some way other than Serve, or from a tagged device. Use the `https://...ts.net` address from a device signed in as a user |
-| Container exits with "OPENRCS_URL is not set" | Set it (Compose), or turn on Use Tailscale so it can be detected (Unraid) |
-| Browser cannot open the address | Node not approved or offline in the admin console, MagicDNS or HTTPS certificates off, or your access rules do not allow `tcp:443` to it |
+| Container log says "OPENRCS_URL is not set" | Set it to the Serve address, port included |
+| Browser cannot open the address | `tailscale serve status` on the host does not list the port, MagicDNS or HTTPS certificates are off, or your access rules do not allow that port |
 | Agent gets 401 after a rename | The address changed, so old tokens are for a different issuer. Remove and re-add the MCP server in the agent |
 | Google says "This browser or app may not be secure" in the sign-in browser | Not expected with this image; please report it |
 | The sign-in browser is blank | Chromium has not drawn yet or crashed; it restarts itself within a few seconds. Make sure the container has `--shm-size=1g` |

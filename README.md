@@ -25,18 +25,19 @@ directory layout.
 
 ## Running it
 
-One container on any Docker host (Unraid, a NAS, a VPS), behind Tailscale
-Serve. Secrets are generated into the data volume on first start, never baked
-into the image.
+One container on any Docker host that is on your tailnet (Unraid with the
+Tailscale plugin, a NAS, a VPS), behind the host's Tailscale Serve. Secrets are
+generated into the data volume on first start, never baked into the image.
 
 ```sh
-cp .env.selfhost.example .env      # set OPENRCS_URL and TS_AUTHKEY
+cp .env.selfhost.example .env      # set OPENRCS_URL
 docker compose up -d --build
+tailscale serve --bg --https=5443 http://127.0.0.1:5480
 ```
 
-Then open `https://openrcs.<your-tailnet>.ts.net` from a tailnet device. Full
-guide, including the Unraid template (`unraid/openrcs.xml`), tailnet access
-rules, backups and troubleshooting: [docs/self-hosting.md](docs/self-hosting.md).
+Then open `https://<machine>.<your-tailnet>.ts.net:5443` from a tailnet device.
+Full guide, including the Unraid template (`unraid/openrcs.xml`), backups and
+troubleshooting: [docs/self-hosting.md](docs/self-hosting.md).
 
 ## Pairing your phone
 
@@ -54,16 +55,16 @@ conversations (up to about four minutes); the rest syncs incrementally later.
 
 ## Connecting an agent
 
-The MCP endpoint is `https://openrcs.<your-tailnet>.ts.net/api/mcp` (on the
+The MCP endpoint is `https://<machine>.<your-tailnet>.ts.net:5443/api/mcp` (on the
 dashboard with a copy button). Agents sign in with OAuth: the client opens
 openrcs in your browser and you approve it from the browser that paired your
 phone. There are no API keys. The agent must run on a tailnet device.
 
-- **Claude Code**: `claude mcp add --transport http openrcs https://openrcs.<your-tailnet>.ts.net/api/mcp`
+- **Claude Code**: `claude mcp add --transport http openrcs https://<machine>.<your-tailnet>.ts.net:5443/api/mcp`
 - **Claude Desktop, Cursor and other JSON-configured clients**:
 
   ```json
-  { "mcpServers": { "openrcs": { "url": "https://openrcs.<your-tailnet>.ts.net/api/mcp" } } }
+  { "mcpServers": { "openrcs": { "url": "https://<machine>.<your-tailnet>.ts.net:5443/api/mcp" } } }
   ```
 
 - **executor.sh**: add a remote MCP service with the URL and approve the OAuth
