@@ -6,7 +6,7 @@ import { PairingBrowser, type PairingBrowserError } from "./pairing-browser";
 
 /** Route glue for the self-hosted sign-in browser (POST /api/pair/browser, GET /api/pair/browser/authorize). */
 
-const ActionSchema = z.object({ action: z.enum(["start", "poll", "finish", "stop"]) });
+const ActionSchema = z.object({ action: z.enum(["start", "poll", "stop"]) });
 
 const statusFor = (error: PairingBrowserError): number => {
   switch (error.reason) {
@@ -14,8 +14,6 @@ const statusFor = (error: PairingBrowserError): number => {
       return 404;
     case "busy":
       return 409;
-    case "notSignedIn":
-      return 422;
     case "launch":
     case "cookies":
       return 500;
@@ -27,7 +25,7 @@ const noStore = (response: Response): Response => {
   return response;
 };
 
-/** POST /api/pair/browser with `{ action }`: start, poll, finish ("I've signed in") or stop. */
+/** POST /api/pair/browser with `{ action }`: start, poll or stop. */
 export const handlePairingBrowserAction = async (request: Request): Promise<Response> => {
   const signedIn = await RequestGuard.requireSignedIn(request);
   if (signedIn.isErr()) return RequestGuard.errorResponse(signedIn.error.status, signedIn.error.message);
@@ -36,7 +34,7 @@ export const handlePairingBrowserAction = async (request: Request): Promise<Resp
 
   const body = ActionSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
-    return RequestGuard.errorResponse(400, 'Expected a JSON body like {"action": "start"} (start, poll, finish or stop).');
+    return RequestGuard.errorResponse(400, 'Expected a JSON body like {"action": "start"} (start, poll or stop).');
   }
   const userId = signedIn.value.userId;
   const b = browser.value;
@@ -44,8 +42,7 @@ export const handlePairingBrowserAction = async (request: Request): Promise<Resp
     await b.stop(userId);
     return noStore(Response.json({ status: "idle" }));
   }
-  const result =
-    body.data.action === "start" ? await b.start(userId) : body.data.action === "poll" ? await b.poll(userId) : await b.finish(userId);
+  const result = body.data.action === "start" ? await b.start(userId) : await b.poll(userId);
   if (result.isErr()) {
     if (result.error.reason === "launch" || result.error.reason === "cookies") {
       console.error(`[pairing-browser] ${body.data.action} failed: ${result.error.reason}`);
