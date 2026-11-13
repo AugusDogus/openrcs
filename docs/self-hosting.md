@@ -11,7 +11,11 @@ agent or browser on your tailnet
 Tailscale Serve  https://openrcs.<tailnet>.ts.net:443   (adds Tailscale-User-Login)
         |  http://127.0.0.1:3000, same network namespace
         v
-openrcs container  ->  /data (SQLite database, generated secrets)
+openrcs container
+  nginx 127.0.0.1:3000
+    /                   -> openrcs (Next.js, 127.0.0.1:3100)  ->  /data
+    /pairing-browser/   -> Selkies stream of the sign-in browser (only while
+                           you are pairing, only for you)
 ```
 
 What differs from the hosted setup:
@@ -22,6 +26,7 @@ What differs from the hosted setup:
 | Database | Turso | A SQLite file in `/data` |
 | Secrets | Vercel env vars | Generated into `/data/secrets` on first start, or passed as env |
 | Reachable from | The internet | Your tailnet only |
+| Google cookies for pairing | Copy as cURL from DevTools | Sign in to Google in a browser embedded in the pairing page (cURL still works) |
 
 Pairing, the split-key vault, the OAuth server and the MCP tools are the same
 code (see [security.md](security.md)).
@@ -41,6 +46,29 @@ do not set `OPENRCS_BIND` outside local testing: anything that can reach port
 Tagged devices and Funnel visitors carry no identity, so they cannot sign in
 to the dashboard. Agents do not need one: they call `/api/mcp` with the OAuth
 token you approved in your browser.
+
+## The sign-in browser
+
+The image is built on LinuxServer's
+[Selkies](https://docs.linuxserver.io/images/docker-baseimage-selkies/) base,
+so the pairing page can show a real Chromium running in the container instead
+of asking you for a cURL command:
+
+1. **Sign in with Google** starts Chromium with a fresh profile in
+   `/dev/shm` (RAM) and streams it into the page.
+2. You sign in to Google there. Chromium runs without a debugging port,
+   because Google refuses sign-in from browsers that have one.
+3. Within about 30 seconds (or when you press **I've signed in**), openrcs
+   reads the Google cookies from the profile on disk, closes Chromium and
+   deletes the profile. It then pairs with those cookies exactly as with a
+   pasted cURL command: you tap the emoji on your phone.
+
+nginx asks openrcs before serving any part of the stream, so only the
+signed-in user who opened the browser can see it, and only while it is open
+(it closes itself after 15 minutes). The desktop around the browser is locked
+down: no terminals, sudo, file transfer, audio, sharing or printing, and the
+clipboard only pastes into the browser. Do not sign in to Messages for web in
+that window; openrcs pairs by itself.
 
 ## Before you start
 
@@ -110,7 +138,8 @@ Two ways. Both keep everything under `/mnt/user/appdata/openrcs`.
 4. Check the Tailscale section: **Use Tailscale** on, hostname `openrcs`,
    **Tailscale Serve** = Serve, port `3000`, userspace networking on, state
    directory `/data/.tailscale_state`. Leave **Tailscale Funnel** off. Do not
-   add any port mappings.
+   add any port mappings. Keep `--shm-size=1g` in **Extra Parameters**: the
+   sign-in browser needs it.
 5. Apply, open the container log, and follow the
    `https://login.tailscale.com/a/...` link once to add the node to your
    tailnet. Tag it `tag:mcp-servers` in the admin console if you use the tag,
@@ -158,8 +187,8 @@ integration). Otherwise use an agent on one of your own devices.
 | `KEY_PEPPER` | generated into `/data/secrets/key-pepper` | Server key share for the vault, base64 of 32 bytes |
 | `BETTER_AUTH_SECRET` | generated into `/data/secrets/auth-secret` | Signs session cookies |
 | `TURSO_DATABASE_URL` | `file:/data/openrcs.db` | Any libSQL URL works |
-| `OPENRCS_BIND` | `127.0.0.1` | Listen address. Leave it alone (see "How sign-in works") |
-| `PORT` | `3000` | Listen port |
+| `OPENRCS_BIND` | `127.0.0.1` | nginx listen address. Leave it alone (see "How sign-in works") |
+| `PUID` / `PGID` | `911` (Unraid template: `99` / `100`) | User and group that own `/data` and run the app |
 
 The image contains no secrets. Values you pass as env override the generated
 files.
@@ -184,4 +213,6 @@ files.
 | Container exits with "OPENRCS_URL is not set" | Set it (Compose), or turn on Use Tailscale so it can be detected (Unraid) |
 | Browser cannot open the address | Node not approved or offline in the admin console, MagicDNS or HTTPS certificates off, or your access rules do not allow `tcp:443` to it |
 | Agent gets 401 after a rename | The address changed, so old tokens are for a different issuer. Remove and re-add the MCP server in the agent |
+| Google says "This browser or app may not be secure" in the sign-in browser | Not expected with this image. Use **Paste a cURL command instead** and report it |
+| The sign-in browser is blank | Chromium has not drawn yet or crashed; it restarts itself within a few seconds. Make sure the container has `--shm-size=1g` |
 | "This browser does not hold the key" | You are in a different browser or cleared cookies. Use the original browser, or re-pair here (deletes stored messages) |
