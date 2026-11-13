@@ -26,7 +26,7 @@ What differs from the hosted setup:
 | Database | Turso | A SQLite file in `/data` |
 | Secrets | Vercel env vars | Generated into `/data/secrets` on first start, or passed as env |
 | Reachable from | The internet | Your tailnet only |
-| Google cookies for pairing | Copy as cURL from DevTools | Sign in to Google in a browser embedded in the pairing page (cURL still works) |
+| Google cookies for pairing | Copy as cURL from DevTools | Sign in to Google in a browser embedded in the pairing page |
 
 Pairing, the split-key vault, the OAuth server and the MCP tools are the same
 code (see [security.md](security.md)).
@@ -213,6 +213,6 @@ files.
 | Container exits with "OPENRCS_URL is not set" | Set it (Compose), or turn on Use Tailscale so it can be detected (Unraid) |
 | Browser cannot open the address | Node not approved or offline in the admin console, MagicDNS or HTTPS certificates off, or your access rules do not allow `tcp:443` to it |
 | Agent gets 401 after a rename | The address changed, so old tokens are for a different issuer. Remove and re-add the MCP server in the agent |
-| Google says "This browser or app may not be secure" in the sign-in browser | Not expected with this image. Use **Paste a cURL command instead** and report it |
+| Google says "This browser or app may not be secure" in the sign-in browser | Not expected with this image; please report it |
 | The sign-in browser is blank | Chromium has not drawn yet or crashed; it restarts itself within a few seconds. Make sure the container has `--shm-size=1g` |
 | "This browser does not hold the key" | You are in a different browser or cleared cookies. Use the original browser, or re-pair here (deletes stored messages) |

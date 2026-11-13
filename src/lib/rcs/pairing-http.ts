@@ -16,7 +16,10 @@ const GaiaBodySchema = z.union([
   z.object({ source: z.literal("browser") }),
 ]);
 
-const BODY_HINT = 'Expected a JSON body like {"cookies": "<pasted cURL command>"} or {"source": "browser"}.';
+const bodyHint = (): string =>
+  PairingBrowser.enabled()
+    ? 'Expected {"source": "browser"}: this openrcs pairs from its sign-in browser.'
+    : 'Expected a JSON body like {"cookies": "<pasted cURL command>"}.';
 
 const parseGaiaBody = async (request: Request, userId: string): Promise<GoogleCookies | Response> => {
   const text = await request.text();
@@ -30,12 +33,14 @@ const parseGaiaBody = async (request: Request, userId: string): Promise<GoogleCo
   try {
     json = JSON.parse(text);
   } catch {
-    return RequestGuard.errorResponse(400, BODY_HINT);
+    return RequestGuard.errorResponse(400, bodyHint());
   }
   const body = GaiaBodySchema.safeParse(json);
-  if (!body.success) return RequestGuard.errorResponse(400, BODY_HINT);
+  if (!body.success) return RequestGuard.errorResponse(400, bodyHint());
+  // One way per deployment: the self-hosted sign-in browser, or (hosted) a pasted cURL command.
+  const browser = PairingBrowser.fromEnv();
+  if (browser.isOk() !== ("source" in body.data)) return RequestGuard.errorResponse(400, bodyHint());
   if ("source" in body.data) {
-    const browser = PairingBrowser.fromEnv();
     if (browser.isErr()) return RequestGuard.errorResponse(404, browser.error.message);
     const taken = await browser.value.take(userId);
     return (
