@@ -109,15 +109,7 @@ function ConfirmAction({
     <div className="flex flex-col gap-3 rounded-lg border border-border p-3">
       <p className="text-sm leading-6 text-muted">{warning}</p>
       {error ? <Alert tone="danger">{error}</Alert> : null}
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <button
-          type="button"
-          onClick={run}
-          disabled={stage === "pending"}
-          className={buttonClass("primary", "bg-danger hover:bg-danger")}
-        >
-          {stage === "pending" ? "Working…" : confirmLabel}
-        </button>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
         <button
           type="button"
           onClick={() => setStage("idle")}
@@ -125,6 +117,14 @@ function ConfirmAction({
           className={buttonClass("secondary")}
         >
           Cancel
+        </button>
+        <button
+          type="button"
+          onClick={run}
+          disabled={stage === "pending"}
+          className={buttonClass("primary", "bg-danger hover:bg-danger")}
+        >
+          {stage === "pending" ? "Working…" : confirmLabel}
         </button>
       </div>
     </div>

@@ -35,7 +35,7 @@ code (see [security.md](security.md)).
 
 Tailscale Serve adds a `Tailscale-User-Login` header to every tailnet request
 it proxies and removes any copy a client sent. openrcs turns that into a
-normal session cookie when you press **Continue as you@example.com**. Each
+normal session cookie as soon as the sign-in page loads. Each
 tailnet user gets their own account, pairing and messages.
 
 This is only safe when nothing but Serve can reach the app, so the container
@@ -54,21 +54,21 @@ The image is built on LinuxServer's
 so the pairing page can show a real Chromium running in the container instead
 of asking you for a cURL command:
 
-1. **Sign in with Google** starts Chromium with a fresh profile in
+1. Opening **Pair your phone** starts Chromium with a fresh profile in
    `/dev/shm` (RAM) and streams it into the page.
 2. You sign in to Google there. Chromium runs without a debugging port,
    because Google refuses sign-in from browsers that have one.
-3. Within about 30 seconds (or when you press **I've signed in**), openrcs
-   reads the Google cookies from the profile on disk, closes Chromium and
-   deletes the profile. It then pairs with those cookies exactly as with a
-   pasted cURL command: you tap the emoji on your phone.
+3. Google then sends the browser to Messages for web. openrcs sees that
+   request in Chromium's network log (no cookies are logged) within a second
+   or two, closes Chromium, reads the Google cookies from the profile on disk
+   and deletes the profile. It then pairs with those cookies exactly as with
+   a pasted cURL command: you tap the emoji on your phone.
 
 nginx asks openrcs before serving any part of the stream, so only the
 signed-in user who opened the browser can see it, and only while it is open
 (it closes itself after 15 minutes). The desktop around the browser is locked
 down: no terminals, sudo, file transfer, audio, sharing or printing, and the
-clipboard only pastes into the browser. Do not sign in to Messages for web in
-that window; openrcs pairs by itself.
+clipboard only pastes into the browser.
 
 ## Before you start
 
@@ -161,8 +161,8 @@ the same setup as the Docker Compose section above.
 
 ## Pair your phone and connect agents
 
-1. Open the dashboard, press **Continue as ...**, then **Pair your phone** and
-   follow the steps on that page. Pairing is the same as on the hosted
+1. Open the dashboard (your Tailscale identity signs you in), press **Pair
+   your phone** and follow the steps on that page. Pairing is the same as on the hosted
    version, and it must be done from the browser you will keep using, because
    that browser holds your key.
 2. Add `https://openrcs.<tailnet-name>.ts.net/api/mcp` to an MCP client that

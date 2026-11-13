@@ -8,7 +8,7 @@ import { TailscaleIdentity } from "@/lib/auth-tailscale";
 import { Env } from "@/lib/env";
 import { CallbackUrl } from "./callback-url";
 import { GitHubSignInButton } from "./github-sign-in-button";
-import { TailscaleSignInButton } from "./tailscale-sign-in-button";
+import { TailscaleSignIn } from "./tailscale-sign-in";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -36,7 +36,7 @@ async function SignInContent({
   if (Env.auth().AUTH_PROVIDER === "tailscale") {
     const identity = TailscaleIdentity.fromHeaders(await headers());
     return identity ? (
-      <TailscaleSignInButton login={identity.login} callbackURL={callbackURL} />
+      <TailscaleSignIn login={identity.login} callbackURL={callbackURL} />
     ) : (
       <Alert tone="warning">
         This request carried no Tailscale identity, so openrcs cannot tell who you are. Open openrcs at its

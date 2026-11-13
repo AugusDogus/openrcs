@@ -46,6 +46,8 @@ let root: string;
 let spawned: { command: string; args: readonly string[]; child: FakeChild }[];
 /** What the profile's cookie file reads as, per call. */
 let cookieReads: Result<ChromiumGoogleCookies, ChromiumCookiesError>[];
+/** Whether the NetLog shows Messages for web, per call. */
+let signInSeen: boolean[];
 let now: number;
 
 const signedOut = (missing = ["SID", "HSID", "SSID", "APISID", "SAPISID"]) =>
@@ -66,6 +68,7 @@ const browser = (overrides: Partial<PairingBrowserConfig> = {}) =>
       return child;
     },
     readCookies: async () => cookieReads.shift() ?? signedOut(),
+    signInSeen: async () => signInSeen.shift() ?? false,
     now: () => now,
     ...overrides,
   });
@@ -81,6 +84,7 @@ beforeEach(async () => {
   root = await mkdtemp(join(tmpdir(), "openrcs-pairing-browser-"));
   spawned = [];
   cookieReads = [];
+  signInSeen = [];
   now = 1_000_000;
 });
 
@@ -100,6 +104,7 @@ describe("PairingBrowser", () => {
     expect(args).toContain("--password-store=basic");
     expect(args).toContain(PAIRING_BROWSER_START_URL);
     expect(args.some((arg) => arg.includes("remote-debugging"))).toBe(false);
+    expect(args).toContain(`--log-net-log=${join(profileOf(args), "netlog.json")}`);
     expect(profileOf(args).startsWith(root)).toBe(true);
     expect(await readdir(root)).toEqual([profileOf(args).slice(root.length + 1)]);
   });
@@ -138,27 +143,29 @@ describe("PairingBrowser", () => {
     expect(await b.take("u1")).toBeNull();
   });
 
-  test("captured cookies are re-read after Chromium exits, so its final write is used", async () => {
+  test("reaching Messages for web closes the browser at once and captures its cookies", async () => {
     const b = browser();
     await b.start("u1");
-    cookieReads = [signedIn(), signedOut(["SID"])];
-    const polled = await b.poll("u1");
-    expect(polled.isErr() && polled.error.reason).toBe("notSignedIn");
-    expect(await b.take("u1")).toBeNull();
+    const profile = profileOf(spawned[0]?.args ?? []);
+    // On disk the cookies are not written yet; the clean exit writes them.
+    cookieReads = [signedOut(), signedIn()];
+    signInSeen = [true];
+    expect((await b.poll("u1")).unwrap()).toEqual({ status: "signedIn" });
+    expect(spawned[0]?.child.signals).toEqual(["SIGTERM"]);
+    expect(existsSync(profile)).toBe(false);
+    expect(await b.take("u1")).toEqual(SIGNED_IN);
   });
 
-  test("finish closes the browser and captures, or explains what is missing", async () => {
+  test("if the cookies are still missing after closing, the browser reopens on the same profile", async () => {
     const b = browser();
     await b.start("u1");
-    cookieReads = [signedOut(["SID", "HSID"])];
-    const finished = await b.finish("u1");
-    expect(finished.isErr() && finished.error.message).toContain("missing: SID, HSID");
-    expect(spawned[0]?.child.signals).toEqual(["SIGTERM"]);
-
-    await b.start("u1");
-    cookieReads = [signedIn()];
-    expect((await b.finish("u1")).unwrap()).toEqual({ status: "signedIn" });
-    expect(await b.take("u1")).toEqual(SIGNED_IN);
+    cookieReads = [signedOut(), signedOut(["SID"])];
+    signInSeen = [true];
+    expect((await b.poll("u1")).unwrap()).toEqual({ status: "signingIn", missing: ["SID"] });
+    expect(spawned).toHaveLength(2);
+    expect(profileOf(spawned[1]?.args ?? [])).toBe(profileOf(spawned[0]?.args ?? []));
+    expect(b.canView("u1")).toBe(true);
+    expect(await b.take("u1")).toBeNull();
   });
 
   test("a browser that ignores SIGTERM is killed", async () => {

@@ -1,36 +1,49 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Alert, buttonClass, Card } from "@/app/_components/ui";
 import { PairingEvent } from "@/lib/rcs/pairing-event";
 
 type FlowState =
   | { readonly stage: "idle" }
   | { readonly stage: "browserStarting" }
-  | { readonly stage: "browser"; readonly finishing: boolean; readonly notice: string | null }
+  | { readonly stage: "browser" }
   | { readonly stage: "starting" }
   | { readonly stage: "emoji"; readonly emoji: string; readonly emojiImageUrl: string }
   | { readonly stage: "syncing"; readonly done: number; readonly total: number | null }
   | { readonly stage: "done"; readonly warning: string | null }
   | { readonly stage: "error"; readonly message: string };
 
+/** How the user gives openrcs their Google cookies. */
+type Method = "browser" | "curl";
+
 const SECURITY_URL = "https://github.com/AugusDogus/openrcs/blob/main/docs/security.md";
 
-/** Where nginx serves the sign-in browser stream (docker/nginx.conf). */
+/** Where nginx serves the sign-in browser stream (docker/root/defaults/default.conf). */
 const BROWSER_STREAM_PATH = "/pairing-browser/";
-const BROWSER_POLL_MS = 3_000;
+const BROWSER_POLL_MS = 1_500;
 
 /** Where the cookies for pairing come from: pasted text, or the self-hosted sign-in browser. */
 type CookieSource = { readonly cookies: string } | { readonly source: "browser" };
-
-type BrowserAction = "start" | "poll" | "finish" | "stop";
 
 type BrowserReply =
   | { readonly ok: true; readonly status: "idle" | "signingIn" | "signedIn" }
   | { readonly ok: false; readonly message: string };
 
-const browserAction = async (action: BrowserAction, signal?: AbortSignal): Promise<BrowserReply> => {
+const readError = async (response: Response): Promise<string> => {
+  try {
+    const body: unknown = await response.json();
+    if (typeof body === "object" && body !== null && "error" in body && typeof body.error === "string") {
+      return body.error;
+    }
+  } catch {
+    // Not JSON.
+  }
+  return `Pairing could not start (HTTP ${response.status}). Reload the page and try again.`;
+};
+
+const browserAction = async (action: "start" | "poll" | "stop", signal?: AbortSignal): Promise<BrowserReply> => {
   let response: Response;
   try {
     response = await fetch("/api/pair/browser", {
@@ -50,18 +63,6 @@ const browserAction = async (action: BrowserAction, signal?: AbortSignal): Promi
   return status === "idle" || status === "signingIn" || status === "signedIn"
     ? { ok: true, status }
     : { ok: false, message: "openrcs sent an unexpected answer. Reload the page and try again." };
-};
-
-const readError = async (response: Response): Promise<string> => {
-  try {
-    const body: unknown = await response.json();
-    if (typeof body === "object" && body !== null && "error" in body && typeof body.error === "string") {
-      return body.error;
-    }
-  } catch {
-    // Not JSON.
-  }
-  return `Pairing could not start (HTTP ${response.status}). Reload the page and try again.`;
 };
 
 /** POST the cookies (or the browser sign-in) to the pairing route and drive `setState` from its event stream. */
@@ -156,43 +157,39 @@ function GaiaInstructions() {
   );
 }
 
-function BrowserSignIn({
-  finishing,
-  notice,
-  onFinish,
-  onCancel,
-}: {
-  finishing: boolean;
-  notice: string | null;
-  onFinish: () => void;
-  onCancel: () => void;
-}) {
+function Spinner() {
+  return <span aria-hidden className="size-4 shrink-0 animate-spin rounded-full border-2 border-border border-t-accent" />;
+}
+
+/** The sign-in browser's frame, or a placeholder of the same size while it starts or after it closed. */
+function BrowserFrame({ live, placeholder }: { live: boolean; placeholder: string }) {
   return (
-    <div className="flex flex-col gap-4">
-      <p className="text-sm leading-6">
-        Sign in below with the Google account your phone&apos;s Google Messages uses. This browser runs on your
-        openrcs server; openrcs keeps only the Google cookies it needs and deletes the rest when you finish. When
-        Messages for web opens, do not pair there: openrcs pairs itself next.
-      </p>
-      <iframe
-        src={BROWSER_STREAM_PATH}
-        title="Google sign-in"
-        allow="clipboard-read; clipboard-write"
-        referrerPolicy="no-referrer"
-        className="block aspect-[4/3] w-full rounded-lg border border-border bg-black"
-      />
-      {notice ? <Alert tone="warning">{notice}</Alert> : null}
-      <p className="text-xs text-muted">
-        openrcs continues on its own within about 30 seconds of you signing in.
-      </p>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <button type="button" onClick={onFinish} disabled={finishing} className={buttonClass("primary", "w-full sm:w-fit")}>
-          {finishing ? "Checking…" : "I've signed in"}
-        </button>
-        <button type="button" onClick={onCancel} className={buttonClass("secondary", "w-full sm:w-fit")}>
-          Cancel
-        </button>
-      </div>
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-surface-muted">
+      {live ? (
+        <iframe
+          src={BROWSER_STREAM_PATH}
+          title="Google sign-in"
+          allow="clipboard-read; clipboard-write"
+          referrerPolicy="no-referrer"
+          onLoad={(event) => event.currentTarget.focus()}
+          className="absolute inset-0 size-full bg-black"
+        />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center gap-2.5 text-sm text-muted">
+          <Spinner />
+          {placeholder}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Right-aligned action row; `start` sits on the left. */
+function Actions({ start, children }: { start?: ReactNode; children?: ReactNode }) {
+  return (
+    <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+      <div>{start}</div>
+      <div className="flex flex-col-reverse gap-2 sm:flex-row">{children}</div>
     </div>
   );
 }
@@ -214,31 +211,33 @@ function Progress({ done, total }: { done: number; total: number | null }) {
   );
 }
 
+/** The browser method opens its browser straight away; the cURL method waits for a paste. */
+const initialState = (method: Method): FlowState =>
+  method === "browser" ? { stage: "browserStarting" } : { stage: "idle" };
+
 export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean; browserSignIn: boolean }) {
-  const [state, setState] = useState<FlowState>({ stage: "idle" });
+  const defaultMethod: Method = browserSignIn ? "browser" : "curl";
+  const [state, setState] = useState<FlowState>(initialState(defaultMethod));
+  const [method, setMethod] = useState<Method>(defaultMethod);
   const [cookies, setCookies] = useState("");
   const abortRef = useRef<AbortController | null>(null);
-  // Self-hosted: the sign-in browser, with pasting a cURL command as the fallback.
-  const [manual, setManual] = useState(false);
-  const useBrowser = browserSignIn && !manual;
-  // The poll and "I've signed in" can both see the sign-in; pair only once.
+  // The browser's sign-in is handed to pairing once, however many polls see it.
   const handedOffRef = useRef(false);
-  const inBrowser = state.stage === "browser";
 
   // Next keeps this page mounted but hidden after navigating away (Activity,
   // docs: guides/preserving-ui-state), and a Link back restores it. Reset on
-  // hide so returning shows the form, not a finished or aborted flow, and
-  // pasted cookies do not linger in the hidden page.
+  // hide so returning starts over, pasted cookies do not linger in the hidden
+  // page, and the sign-in browser closes.
   useLayoutEffect(
     () => () => {
       abortRef.current?.abort();
       abortRef.current = null;
-      setState({ stage: "idle" });
+      setMethod(defaultMethod);
+      setState(initialState(defaultMethod));
       setCookies("");
-      // Closes the sign-in browser if one is open (a no-op otherwise).
       if (browserSignIn) void browserAction("stop");
     },
-    [browserSignIn],
+    [browserSignIn, defaultMethod],
   );
 
   function freshSignal(): AbortSignal {
@@ -248,14 +247,12 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     return controller.signal;
   }
 
-  function start() {
-    void runPairing({ cookies }, freshSignal(), setState);
-  }
-
-  function cancel() {
+  function reset(next: Method) {
     abortRef.current?.abort();
     abortRef.current = null;
-    setState({ stage: "idle" });
+    if (method === "browser") void browserAction("stop");
+    setMethod(next);
+    setState(initialState(next));
   }
 
   function pairFromBrowser(signal: AbortSignal) {
@@ -264,52 +261,60 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     void runPairing({ source: "browser" }, signal, setState);
   }
 
-  async function startBrowser() {
+  // Browser method: open the sign-in browser as soon as the page shows.
+  const browserStarting = method === "browser" && state.stage === "browserStarting";
+  useEffect(() => {
+    if (!browserStarting) return;
     const signal = freshSignal();
     handedOffRef.current = false;
-    setState({ stage: "browserStarting" });
-    const reply = await browserAction("start", signal);
-    if (signal.aborted) return;
-    setState(reply.ok ? { stage: "browser", finishing: false, notice: null } : { stage: "error", message: reply.message });
-  }
+    void browserAction("start", signal).then((reply) => {
+      if (signal.aborted) return;
+      setState(reply.ok ? { stage: "browser" } : { stage: "error", message: reply.message });
+    });
+  }, [browserStarting]);
 
-  async function finishBrowser() {
-    const signal = abortRef.current?.signal;
-    setState({ stage: "browser", finishing: true, notice: null });
-    const reply = await browserAction("finish", signal);
-    if (signal?.aborted || handedOffRef.current) return;
-    if (!reply.ok) return setState({ stage: "error", message: reply.message });
-    if (reply.status === "signedIn" && signal) pairFromBrowser(signal);
-  }
-
-  function cancelBrowser() {
-    cancel();
-    void browserAction("stop");
-  }
-
-  // While the sign-in browser is open, ask openrcs whether Google has signed in yet.
+  // While it is open, ask openrcs whether Google has signed in yet.
+  const browserOpen = state.stage === "browser";
   useEffect(() => {
-    if (!inBrowser) return;
+    if (!browserOpen) return;
     const signal = abortRef.current?.signal;
     if (!signal) return;
     let polling = false;
     const timer = setInterval(async () => {
-      if (polling || signal.aborted) return;
+      if (polling || signal.aborted || handedOffRef.current) return;
       polling = true;
       const reply = await browserAction("poll", signal);
       polling = false;
-      if (signal.aborted) return;
-      if (handedOffRef.current) return;
-      if (!reply.ok) {
-        setState({ stage: "error", message: reply.message });
-      } else if (reply.status === "signedIn") {
-        pairFromBrowser(signal);
-      } else if (reply.status === "idle") {
-        setState({ stage: "error", message: "The sign-in browser closed (it closes after 15 minutes). Start again." });
+      if (signal.aborted || handedOffRef.current) return;
+      if (!reply.ok) setState({ stage: "error", message: reply.message });
+      else if (reply.status === "signedIn") pairFromBrowser(signal);
+      else if (reply.status === "idle") {
+        setState({ stage: "error", message: "The sign-in browser closed after 15 minutes without a sign-in." });
       }
     }, BROWSER_POLL_MS);
     return () => clearInterval(timer);
-  }, [inBrowser]);
+  }, [browserOpen]);
+
+  const signingIn = method === "browser" && (state.stage === "browserStarting" || state.stage === "browser");
+  const contacting = state.stage === "starting";
+  const showForm = method === "curl" && (state.stage === "idle" || state.stage === "error" || contacting);
+
+  const heading =
+    state.stage === "emoji"
+      ? { title: "Confirm on your phone", description: "Step 2 of 2" }
+      : state.stage === "syncing"
+        ? { title: "Syncing your conversations", description: "Paired" }
+        : state.stage === "done"
+          ? { title: "Your phone is paired", description: undefined }
+          : method === "browser"
+            ? {
+                title: "Sign in to Google",
+                description: "Step 1 of 2 · Use the Google account your phone's Google Messages is signed in to.",
+              }
+            : {
+                title: "Paste your Google cookies",
+                description: "Step 1 of 2 · From the Google account your phone's Google Messages is signed in to.",
+              };
 
   return (
     <div className="flex flex-col gap-6">
@@ -321,58 +326,51 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
         </Alert>
       ) : null}
 
-      <Card
-        title="Pair with your Google account"
-        description="Uses the Google account your phone's Google Messages is signed in to."
-      >
+      <Card title={heading.title} description={heading.description}>
         <div className="flex flex-col gap-5">
-          {useBrowser && (state.stage === "idle" || state.stage === "error" || state.stage === "browserStarting") ? (
-            <div className="flex flex-col gap-4">
-              <p className="text-sm leading-6">
-                Sign in to Google in a browser that runs on your openrcs server. openrcs keeps only the Google
-                cookies it needs to pair, encrypted like everything else.
-              </p>
-              {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
-              <button
-                type="button"
-                onClick={() => void startBrowser()}
-                disabled={state.stage === "browserStarting"}
-                className={buttonClass("primary", "w-full sm:w-fit")}
+          {method === "browser" && (signingIn || contacting) ? (
+            <>
+              <BrowserFrame
+                live={state.stage === "browser"}
+                placeholder={contacting ? "Signed in. Contacting Google…" : "Starting a private browser…"}
+              />
+              <Actions
+                start={
+                  <p className="text-xs leading-5 text-muted">
+                    Runs on your openrcs server. openrcs keeps only the Google cookies it needs to pair and deletes
+                    the rest.
+                  </p>
+                }
               >
-                {state.stage === "browserStarting" ? "Opening the sign-in browser…" : "Sign in with Google"}
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setManual(true);
-                  setState({ stage: "idle" });
-                }}
-                className="w-fit text-sm text-muted underline hover:text-foreground"
-              >
-                Paste a cURL command instead
-              </button>
-            </div>
+                {contacting ? null : (
+                  <button type="button" onClick={() => reset("curl")} className={buttonClass("ghost")}>
+                    Use a cURL command instead
+                  </button>
+                )}
+              </Actions>
+            </>
           ) : null}
 
-          {useBrowser && state.stage === "starting" ? (
-            <p className="text-sm text-muted">Signed in. Contacting Google to pair…</p>
+          {method === "browser" && state.stage === "error" ? (
+            <>
+              <Alert tone="danger">{state.message}</Alert>
+              <Actions>
+                <button type="button" onClick={() => reset("curl")} className={buttonClass("ghost")}>
+                  Use a cURL command instead
+                </button>
+                <button type="button" onClick={() => reset("browser")} className={buttonClass("primary")}>
+                  Try again
+                </button>
+              </Actions>
+            </>
           ) : null}
 
-          {inBrowser ? (
-            <BrowserSignIn
-              finishing={state.finishing}
-              notice={state.notice}
-              onFinish={() => void finishBrowser()}
-              onCancel={cancelBrowser}
-            />
-          ) : null}
-
-          {!useBrowser && (state.stage === "idle" || state.stage === "error" || state.stage === "starting") ? (
+          {showForm ? (
             <form
               className="flex flex-col gap-4"
               onSubmit={(event) => {
                 event.preventDefault();
-                start();
+                void runPairing({ cookies }, freshSignal(), setState);
               }}
             >
               <GaiaInstructions />
@@ -399,25 +397,21 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
                 />
               </label>
               {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
-              <button
-                type="submit"
-                disabled={state.stage === "starting" || cookies.trim() === ""}
-                className={buttonClass("primary", "w-full sm:w-fit")}
-              >
-                {state.stage === "starting" ? "Contacting Google…" : "Start pairing"}
-              </button>
-              {browserSignIn ? (
+              <Actions>
+                {browserSignIn ? (
+                  <button type="button" onClick={() => reset("browser")} className={buttonClass("ghost")}>
+                    Sign in with Google instead
+                  </button>
+                ) : null}
                 <button
-                  type="button"
-                  onClick={() => {
-                    setManual(false);
-                    setState({ stage: "idle" });
-                  }}
-                  className="w-fit text-sm text-muted underline hover:text-foreground"
+                  type="submit"
+                  disabled={contacting || cookies.trim() === ""}
+                  className={buttonClass("primary")}
                 >
-                  Sign in with Google instead
+                  {contacting ? <Spinner /> : null}
+                  {contacting ? "Contacting Google…" : "Start pairing"}
                 </button>
-              ) : null}
+              </Actions>
             </form>
           ) : null}
 
@@ -433,33 +427,27 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
                 </span>
               )}
               <p className="text-base font-medium">Tap this emoji in Google Messages on your phone</p>
-              <p className="max-w-sm text-sm text-muted">
-                Your phone shows a pairing prompt with several emoji. Pick the one above. Waiting for your phone…
+              <p className="flex max-w-sm items-center gap-2 text-sm text-muted">
+                <Spinner />
+                Waiting for your phone…
               </p>
+              <button type="button" onClick={() => reset(method)} className={buttonClass("ghost")}>
+                Cancel
+              </button>
             </div>
           ) : null}
 
-          {state.stage === "syncing" ? (
-            <div className="flex flex-col gap-4">
-              <Alert tone="success">Paired. Fetching your recent conversations…</Alert>
-              <Progress done={state.done} total={state.total} />
-            </div>
-          ) : null}
+          {state.stage === "syncing" ? <Progress done={state.done} total={state.total} /> : null}
 
           {state.stage === "done" ? (
-            <div className="flex flex-col gap-4">
-              <Alert tone="success">Your phone is paired.</Alert>
+            <>
               {state.warning ? <Alert tone="warning">{state.warning}</Alert> : null}
-              <Link href="/dashboard" className={buttonClass("primary", "w-full sm:w-fit")}>
-                Back to the dashboard
-              </Link>
-            </div>
-          ) : null}
-
-          {state.stage === "emoji" ? (
-            <button type="button" onClick={cancel} className={buttonClass("secondary", "w-full sm:w-fit self-center")}>
-              Cancel
-            </button>
+              <Actions>
+                <Link href="/dashboard" className={buttonClass("primary")}>
+                  Back to the dashboard
+                </Link>
+              </Actions>
+            </>
           ) : null}
         </div>
       </Card>

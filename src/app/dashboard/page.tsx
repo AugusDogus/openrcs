@@ -158,7 +158,10 @@ async function PhoneCard() {
           </Alert>
         ) : null}
 
-        <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-start">
+        {/* Actions sit on the right, the main one last; stacked with it on top on phones. */}
+        <div className="flex flex-col-reverse gap-2 sm:flex-row sm:flex-wrap sm:items-start sm:justify-end">
+          {state.kind === "unpaired" ? null : <UnpairButton />}
+          {state.kind === "unlocked" && status === "paired" ? <SyncNowButton /> : null}
           {state.kind === "unpaired" ? (
             <Link href="/dashboard/pair" prefetch={false} className={buttonClass("primary")}>
               Pair your phone
@@ -172,8 +175,6 @@ async function PhoneCard() {
               {state.kind === "locked" ? "Re-pair here" : "Re-pair"}
             </Link>
           )}
-          {state.kind === "unlocked" && status === "paired" ? <SyncNowButton /> : null}
-          {state.kind === "unpaired" ? null : <UnpairButton />}
         </div>
       </div>
     </Card>
@@ -240,7 +241,9 @@ async function AccountCard() {
       title="Account"
       description="Deleting your account removes your phone pairing, every stored message, all connected agents and your openrcs account."
     >
-      <DeleteAccountButton />
+      <div className="flex flex-col sm:items-end">
+        <DeleteAccountButton />
+      </div>
     </Card>
   );
 }

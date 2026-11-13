@@ -5,11 +5,14 @@ import { Result, TaggedError } from "better-result";
 
 import type { GoogleCookies } from "@/lib/gm/google-cookies";
 import { ChromiumCookies, type ChromiumCookiesError, type ChromiumGoogleCookies } from "./chromium-cookies";
+import { createSignInWatcher, NET_LOG_FILE } from "./net-log";
 
 // The self-hosted sign-in browser (docs/self-hosting.md): a Chromium in the
 // container's Selkies desktop, streamed into the pairing page. The user signs
-// in to Google there; openrcs reads the Google cookies from the profile on
-// disk, closes the browser, deletes the profile, and pairs with those cookies
+// in to Google there. As soon as the browser reaches Messages for web (seen in
+// its NetLog, see net-log.ts), openrcs closes it, which writes its cookies,
+// reads the Google cookies from the profile on disk, deletes the profile, and
+// pairs with those cookies
 // exactly as with a pasted cURL command. Chromium runs without a debugging
 // port because Google refuses sign-in from browsers that have one.
 //
@@ -38,6 +41,8 @@ export type PairingBrowserConfig = {
   readonly stopTimeoutMs: number;
   readonly spawn: SpawnFn;
   readonly readCookies: (cookiesPath: string) => Promise<Result<ChromiumGoogleCookies, ChromiumCookiesError>>;
+  /** Whether the browser's NetLog shows it reached Messages for web (sign-in finished). */
+  readonly signInSeen: (netLogPath: string) => Promise<boolean>;
   readonly now: () => number;
 };
 
@@ -47,7 +52,7 @@ export type PairingBrowserStatus =
   | { readonly status: "signedIn" };
 
 export class PairingBrowserError extends TaggedError("PairingBrowserError")<{
-  reason: "disabled" | "busy" | "launch" | "cookies" | "notSignedIn";
+  reason: "disabled" | "busy" | "launch" | "cookies";
   message: string;
   cause?: unknown;
 }> {}
@@ -77,6 +82,8 @@ const chromiumArgs = (profileDir: string, startUrl: string): string[] => [
   "--no-default-browser-check",
   "--disable-sync",
   `--user-data-dir=${profileDir}`,
+  // Request log for sign-in detection (default capture mode: no cookies or credentials).
+  `--log-net-log=${join(profileDir, NET_LOG_FILE)}`,
   "--kiosk",
   startUrl,
 ];
@@ -189,7 +196,11 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
     return Result.ok(undefined);
   };
 
-  /** Turn a running browser's signed-in profile into captured cookies (browser closed, profile deleted). */
+  /**
+   * Close the browser (Chromium writes its cookies on a clean exit) and read
+   * them. Signed in: keep the cookies, delete the profile. Not yet: reopen the
+   * browser on the same profile so the user can carry on.
+   */
   const capture = async (
     state: Extract<State, { kind: "running" }>,
   ): Promise<Result<PairingBrowserStatus, PairingBrowserError>> => {
@@ -197,18 +208,12 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
     h.state = { kind: "idle" };
     await stopChild(state.child);
     const read = await config.readCookies(cookiesPath(state.profileDir));
-    await wipe(state.profileDir);
     if (read.isErr()) {
+      await wipe(state.profileDir);
       return Result.err(new PairingBrowserError({ reason: "cookies", message: read.error.message, cause: read.error }));
     }
-    if (read.value.status === "signedOut") {
-      return Result.err(
-        new PairingBrowserError({
-          reason: "notSignedIn",
-          message: `The pairing browser closed before Google finished signing you in (missing: ${read.value.missing.join(", ")}). Start again and finish signing in.`,
-        }),
-      );
-    }
+    if (read.value.status === "signedOut") return reopen(state, read.value.missing);
+    await wipe(state.profileDir);
     h.state = {
       kind: "captured",
       userId: state.userId,
@@ -216,6 +221,21 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
       expiresAt: config.now() + config.captureTtlMs,
     };
     return Result.ok({ status: "signedIn" });
+  };
+
+  /** Start the browser again on the same profile (after a crash, or a sign-in that had not finished). */
+  const reopen = async (
+    state: Extract<State, { kind: "running" }>,
+    missing: readonly string[],
+  ): Promise<Result<PairingBrowserStatus, PairingBrowserError>> => {
+    clearTimeout(state.timer);
+    const relaunched = await launch(state.userId, state.profileDir);
+    if (relaunched.isErr()) {
+      h.state = { kind: "idle" };
+      await wipe(state.profileDir);
+      return Result.err(relaunched.error);
+    }
+    return Result.ok({ status: "signingIn", missing });
   };
 
   const dropExpiredCapture = (): void => {
@@ -238,9 +258,10 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
       }),
 
     /**
-     * Check the profile for Google cookies. Once they are all there, close the
-     * browser, keep the cookies for `take`, and delete the profile. Chromium
-     * writes cookies to disk within about 30 s of signing in.
+     * Has Google finished signing in? Yes once the browser reaches Messages for
+     * web (a second or two) or its cookie file already holds the cookies
+     * (Chromium writes it every 30 s). Then the browser is closed, the cookies
+     * kept for `take`, and the profile deleted.
      */
     poll: (userId: string): Promise<Result<PairingBrowserStatus, PairingBrowserError>> =>
       serialized(async () => {
@@ -253,34 +274,10 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
           return Result.err(new PairingBrowserError({ reason: "cookies", message: read.error.message, cause: read.error }));
         }
         if (read.value.status === "signedIn") return capture(state);
-        if (state.child.hasExited()) {
-          // Closed or crashed before sign-in finished: reopen on the same profile.
-          clearTimeout(state.timer);
-          const relaunched = await launch(state.userId, state.profileDir);
-          if (relaunched.isErr()) {
-            h.state = { kind: "idle" };
-            await wipe(state.profileDir);
-            return Result.err(relaunched.error);
-          }
-        }
+        if (await config.signInSeen(join(state.profileDir, NET_LOG_FILE))) return capture(state);
+        // Closed or crashed before sign-in finished: reopen on the same profile.
+        if (state.child.hasExited()) return reopen(state, read.value.missing);
         return Result.ok({ status: "signingIn", missing: read.value.missing });
-      }),
-
-    /** "I've signed in": close the browser now (which writes its cookies) and capture them. */
-    finish: (userId: string): Promise<Result<PairingBrowserStatus, PairingBrowserError>> =>
-      serialized(async () => {
-        dropExpiredCapture();
-        const state = h.state;
-        if (state.kind === "captured" && state.userId === userId) return Result.ok({ status: "signedIn" });
-        if (state.kind !== "running" || state.userId !== userId) {
-          return Result.err(
-            new PairingBrowserError({
-              reason: "notSignedIn",
-              message: "The pairing browser is not open (it closes after 15 minutes). Start again.",
-            }),
-          );
-        }
-        return capture(state);
       }),
 
     /** Hand the captured cookies to pairing, once. */
@@ -312,6 +309,9 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
 
 export type PairingBrowser = ReturnType<typeof createPairingBrowser>;
 
+/** One watcher per server bundle, so each poll reads only new NetLog bytes. */
+const watchSignIn = createSignInWatcher();
+
 const disabled = () =>
   new PairingBrowserError({
     reason: "disabled",
@@ -337,6 +337,7 @@ export const PairingBrowser = {
         stopTimeoutMs: 5_000,
         spawn: spawnChild,
         readCookies: (path) => ChromiumCookies.readGoogle(path),
+        signInSeen: watchSignIn,
         now: Date.now,
       }),
     );
