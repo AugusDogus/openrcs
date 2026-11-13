@@ -1,0 +1,3 @@
+#!/bin/bash
+# openrcs starts the sign-in browser itself, only while someone is pairing.
+true

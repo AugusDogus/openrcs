@@ -1,0 +1,44 @@
+#!/bin/bash
+# Starts openrcs as the unprivileged `abc` user (s6 service svc-openrcs):
+# resolves secrets, applies migrations, then runs the Next.js server on
+# 127.0.0.1:3100 behind nginx.
+set -euo pipefail
+
+SECRETS_DIR=/data/secrets
+
+fail() {
+  echo "[openrcs] $*" >&2
+  # s6 restarts the service; wait so a misconfiguration does not spin.
+  sleep 10
+  exit 1
+}
+
+# Self-hosted installs sign in with Tailscale identity unless told otherwise.
+export AUTH_PROVIDER="${AUTH_PROVIDER:-tailscale}"
+[ -n "${OPENRCS_URL:-}" ] || fail "OPENRCS_URL is not set. Set it to the address people open, for example https://openrcs.<your-tailnet>.ts.net (no trailing slash)."
+export BETTER_AUTH_URL="$OPENRCS_URL"
+
+# A secret from the environment wins. Otherwise it is generated once and kept
+# in the data volume, so it survives restarts and never lives in the image.
+secret() {
+  local name="$1" file="$SECRETS_DIR/$2" note="$3" current
+  current="${!name:-}"
+  if [ -z "$current" ]; then
+    if [ ! -s "$file" ]; then
+      (umask 077 && node -e 'process.stdout.write(require("node:crypto").randomBytes(32).toString("base64"))' > "$file")
+      echo "[openrcs] generated $name in $file. $note"
+    fi
+    current="$(cat "$file")"
+  fi
+  export "$name=$current"
+}
+secret KEY_PEPPER key-pepper "Back this file up with the database: without it paired sessions and stored messages cannot be decrypted."
+secret BETTER_AUTH_SECRET auth-secret "Losing it only signs browsers out."
+
+node /app/migrate.mjs || fail "database migration failed; not starting. The database file was left as it was."
+
+# Where the sign-in browser draws: the labwc session inside the Selkies desktop.
+export WAYLAND_DISPLAY=wayland-0 DISPLAY=:0
+export HOSTNAME=127.0.0.1 PORT=3100
+cd /app
+exec node server.js

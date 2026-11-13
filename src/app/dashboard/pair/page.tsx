@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Wordmark } from "@/app/_components/ui";
 import { requireCurrentUser } from "@/app/_lib/session";
+import { PairingBrowser } from "@/lib/pairing-browser/pairing-browser";
 import { loadPhoneState } from "../_lib/phone-state";
 import { PairingFlow } from "./_components/pairing-flow";
 
@@ -40,5 +41,5 @@ async function PairContent() {
   const state = await loadPhoneState(user.id);
   // Pairing from a browser that cannot unlock an existing session mints a new key.
   const resetsData = state.kind === "locked";
-  return <PairingFlow resetsData={resetsData} />;
+  return <PairingFlow resetsData={resetsData} browserSignIn={PairingBrowser.enabled()} />;
 }

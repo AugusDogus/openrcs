@@ -14,12 +14,14 @@
   <WebUI/>
   <TemplateURL/>
   <Icon>https://raw.githubusercontent.com/AugusDogus/openrcs/main/assets/icon.svg</Icon>
-  <ExtraParams/>
+  <ExtraParams>--shm-size=1g</ExtraParams>
   <PostArgs/>
   <CPUset/>
   <DonateText/>
   <DonateLink/>
   <Requires>A Tailscale account with MagicDNS and HTTPS certificates enabled.</Requires>
+  <Config Name="PUID" Target="PUID" Default="99" Mode="" Description="User the app and its data files run as." Type="Variable" Display="advanced" Required="false" Mask="false">99</Config>
+  <Config Name="PGID" Target="PGID" Default="100" Mode="" Description="Group the app and its data files run as." Type="Variable" Display="advanced" Required="false" Mask="false">100</Config>
   <Config Name="Data" Target="/data" Default="/mnt/user/appdata/openrcs" Mode="rw" Description="Database, generated secrets and Tailscale state. Back up this folder as a whole." Type="Path" Display="always" Required="true" Mask="false">/mnt/user/appdata/openrcs</Config>
   <Config Name="OPENRCS_URL" Target="OPENRCS_URL" Default="" Mode="" Description="Leave empty with 'Use Tailscale' on: the container detects its https://name.tailnet.ts.net address. Set it only if Tailscale runs outside this container." Type="Variable" Display="advanced" Required="false" Mask="false"/>
   <Config Name="KEY_PEPPER" Target="KEY_PEPPER" Default="" Mode="" Description="Optional. Leave empty to generate one into the data folder on first start. base64 of 32 bytes." Type="Variable" Display="advanced" Required="false" Mask="true"/>
