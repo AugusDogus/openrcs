@@ -3,7 +3,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { Alert, AuthShell, buttonClass } from "@/app/_components/ui";
+import { Actions, Alert, AuthShell, buttonClass, PageTitle } from "@/app/_components/ui";
 import { ConsentFlow } from "@/lib/oauth/consent";
 import { OAuthContext } from "@/lib/oauth/context";
 import { McpScope } from "@/lib/oauth/scopes";
@@ -14,10 +14,12 @@ type SearchParams = Record<string, string | string[] | undefined>;
 
 export default function ConsentPage({ searchParams }: PageProps<"/oauth/consent">) {
   return (
-    <AuthShell title="Authorize access">
-      <Suspense fallback={<ConsentSkeleton />}>
-        <ConsentContent searchParams={searchParams} />
-      </Suspense>
+    <AuthShell>
+      <div className="flex flex-col gap-6 rounded-2xl border border-border bg-surface p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <Suspense fallback={<ConsentSkeleton />}>
+          <ConsentContent searchParams={searchParams} />
+        </Suspense>
+      </div>
     </AuthShell>
   );
 }
@@ -45,77 +47,50 @@ async function ConsentContent({ searchParams }: { searchParams: Promise<SearchPa
       return <Alert tone="danger">{view.message}</Alert>;
     case "locked":
       return (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm leading-6">
-            <span className="font-semibold">{view.clientName}</span> wants to access your openrcs
-            account.
-          </p>
+        <>
+          <PageTitle title={`Allow ${view.clientName} to use openrcs?`} />
           <Alert tone="warning">{view.message}</Alert>
-          <Link href="/dashboard" className={buttonClass("secondary", "w-full")}>
-            Go to the dashboard
-          </Link>
-        </div>
+          <Actions>
+            <Link href="/dashboard" className={buttonClass("primary")}>
+              Open openrcs
+            </Link>
+          </Actions>
+        </>
       );
     case "ready":
       return (
-        <div className="flex flex-col gap-6">
-          <div className="flex flex-col gap-1">
-            <p className="text-sm leading-6">
-              <span className="font-semibold">{view.clientName}</span> wants to access your
-              openrcs account.
-            </p>
-            <p className="text-xs text-muted">
-              You will be sent back to <span className="font-mono">{view.redirectHost}</span>. Only
-              approve if you started this from an app you trust.
-            </p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              It will be able to
-            </p>
-            <ul className="mt-2 flex flex-col gap-1.5">
-              {view.scopes.map((scope) => (
-                <li key={scope} className="flex items-start gap-2 text-sm">
-                  <span aria-hidden className="mt-2 size-1.5 shrink-0 rounded-full bg-accent" />
-                  <span>
-                    {McpScope.describe(scope)}{" "}
-                    <span className="font-mono text-xs text-muted">{scope}</span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
+        <>
+          <PageTitle title={`Allow ${view.clientName} to use openrcs?`}>
+            Only if you just connected it yourself. You go back to{" "}
+            <span className="font-mono text-[13px] text-foreground">{view.redirectHost}</span> after.
+          </PageTitle>
+          <ul className="flex flex-col gap-2.5">
+            {view.scopes.map((scope) => (
+              <li key={scope} className="flex items-start gap-2.5 text-sm leading-6">
+                <svg aria-hidden viewBox="0 0 16 16" className="mt-1 size-4 shrink-0 text-accent">
+                  <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+                {McpScope.describe(scope)}
+              </li>
+            ))}
+          </ul>
           {view.createsKey ? (
-            <p className="text-xs leading-5 text-muted">
-              Approving also makes this browser the one that holds your account key: pair your
-              phone from this browser afterwards. MCP clients approved from another browser
-              before pairing will be disconnected.
+            <p className="text-sm leading-6 text-muted">
+              This browser becomes the one that holds your key, so pair your phone from it afterwards.
             </p>
           ) : null}
-          <form
-            method="post"
-            action="/oauth/consent/decision"
-            className="flex flex-col-reverse gap-2 sm:flex-row"
-          >
+          <form method="post" action="/oauth/consent/decision">
             <input type="hidden" name="ticket" value={view.ticket} />
-            <button
-              type="submit"
-              name="decision"
-              value="deny"
-              className={buttonClass("secondary", "sm:flex-1")}
-            >
-              Deny
-            </button>
-            <button
-              type="submit"
-              name="decision"
-              value="approve"
-              className={buttonClass("primary", "sm:flex-1")}
-            >
-              Approve
-            </button>
+            <Actions>
+              <button type="submit" name="decision" value="deny" className={buttonClass("secondary")}>
+                Deny
+              </button>
+              <button type="submit" name="decision" value="approve" className={buttonClass("primary")}>
+                Approve
+              </button>
+            </Actions>
           </form>
-        </div>
+        </>
       );
   }
 }

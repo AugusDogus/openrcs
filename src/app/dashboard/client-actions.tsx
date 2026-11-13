@@ -24,7 +24,7 @@ export function SignOutButton() {
   }
 
   return (
-    <button type="button" onClick={signOut} disabled={pending} className={buttonClass("ghost", "h-9 px-3")}>
+    <button type="button" onClick={signOut} disabled={pending} className={buttonClass("ghost")}>
       {pending ? "Signing out…" : "Sign out"}
     </button>
   );
@@ -54,7 +54,7 @@ export function CopyButton({ value, label = "Copy" }: { value: string; label?: s
     <button
       type="button"
       onClick={copy}
-      className={buttonClass("secondary", "h-9 shrink-0 px-3")}
+      className={buttonClass("secondary", "shrink-0")}
       aria-live="polite"
     >
       {state === "copied" ? "Copied" : state === "failed" ? "Copy failed" : label}

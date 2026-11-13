@@ -43,18 +43,19 @@ and what each kind of breach reveals.
 
 ## Pairing your phone
 
-Open the dashboard and choose **Pair your phone**. Keep the phone on and
-online. Pair from the browser you will keep using: it holds your key, so a
+Open openrcs; until a phone is paired, the page is the pairing. Keep the
+phone on and online. Pair from the browser you will keep using: it holds your key, so a
 different browser can only re-pair (which resets stored messages and
 disconnects agents).
 
-openrcs pairs with your Google account:
+On the hosted version, openrcs pairs with your Google account like this
+(self-hosted, you sign in to Google in a browser on the page instead):
 
 1. On a computer, open [messages.google.com/web](https://messages.google.com/web)
    in Chrome, signed in to the Google account your phone's Google Messages uses.
 2. Open DevTools (F12) > Network and reload the page.
 3. Right-click any request to `messages.google.com` > Copy > Copy as cURL.
-4. Paste it into openrcs and start pairing.
+4. Paste it into openrcs and press **Pair**.
 5. Tap the emoji openrcs shows in the prompt on your phone.
 
 The cookies are encrypted with your key as described above, but Google cookies
@@ -135,8 +136,11 @@ cp .env.selfhost.example .env      # set OPENRCS_URL and TS_AUTHKEY
 docker compose up -d --build
 ```
 
-Then open `https://openrcs.<your-tailnet>.ts.net` from a tailnet device, pair
-your phone, and point agents at `https://openrcs.<your-tailnet>.ts.net/api/mcp`.
+Then open `https://openrcs.<your-tailnet>.ts.net` from a tailnet device. You
+are signed in by your Tailscale identity, and the page is the pairing: sign in
+to Google in the browser it shows (it runs in the container), then tap the
+emoji on your phone. No cURL copying. Point agents at
+`https://openrcs.<your-tailnet>.ts.net/api/mcp`.
 
 Full guide, including the Unraid template (`unraid/openrcs.xml`), tailnet
 access rules, backups and troubleshooting:

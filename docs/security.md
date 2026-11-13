@@ -167,4 +167,6 @@ Scopes: `messages:read`, `messages:send`.
   the DEK-sealed session, as with a pasted cURL command; captured cookies
   nobody pairs with are dropped from memory after 5 minutes.
 - On the hosted deployment sign-in is GitHub only, open to anyone. The app is AGPL-3.0 (it ports
-  libgm from mautrix-gmessages); the footer links to the source.
+  libgm from mautrix-gmessages). The self-hosted build has no source link in the UI: whoever runs it
+  got it from the repository. A public deployment of a modified copy must still offer its source to
+  users (AGPL-3.0 section 13).

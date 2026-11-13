@@ -14,8 +14,8 @@ export const metadata: Metadata = { title: "Sign in" };
 
 export default function SignInPage({ searchParams }: PageProps<"/sign-in">) {
   return (
-    <AuthShell title="Sign in" subtitle="Sign in to openrcs.">
-      <Suspense fallback={<div aria-hidden className="h-10 rounded-lg bg-surface-muted" />}>
+    <AuthShell>
+      <Suspense fallback={<div aria-hidden className="h-9" />}>
         <SignInContent searchParams={searchParams} />
       </Suspense>
     </AuthShell>
@@ -39,9 +39,8 @@ async function SignInContent({
       <TailscaleSignIn login={identity.login} callbackURL={callbackURL} />
     ) : (
       <Alert tone="warning">
-        This request carried no Tailscale identity, so openrcs cannot tell who you are. Open openrcs at its
-        Tailscale Serve address (https://&lt;name&gt;.&lt;tailnet&gt;.ts.net) from a device signed in to your
-        tailnet as a user. Tagged devices and Funnel visitors have no identity.
+        openrcs could not tell who you are. Open it at its https://…ts.net address from a device signed in to your
+        tailnet as a person (tagged devices have no identity).
       </Alert>
     );
   }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Alert, buttonClass } from "@/app/_components/ui";
+import { Actions, Alert, buttonClass, Spinner } from "@/app/_components/ui";
 
 /**
  * Turns the Tailscale identity that Serve attached to this browser's requests
@@ -43,20 +43,20 @@ export function TailscaleSignIn({ login, callbackURL }: { login: string; callbac
 
   if (error === null) {
     return (
-      <p className="flex items-center gap-2.5 text-sm text-muted" role="status">
-        <span aria-hidden className="size-4 animate-spin rounded-full border-2 border-border border-t-accent" />
-        Signing in as {login}…
+      <p className="flex items-center justify-center gap-2.5 text-sm text-muted" role="status">
+        <Spinner />
+        Signing in as {login}
       </p>
     );
   }
   return (
     <div className="flex flex-col gap-4">
       <Alert tone="danger">{error}</Alert>
-      <div className="flex justify-end">
+      <Actions>
         <button type="button" onClick={() => void signIn()} className={buttonClass("primary")}>
           Try again
         </button>
-      </div>
+      </Actions>
     </div>
   );
 }
