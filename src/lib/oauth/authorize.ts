@@ -33,7 +33,7 @@ const found = (location: string): Response =>
 
 /**
  * GET /oauth/authorize. Validates the request (failures render an error
- * page), then sends the user to GitHub sign-in if needed and on to the
+ * page), then sends the user to sign-in if needed and on to the
  * consent page. Errors are never redirected to the client: every redirect URI
  * comes from open dynamic registration, so an automatic error redirect would
  * make this origin an open redirector (RFC 9700 section 4.11.2). Only the

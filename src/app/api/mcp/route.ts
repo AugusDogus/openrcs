@@ -4,9 +4,6 @@ import { OAuthContext } from "@/lib/oauth/context";
 import { McpAuth } from "@/lib/oauth/mcp-auth";
 import { createRcsMcpServer } from "@/lib/mcp/server";
 
-/** Sends and syncs talk to the phone over a long poll, which can take minutes. */
-export const maxDuration = 300;
-
 /**
  * Remote MCP endpoint. Every request must carry an access token from our
  * OAuth server (docs/security.md); the verified grant (with the user's DEK)

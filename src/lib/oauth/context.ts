@@ -13,7 +13,7 @@ export type BrowserSession = { readonly userId: string; readonly sessionId: stri
  */
 export type OAuthContext = {
   readonly db: Database;
-  /** Issuer: the public origin, no trailing slash (e.g. https://openrcs.vercel.app). */
+  /** Issuer: the public origin, no trailing slash (e.g. https://openrcs.example.ts.net). */
   readonly origin: string;
   readonly vault: VaultConfig;
   /** Secret for signing consent tickets (BETTER_AUTH_SECRET). Never log. */

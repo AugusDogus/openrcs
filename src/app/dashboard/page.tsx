@@ -4,12 +4,10 @@ import { Alert, AppShell, Section } from "@/app/_components/ui";
 import { requireCurrentUser } from "@/app/_lib/session";
 import { timeAgo } from "@/app/_lib/time";
 import { Env } from "@/lib/env";
-import { PairingBrowser } from "@/lib/pairing-browser/pairing-browser";
 import { Agents } from "./_components/agents";
-import { DeleteAccount, PhoneRow } from "./_components/phone-actions";
+import { PhoneRow } from "./_components/phone-actions";
 import { loadPhoneState, type PhoneState } from "./_lib/phone-state";
 import { PairingFlow } from "./pair/_components/pairing-flow";
-import { SignOutButton } from "./client-actions";
 
 export const metadata: Metadata = { title: { absolute: "openrcs" } };
 
@@ -29,17 +27,13 @@ export default function DashboardPage() {
   );
 }
 
-/** Who is signed in. Signing out only means something when sign-in is not your tailnet identity. */
+/** Who is signed in (your tailnet identity, so there is no sign-out). */
 async function Identity() {
   const user = await requireCurrentUser();
-  const canSignOut = Env.auth().AUTH_PROVIDER !== "tailscale";
   return (
-    <div className="flex min-w-0 items-center gap-1">
-      <span className="truncate text-sm text-muted" title={user.email}>
-        {user.name || user.email}
-      </span>
-      {canSignOut ? <SignOutButton /> : null}
-    </div>
+    <span className="truncate text-sm text-muted" title={user.email}>
+      {user.name || user.email}
+    </span>
   );
 }
 
@@ -48,8 +42,7 @@ async function Home() {
   const user = await requireCurrentUser();
   const state = await loadPhoneState(user.id);
   if (state.kind === "error") return <Alert tone="danger">{state.message}</Alert>;
-  if (state.kind === "unpaired") return <PairingFlow resetsData={false} browserSignIn={PairingBrowser.enabled()} />;
-  const hosted = Env.auth().AUTH_PROVIDER !== "tailscale";
+  if (state.kind === "unpaired") return <PairingFlow resetsData={false} />;
   return (
     <>
       <Section title="Phone">
@@ -58,7 +51,6 @@ async function Home() {
       <Suspense fallback={<div aria-hidden className="h-32 animate-pulse rounded-xl bg-surface-muted" />}>
         <Agents userId={user.id} mcpUrl={Env.mcpResourceUrl()} />
       </Suspense>
-      {hosted ? <DeleteAccount /> : null}
     </>
   );
 }

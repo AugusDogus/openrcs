@@ -1,34 +1,7 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { buttonClass } from "@/app/_components/ui";
-
-export function SignOutButton() {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
-
-  async function signOut() {
-    setPending(true);
-    try {
-      // Better Auth's sign-out endpoint; clears the session cookie.
-      await fetch("/api/auth/sign-out", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: "{}",
-      });
-    } finally {
-      router.replace("/sign-in");
-      router.refresh();
-    }
-  }
-
-  return (
-    <button type="button" onClick={signOut} disabled={pending} className={buttonClass("ghost")}>
-      {pending ? "Signing out…" : "Sign out"}
-    </button>
-  );
-}
 
 type CopyState = "idle" | "copied" | "failed";
 

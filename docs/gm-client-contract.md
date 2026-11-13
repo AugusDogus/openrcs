@@ -44,13 +44,8 @@ export const AuthData = {
 
 ```ts
 export type GoogleCookies = Record<string, string>;
-export const GoogleCookies = {
-  /** Accepts a JSON object, a `curl ...` command (Copy as cURL from DevTools,
-   *  bash or cmd quoting, -H 'cookie: ...' or -b '...'), or a raw Cookie header
-   *  (with or without a leading "Cookie:"). Requires SID, HSID, SSID, APISID,
-   *  SAPISID. Error messages name missing cookie names, never values. */
-  parse(input: string): Result<GoogleCookies, GoogleCookiesParseError>;
-} as const;
+/** Read from the sign-in browser's profile (src/lib/pairing-browser/chromium-cookies.ts). */
+export const REQUIRED_GOOGLE_COOKIES = ["SID", "HSID", "SSID", "APISID", "SAPISID"] as const;
 ```
 
 ## `src/lib/gm/client.ts`
@@ -137,7 +132,7 @@ export const GaiaPairing = {
 `GaiaPairingError` includes `GaiaNoDevicesError`, `GaiaIncorrectEmojiError`,
 `GaiaCancelledError` (incl. "not me"), `GaiaTimeoutError`,
 `GaiaInitTimeoutError` (`multipleDevices: boolean`), `GMAuthExpiredError`
-(cookies rejected: user must copy fresh cookies), `GMHttpError`, network errors.
+(cookies rejected: the user signs in to Google again), `GMHttpError`, network errors.
 
 ## `src/lib/gm/pair-qr.ts`
 

@@ -1,5 +1,5 @@
 /**
- * Applies the SQL migrations in ./drizzle to TURSO_DATABASE_URL.
+ * Applies the SQL migrations in ./drizzle to DATABASE_URL.
  * Works for `file:` (local dev, creates the parent directory) and remote
  * `libsql://` databases. Run with `bun run db:migrate`; Bun loads .env.local.
  * The Docker image runs a bundled copy on every start (docker/entrypoint.sh).
@@ -26,9 +26,9 @@ const describeTarget = (url: string) =>
 
 const main = async () => {
   const env = Env.database();
-  ensureLocalDirectory(env.TURSO_DATABASE_URL);
-  const db = createDatabase({ url: env.TURSO_DATABASE_URL, authToken: env.TURSO_AUTH_TOKEN });
-  const target = describeTarget(env.TURSO_DATABASE_URL);
+  ensureLocalDirectory(env.DATABASE_URL);
+  const db = createDatabase({ url: env.DATABASE_URL });
+  const target = describeTarget(env.DATABASE_URL);
   console.log(`Applying migrations from ${migrationsFolder} to ${target}`);
   try {
     await migrate(db, { migrationsFolder });

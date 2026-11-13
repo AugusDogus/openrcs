@@ -3,7 +3,7 @@ const MAX_LENGTH = 2048;
 const PROBE_ORIGIN = "https://callback.invalid";
 
 /**
- * Where to go after GitHub sign-in. Only same-origin relative paths are
+ * Where to go after sign-in. Only same-origin relative paths are
  * accepted ("/oauth/authorize?...", "/dashboard"); anything that could leave
  * the site (absolute URLs, "//host", "/\host", control characters) falls back
  * to the dashboard.

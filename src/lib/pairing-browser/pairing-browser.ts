@@ -12,9 +12,8 @@ import { createSignInWatcher, NET_LOG_FILE } from "./net-log";
 // in to Google there. As soon as the browser reaches Messages for web (seen in
 // its NetLog, see net-log.ts), openrcs closes it, which writes its cookies,
 // reads the Google cookies from the profile on disk, deletes the profile, and
-// pairs with those cookies
-// exactly as with a pasted cURL command. Chromium runs without a debugging
-// port because Google refuses sign-in from browsers that have one.
+// pairs with those cookies. Chromium runs without a debugging port because
+// Google refuses sign-in from browsers that have one.
 //
 // One browser per container, owned by one openrcs user at a time. State lives
 // on globalThis because Next bundles each route separately.
@@ -52,7 +51,7 @@ export type PairingBrowserStatus =
   | { readonly status: "signedIn" };
 
 export class PairingBrowserError extends TaggedError("PairingBrowserError")<{
-  reason: "disabled" | "busy" | "launch" | "cookies";
+  reason: "busy" | "launch" | "cookies";
   message: string;
   cause?: unknown;
 }> {}
@@ -68,7 +67,7 @@ type State =
     }
   | { readonly kind: "captured"; readonly userId: string; readonly cookies: GoogleCookies; readonly expiresAt: number };
 
-/** Google sign-in that lands on Messages for web, so its cookies match a pasted cURL command. */
+/** Google sign-in that lands on Messages for web, so the profile also gets its cookies. */
 export const PAIRING_BROWSER_START_URL =
   "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmessages.google.com%2Fweb%2F";
 
@@ -312,38 +311,24 @@ export type PairingBrowser = ReturnType<typeof createPairingBrowser>;
 /** One watcher per server bundle, so each poll reads only new NetLog bytes. */
 const watchSignIn = createSignInWatcher();
 
-const disabled = () =>
-  new PairingBrowserError({
-    reason: "disabled",
-    message:
-      "This openrcs has no sign-in browser (it is only in the self-hosted container). Paste a cURL command instead.",
-  });
+/** Where the image keeps the browser's profile: RAM, wiped on every boot (docker/root). */
+const DEFAULT_PROFILE_ROOT = "/dev/shm/openrcs-browser";
 
-/**
- * The configured browser, or a "disabled" error when this deployment has
- * none. Enabled by OPENRCS_PAIRING_BROWSER_DIR (the self-hosted image sets it).
- */
 export const PairingBrowser = {
-  fromEnv: (env: Readonly<Record<string, string | undefined>> = process.env): Result<PairingBrowser, PairingBrowserError> => {
-    const profileRoot = env.OPENRCS_PAIRING_BROWSER_DIR?.trim();
-    if (!profileRoot) return Result.err(disabled());
-    return Result.ok(
-      createPairingBrowser({
-        chromiumPath: env.OPENRCS_CHROMIUM?.trim() || "/usr/bin/chromium",
-        profileRoot,
-        startUrl: PAIRING_BROWSER_START_URL,
-        idleTimeoutMs: 15 * 60_000,
-        captureTtlMs: 5 * 60_000,
-        stopTimeoutMs: 5_000,
-        spawn: spawnChild,
-        readCookies: (path) => ChromiumCookies.readGoogle(path),
-        signInSeen: watchSignIn,
-        now: Date.now,
-      }),
-    );
-  },
-  enabled: (env: Readonly<Record<string, string | undefined>> = process.env): boolean =>
-    Boolean(env.OPENRCS_PAIRING_BROWSER_DIR?.trim()),
+  /** The container's browser. OPENRCS_PAIRING_BROWSER_DIR and OPENRCS_CHROMIUM override its paths. */
+  fromEnv: (env: Readonly<Record<string, string | undefined>> = process.env): PairingBrowser =>
+    createPairingBrowser({
+      chromiumPath: env.OPENRCS_CHROMIUM?.trim() || "/usr/bin/chromium",
+      profileRoot: env.OPENRCS_PAIRING_BROWSER_DIR?.trim() || DEFAULT_PROFILE_ROOT,
+      startUrl: PAIRING_BROWSER_START_URL,
+      idleTimeoutMs: 15 * 60_000,
+      captureTtlMs: 5 * 60_000,
+      stopTimeoutMs: 5_000,
+      spawn: spawnChild,
+      readCookies: (path) => ChromiumCookies.readGoogle(path),
+      signInSeen: watchSignIn,
+      now: Date.now,
+    }),
   /** Tests only: forget the shared state (does not stop a real process). */
   resetForTests: (): void => {
     const h = holder();

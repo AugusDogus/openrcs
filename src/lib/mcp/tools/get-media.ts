@@ -17,8 +17,9 @@ import {
 } from "./shared";
 
 /**
- * Images at most this large come back inline. Base64 adds a third, and a
- * Vercel function response may not exceed 4.5 MB.
+ * Images at most this large come back inline (base64 adds a third). Larger
+ * ones come back as a download link, so one tool result stays a size every
+ * MCP client accepts.
  */
 export const INLINE_IMAGE_MAX_BYTES = 3_000_000;
 

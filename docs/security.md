@@ -1,6 +1,6 @@
 # Security model: split-key vault
 
-Goal: a hosted server that can act on a user's Google Messages session only
+Goal: a server that can act on a user's Google Messages session only
 while one of that user's own clients (their browser, or an MCP client they
 authorized) is talking to it. A full leak of the database **and** the server's
 environment secrets must not reveal any user's Google cookies, pairing keys,
@@ -10,11 +10,11 @@ or message content.
 
 | Attacker has | Learns |
 | --- | --- |
-| Database dump | Opaque ids, timestamps, row counts. No secrets, no content (GitHub provider tokens are dropped before every account write, never stored). |
-| Database + Vercel env (`KEY_PEPPER`) | Same as above. Every key-encryption key also needs a client-held secret that is never stored. |
+| Database dump | Opaque ids, timestamps, row counts. No secrets, no content. |
+| Database + `KEY_PEPPER` (a copy of the whole data folder) | Same as above. Every key-encryption key also needs a client-held secret that is never stored. |
 | One user's live refresh token or device cookie, plus DB + env | That one user's data. Used, rotated, revoked or expired codes, refresh tokens and device cookies reveal nothing: their slot's wrapped DEK is destroyed. |
 | Any access token ever issued to a user, plus env (`KEY_PEPPER`) | That user's DEK, so with the DB their data, until the DEK is rotated (re-pairing from a browser with no valid device slot). Expiry and revocation stop the server honoring the token but cannot take back the DEK it carries. |
-| A live compromise of the running code | Data of users whose clients make requests during the compromise. No hosted design can prevent this; only running locally can. |
+| A live compromise of the running code | Data of users whose clients make requests during the compromise. No server-side design can prevent this. |
 
 The unavoidable trade-off: the server cannot sync while no client is
 connected, so there is no unattended background sync. Instead, a large backfill
@@ -102,8 +102,8 @@ attachment`, `nosniff`, a sandboxing CSP), never rendered on this origin.
 
 ## OAuth 2.1 authorization server for MCP
 
-Implemented in `src/lib/oauth` (Better Auth is only used for GitHub sign-in
-and browser sessions). Follows the MCP authorization spec:
+Implemented in `src/lib/oauth` (Better Auth is only used for Tailscale-identity
+sign-in and browser sessions). Follows the MCP authorization spec:
 
 - `GET /.well-known/oauth-protected-resource` (and the `/api/mcp` suffixed
   alias): RFC 9728 metadata, `resource = ${origin}/api/mcp`,
@@ -114,7 +114,7 @@ and browser sessions). Follows the MCP authorization spec:
   bounded: per-address limit (IPv6 counted per /64), a global hourly cap,
   URIs of at most 512 characters, and registrations without a grant are
   pruned after 24 hours.
-- `GET /oauth/authorize` -> GitHub sign-in if needed -> consent page that
+- `GET /oauth/authorize` -> sign-in if needed -> consent page that
   requires an unlocked device slot -> authorization code. Invalid requests
   get an error page, never an automatic redirect: every redirect URI comes
   from open registration, so redirecting errors would make the issuer an
@@ -154,19 +154,19 @@ Scopes: `messages:read`, `messages:send`.
   phone numbers.
 - `KEY_PEPPER` is 32 random bytes (base64). Rotating it makes every slot and
   access token unusable (users re-pair and re-authorize).
-- Self-hosted (docs/self-hosting.md), sign-in instead trusts the
-  `Tailscale-User-Login` header that Tailscale Serve sets, so the server must
-  listen on loopback only. `KEY_PEPPER` then lives in the data folder beside
-  the database: a copy of that folder is the "database and environment" row
-  of the breach table, and still decrypts nothing without a client's secret.
-- Self-hosted, the sign-in browser (src/lib/pairing-browser) holds a live
+- Sign-in trusts the `Tailscale-User-Login` header that Tailscale Serve sets
+  (docs/self-hosting.md), so nginx listens on loopback only. `KEY_PEPPER`
+  lives in the data folder beside the database: a copy of that folder is the
+  "database + `KEY_PEPPER`" row of the breach table, and still decrypts
+  nothing without a client's secret.
+- The sign-in browser (src/lib/pairing-browser) holds a live
   Google session while it is open: its profile is in RAM (`/dev/shm`), the
   stream is served only after openrcs authorizes the request (the signed-in
   user who opened it, while it is open, at most 15 minutes), and the profile
   is deleted as soon as the cookies are read. The cookies then go only into
-  the DEK-sealed session, as with a pasted cURL command; captured cookies
-  nobody pairs with are dropped from memory after 5 minutes.
-- On the hosted deployment sign-in is GitHub only, open to anyone. The app is AGPL-3.0 (it ports
-  libgm from mautrix-gmessages). The self-hosted build has no source link in the UI: whoever runs it
-  got it from the repository. A public deployment of a modified copy must still offer its source to
-  users (AGPL-3.0 section 13).
+  the DEK-sealed session; captured cookies nobody pairs with are dropped from
+  memory after 5 minutes.
+- The app is AGPL-3.0 (it ports libgm from mautrix-gmessages). There is no
+  source link in the UI: whoever runs it got it from the repository. Offering
+  a modified copy to other people over a network still means offering them
+  its source (AGPL-3.0 section 13).

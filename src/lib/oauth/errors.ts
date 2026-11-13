@@ -25,7 +25,7 @@ export const OAuthErrors = {
     new OAuthStorageError({
       operation,
       cause,
-      message: `OAuth server operation "${operation}" failed in the database. Nothing was issued or revoked by this request; retry, and check database connectivity (TURSO_DATABASE_URL) if it persists.`,
+      message: `OAuth server operation "${operation}" failed in the database. Nothing was issued or revoked by this request; retry, and check database connectivity (DATABASE_URL) if it persists.`,
     }),
   protocol: (
     status: number,

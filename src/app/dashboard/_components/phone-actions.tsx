@@ -162,32 +162,3 @@ export function PhoneRow({
     </div>
   );
 }
-
-/** Hosted deployments only: there, an account is more than one tailnet identity. */
-export function DeleteAccount() {
-  const router = useRouter();
-  const [confirming, setConfirming] = useState(false);
-  if (!confirming) {
-    return (
-      <div className="flex justify-end">
-        <button type="button" onClick={() => setConfirming(true)} className={buttonClass("ghost", "text-danger")}>
-          Delete account
-        </button>
-      </div>
-    );
-  }
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-surface">
-      <Confirm
-        warning="This unpairs your phone, deletes all stored messages, disconnects every agent and deletes your openrcs account. It cannot be undone."
-        confirmLabel="Delete account"
-        path="/api/account/delete"
-        onDone={() => {
-          router.replace("/sign-in");
-          router.refresh();
-        }}
-        onCancel={() => setConfirming(false)}
-      />
-    </div>
-  );
-}

@@ -8,23 +8,22 @@ export type Database = LibSQLDatabase<typeof schema> & { $client: Client };
 export type DatabaseConfig = {
   /** `file:./.data/dev.db`, `libsql://...` or `:memory:`. */
   readonly url: string;
-  readonly authToken?: string;
 };
 
 export const createDatabase = (config: DatabaseConfig): Database => {
-  const client = createClient({ url: config.url, authToken: config.authToken });
+  const client = createClient({ url: config.url });
   return drizzle(client, { schema });
 };
 
 let instance: Database | undefined;
 
 /**
- * The app database (Turso / libSQL), created on first use. Throws
- * `InvalidEnvError` when TURSO_DATABASE_URL is missing or malformed.
+ * The app database (libSQL / SQLite), created on first use. Throws
+ * `InvalidEnvError` when DATABASE_URL is missing or malformed.
  */
 export const getDb = (): Database => {
   if (instance) return instance;
   const env = Env.database();
-  instance = createDatabase({ url: env.TURSO_DATABASE_URL, authToken: env.TURSO_AUTH_TOKEN });
+  instance = createDatabase({ url: env.DATABASE_URL });
   return instance;
 };

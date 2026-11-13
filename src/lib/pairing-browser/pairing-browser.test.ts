@@ -212,10 +212,4 @@ describe("PairingBrowser", () => {
     expect(b.canView("u1")).toBe(false);
     expect(spawned[0]?.child.signals).toEqual(["SIGTERM"]);
   });
-
-  test("disabled unless OPENRCS_PAIRING_BROWSER_DIR is set", () => {
-    const off = PairingBrowser.fromEnv({});
-    expect(off.isErr() && off.error.reason).toBe("disabled");
-    expect(PairingBrowser.enabled({ OPENRCS_PAIRING_BROWSER_DIR: "/run/openrcs-browser" })).toBe(true);
-  });
 });
