@@ -1,0 +1,44 @@
+#!/usr/bin/with-contenv bash
+# shellcheck shell=bash
+# Runs as root before the Selkies config and the services: resolves the public
+# URL, prepares /data and the sign-in browser's RAM-only profile folder, and
+# narrows nginx and Selkies to this deployment.
+set -euo pipefail
+
+ENV_DIR=/run/s6/container_environment
+DATA_DIR=/data
+NGINX_CONFIG=/etc/nginx/sites-available/default
+
+# With Tailscale running inside this container (Unraid's "Use Tailscale"),
+# the address Serve publishes is known; otherwise OPENRCS_URL must be set.
+if [ -z "${OPENRCS_URL:-}" ] && command -v tailscale >/dev/null 2>&1; then
+  dns_name="$(tailscale status --json 2>/dev/null | jq -r '.Self.DNSName // empty' 2>/dev/null | sed 's/\.$//')"
+  if [ -n "$dns_name" ]; then
+    OPENRCS_URL="https://$dns_name"
+    echo "[openrcs] using the Tailscale address $OPENRCS_URL"
+  fi
+fi
+if [ -n "${OPENRCS_URL:-}" ]; then
+  OPENRCS_URL="${OPENRCS_URL%/}"
+  printf '%s' "$OPENRCS_URL" > "$ENV_DIR/OPENRCS_URL"
+  # The stream's WebSocket only accepts the openrcs page's origin.
+  printf '%s' "$OPENRCS_URL" > "$ENV_DIR/SELKIES_ALLOWED_ORIGINS"
+fi
+
+mkdir -p "$DATA_DIR/secrets"
+chmod 700 "$DATA_DIR/secrets"
+chown abc:abc "$DATA_DIR" "$DATA_DIR/secrets"
+find "$DATA_DIR" -maxdepth 1 -name 'openrcs.db*' -exec chown abc:abc {} +
+find "$DATA_DIR/secrets" -type f -exec chown abc:abc {} +
+
+# The sign-in browser's profile lives in RAM and starts empty on every boot.
+rm -rf /dev/shm/openrcs-browser
+install -d -m 700 -o abc -g abc /dev/shm/openrcs-browser
+
+# Loopback by default: Tailscale sign-in trusts identity headers, which is
+# only safe when nothing but Tailscale Serve can reach nginx.
+bind="${OPENRCS_BIND:-127.0.0.1}"
+sed -i "s|OPENRCS_LISTEN|$bind|g" "$NGINX_CONFIG"
+if [ "${AUTH_PROVIDER:-tailscale}" = "tailscale" ] && [ "$bind" != "127.0.0.1" ] && [ "$bind" != "localhost" ]; then
+  echo "[openrcs] WARNING: OPENRCS_BIND=$bind with AUTH_PROVIDER=tailscale. Anything that can reach port 3000 directly can sign in as any tailnet user by sending a Tailscale-User-Login header. Only do this for local testing." >&2
+fi

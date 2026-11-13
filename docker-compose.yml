@@ -23,8 +23,11 @@ services:
     build: .
     # Shares the Tailscale container's network namespace and publishes no
     # ports: the app listens on 127.0.0.1:3000 and only Tailscale Serve
-    # (HTTPS on 443, tailnet only) can reach it.
+    # (HTTPS on 443, tailnet only) can reach it. nginx on 127.0.0.1:3000
+    # serves both the app and the sign-in browser stream.
     network_mode: service:tailscale
+    # The sign-in browser (Chromium) keeps its throwaway profile in /dev/shm.
+    shm_size: 1gb
     depends_on:
       - tailscale
     environment:
