@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { type ReactNode, useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Alert, buttonClass, Card } from "@/app/_components/ui";
+import { Actions, Alert, buttonClass, PageTitle, Spinner } from "@/app/_components/ui";
 import { PairingEvent } from "@/lib/rcs/pairing-event";
 
 type FlowState =
@@ -17,8 +17,6 @@ type FlowState =
 
 /** How the user gives openrcs their Google cookies: the self-hosted sign-in browser, or (hosted) a pasted cURL command. */
 type Method = "browser" | "curl";
-
-const SECURITY_URL = "https://github.com/AugusDogus/openrcs/blob/main/docs/security.md";
 
 /** Where nginx serves the sign-in browser stream (docker/root/defaults/default.conf). */
 const BROWSER_STREAM_PATH = "/pairing-browser/";
@@ -152,55 +150,57 @@ function GaiaInstructions() {
         Close the Incognito window without signing out. This gives openrcs its own Google session that no
         browser keeps changing; signing out would end it.
       </li>
-      <li>Paste the copied command below and start pairing.</li>
+      <li>Paste the copied command below.</li>
     </ol>
   );
 }
 
-function Spinner() {
-  return <span aria-hidden className="size-4 shrink-0 animate-spin rounded-full border-2 border-border border-t-accent" />;
-}
-
-/** The sign-in browser's frame, or a placeholder of the same size while it starts or after it closed. */
-function BrowserFrame({ live, placeholder }: { live: boolean; placeholder: string }) {
+/** One fixed-size stage that every step of the browser method shows in, so the page never jumps. */
+function Stage({ children }: { children: ReactNode }) {
   return (
-    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-surface-muted">
-      {live ? (
-        <iframe
-          src={BROWSER_STREAM_PATH}
-          title="Google sign-in"
-          allow="clipboard-read; clipboard-write"
-          referrerPolicy="no-referrer"
-          onLoad={(event) => event.currentTarget.focus()}
-          className="absolute inset-0 size-full bg-black"
-        />
-      ) : (
-        <div className="absolute inset-0 flex items-center justify-center gap-2.5 text-sm text-muted">
-          <Spinner />
-          {placeholder}
-        </div>
-      )}
+    <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-surface">
+      {children}
     </div>
   );
 }
 
-/** Right-aligned action row, main action last (stacked on top on phones). */
-function Actions({ children }: { children: ReactNode }) {
-  return <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">{children}</div>;
+function Centered({ children }: { children: ReactNode }) {
+  return <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-6 text-center">{children}</div>;
+}
+
+function Waiting({ children }: { children: ReactNode }) {
+  return (
+    <p className="flex items-center gap-2.5 text-sm text-muted">
+      <Spinner />
+      {children}
+    </p>
+  );
+}
+
+function Emoji({ emoji, imageUrl }: { emoji: string; imageUrl: string }) {
+  return imageUrl ? (
+    // Google's own emoji artwork, so it looks exactly like the choice on the phone.
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={imageUrl} alt={emoji} width={112} height={112} className="size-28" />
+  ) : (
+    <span className="text-8xl leading-none" aria-label={`Emoji ${emoji}`}>
+      {emoji}
+    </span>
+  );
 }
 
 function Progress({ done, total }: { done: number; total: number | null }) {
   const percent = total === null || total === 0 ? null : Math.min(100, Math.round((done / total) * 100));
   return (
-    <div className="flex flex-col gap-2">
-      <div className="h-2 w-full overflow-hidden rounded-full bg-surface-muted">
+    <div className="flex w-full max-w-xs flex-col items-center gap-3">
+      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
         <div
-          className={`h-full rounded-full bg-accent transition-[width] ${percent === null ? "w-1/3 animate-pulse" : ""}`}
+          className={`h-full rounded-full bg-accent transition-[width] duration-300 ease-out ${percent === null ? "w-1/3 animate-pulse" : ""}`}
           style={percent === null ? undefined : { width: `${percent}%` }}
         />
       </div>
-      <p className="text-sm text-muted">
-        {total === null ? "Starting the first sync…" : `Synced ${done} of ${total} conversations…`}
+      <p className="text-sm text-muted tabular-nums">
+        {total === null ? "Starting…" : `${done} of ${total} conversations`}
       </p>
     </div>
   );
@@ -210,13 +210,41 @@ function Progress({ done, total }: { done: number; total: number | null }) {
 const initialState = (method: Method): FlowState =>
   method === "browser" ? { stage: "browserStarting" } : { stage: "idle" };
 
+const headingFor = (state: FlowState, method: Method): { title: string; description?: string } => {
+  switch (state.stage) {
+    case "emoji":
+      return { title: "Tap this emoji on your phone", description: "Google Messages on your phone shows a few. Pick this one." };
+    case "syncing":
+      return { title: "Syncing your messages" };
+    case "done":
+      return { title: "Your phone is paired" };
+    default:
+      return {
+        title: "Pair your phone",
+        description:
+          method === "browser"
+            ? "Sign in with the Google account your phone's Google Messages uses."
+            : "Paste a cURL command from the Google account your phone's Google Messages uses.",
+      };
+  }
+};
+
 export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean; browserSignIn: boolean }) {
+  const router = useRouter();
   const method: Method = browserSignIn ? "browser" : "curl";
   const [state, setState] = useState<FlowState>(initialState(method));
   const [cookies, setCookies] = useState("");
   const abortRef = useRef<AbortController | null>(null);
   // The browser's sign-in is handed to pairing once, however many polls see it.
   const handedOffRef = useRef(false);
+
+  // Closing the tab or reloading unmounts nothing, so close the sign-in browser on the way out too.
+  useEffect(() => {
+    if (method !== "browser") return;
+    const close = () => void browserAction("stop");
+    window.addEventListener("pagehide", close);
+    return () => window.removeEventListener("pagehide", close);
+  }, [method]);
 
   // Next keeps this page mounted but hidden after navigating away (Activity,
   // docs: guides/preserving-ui-state), and a Link back restores it. Reset on
@@ -247,7 +275,6 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     if (method === "browser") void browserAction("stop");
     setState(initialState(method));
   }
-
 
   function pairFromBrowser(signal: AbortSignal) {
     if (handedOffRef.current) return;
@@ -289,144 +316,132 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     return () => clearInterval(timer);
   }, [browserOpen]);
 
-  const signingIn = method === "browser" && (state.stage === "browserStarting" || state.stage === "browser");
-  const contacting = state.stage === "starting";
-  const showForm = method === "curl" && (state.stage === "idle" || state.stage === "error" || contacting);
+  // Paired cleanly: go straight to the dashboard, which now shows the phone.
+  const pairedCleanly = state.stage === "done" && state.warning === null;
+  useEffect(() => {
+    if (!pairedCleanly) return;
+    router.replace("/dashboard");
+    router.refresh();
+  }, [pairedCleanly, router]);
 
-  const heading =
-    state.stage === "emoji"
-      ? { title: "Confirm on your phone", description: "Step 2 of 2" }
-      : state.stage === "syncing"
-        ? { title: "Syncing your conversations", description: "Paired" }
-        : state.stage === "done"
-          ? { title: "Your phone is paired", description: undefined }
-          : method === "browser"
-            ? {
-                title: "Sign in to Google",
-                description: "Step 1 of 2 · Use the Google account your phone's Google Messages is signed in to.",
-              }
-            : {
-                title: "Paste your Google cookies",
-                description: "Step 1 of 2 · From the Google account your phone's Google Messages is signed in to.",
-              };
+  const contacting = state.stage === "starting";
+  const heading = headingFor(state, method);
+  const inStage =
+    state.stage === "browserStarting" ||
+    state.stage === "browser" ||
+    state.stage === "emoji" ||
+    state.stage === "syncing" ||
+    pairedCleanly ||
+    (method === "browser" && contacting);
 
   return (
     <div className="flex flex-col gap-6">
-      {resetsData ? (
+      <PageTitle title={heading.title}>{heading.description}</PageTitle>
+
+      {resetsData && (state.stage === "idle" || state.stage === "browserStarting" || state.stage === "browser") ? (
         <Alert tone="warning">
-          This browser does not hold the key to your existing pairing. Pairing here creates a new key: your stored
-          messages will be deleted and connected agents disconnected. To keep them, pair from the browser you
-          used before.
+          This browser does not hold the key to your existing pairing, so pairing here deletes your stored messages and
+          disconnects your agents. To keep them, pair from the browser you used before.
         </Alert>
       ) : null}
 
-      <Card title={heading.title} description={heading.description}>
-        <div className="flex flex-col gap-5">
-          {method === "browser" && (signingIn || contacting) ? (
-            <>
-              <BrowserFrame
-                live={state.stage === "browser"}
-                placeholder={contacting ? "Signed in. Contacting Google…" : "Starting a private browser…"}
-              />
-              <p className="text-xs leading-5 text-muted">
-                Runs on your openrcs server. openrcs keeps only the Google cookies it needs to pair and deletes the
-                rest.
-              </p>
-            </>
-          ) : null}
+      {inStage ? (
+        <Stage>
+          {state.stage === "browser" ? (
+            <iframe
+              src={BROWSER_STREAM_PATH}
+              title="Google sign-in"
+              allow="clipboard-read; clipboard-write"
+              referrerPolicy="no-referrer"
+              onLoad={(event) => event.currentTarget.focus()}
+              className="absolute inset-0 size-full bg-black"
+            />
+          ) : state.stage === "emoji" ? (
+            <Centered>
+              <Emoji emoji={state.emoji} imageUrl={state.emojiImageUrl} />
+              <Waiting>Waiting for your phone</Waiting>
+            </Centered>
+          ) : state.stage === "syncing" ? (
+            <Centered>
+              <Progress done={state.done} total={state.total} />
+            </Centered>
+          ) : (
+            <Centered>
+              <Waiting>{contacting ? "Contacting Google" : pairedCleanly ? "Opening openrcs" : "Starting a browser"}</Waiting>
+            </Centered>
+          )}
+        </Stage>
+      ) : null}
 
-          {method === "browser" && state.stage === "error" ? (
-            <>
-              <Alert tone="danger">{state.message}</Alert>
-              <Actions>
-                <button type="button" onClick={reset} className={buttonClass("primary")}>
-                  Try again
-                </button>
-              </Actions>
-            </>
-          ) : null}
+      {state.stage === "emoji" ? (
+        <Actions>
+          <button type="button" onClick={reset} className={buttonClass("ghost")}>
+            Cancel
+          </button>
+        </Actions>
+      ) : null}
 
-          {showForm ? (
-            <form
-              className="flex flex-col gap-4"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void runPairing({ cookies }, freshSignal(), setState);
+      {method === "browser" && state.stage === "error" ? (
+        <>
+          <Alert tone="danger">{state.message}</Alert>
+          <Actions>
+            <button type="button" onClick={reset} className={buttonClass("primary")}>
+              Try again
+            </button>
+          </Actions>
+        </>
+      ) : null}
+
+      {method === "curl" && (state.stage === "idle" || state.stage === "error" || contacting) ? (
+        <form
+          className="flex flex-col gap-5"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void runPairing({ cookies }, freshSignal(), setState);
+          }}
+        >
+          <GaiaInstructions />
+          <label htmlFor="curl-command" className="flex flex-col gap-2">
+            <span className="text-sm font-medium">cURL command</span>
+            {/* Never id="cookies": cookie-banner ad-block lists hide "#cookies.py-2". */}
+            <textarea
+              id="curl-command"
+              value={cookies}
+              onChange={(event) => setCookies(event.target.value)}
+              rows={6}
+              spellCheck={false}
+              autoComplete="off"
+              placeholder="curl 'https://messages.google.com/...' -H 'cookie: ...'"
+              className="rounded-xl border border-border bg-surface px-3.5 py-3 font-mono text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </label>
+          {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
+          <Actions>
+            <button type="submit" disabled={contacting || cookies.trim() === ""} className={buttonClass("primary")}>
+              {contacting ? <Spinner className="size-3.5" /> : null}
+              {contacting ? "Contacting Google" : "Pair"}
+            </button>
+          </Actions>
+        </form>
+      ) : null}
+
+      {state.stage === "done" && state.warning !== null ? (
+        <>
+          <Alert tone="warning">{state.warning}</Alert>
+          <Actions>
+            <button
+              type="button"
+              onClick={() => {
+                router.replace("/dashboard");
+                router.refresh();
               }}
+              className={buttonClass("primary")}
             >
-              <GaiaInstructions />
-              <p className="rounded-lg bg-surface-muted px-3.5 py-3 text-xs leading-5 text-muted">
-                Your cookies are encrypted with a key that only this browser and the agents you authorize hold
-                (see{" "}
-                <a href={SECURITY_URL} target="_blank" rel="noreferrer" className="underline">
-                  the security design
-                </a>
-                ). Google cookies grant broad access to your Google account.
-              </p>
-              <label htmlFor="curl-command" className="flex flex-col gap-1.5">
-                <span className="text-sm font-medium">Copied cURL command</span>
-                {/* Never id="cookies": cookie-banner ad-block lists hide "#cookies.py-2". */}
-                <textarea
-                  id="curl-command"
-                  value={cookies}
-                  onChange={(event) => setCookies(event.target.value)}
-                  rows={6}
-                  spellCheck={false}
-                  autoComplete="off"
-                  placeholder="curl 'https://messages.google.com/...' -H 'cookie: ...'"
-                  className="rounded-lg border border-border bg-surface px-3 py-2 font-mono text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring"
-                />
-              </label>
-              {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
-              <Actions>
-                <button
-                  type="submit"
-                  disabled={contacting || cookies.trim() === ""}
-                  className={buttonClass("primary")}
-                >
-                  {contacting ? <Spinner /> : null}
-                  {contacting ? "Contacting Google…" : "Start pairing"}
-                </button>
-              </Actions>
-            </form>
-          ) : null}
-
-          {state.stage === "emoji" ? (
-            <div className="flex flex-col items-center gap-4 py-4 text-center">
-              {state.emojiImageUrl ? (
-                // Google's own emoji artwork, so it looks exactly like the choice on the phone.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={state.emojiImageUrl} alt={state.emoji} width={128} height={128} className="size-32" />
-              ) : (
-                <span className="text-8xl leading-none" aria-label={`Emoji ${state.emoji}`}>
-                  {state.emoji}
-                </span>
-              )}
-              <p className="text-base font-medium">Tap this emoji in Google Messages on your phone</p>
-              <p className="flex max-w-sm items-center gap-2 text-sm text-muted">
-                <Spinner />
-                Waiting for your phone…
-              </p>
-              <button type="button" onClick={reset} className={buttonClass("ghost")}>
-                Cancel
-              </button>
-            </div>
-          ) : null}
-
-          {state.stage === "syncing" ? <Progress done={state.done} total={state.total} /> : null}
-
-          {state.stage === "done" ? (
-            <>
-              {state.warning ? <Alert tone="warning">{state.warning}</Alert> : null}
-              <Actions>
-                <Link href="/dashboard" className={buttonClass("primary")}>
-                  Back to the dashboard
-                </Link>
-              </Actions>
-            </>
-          ) : null}
-        </div>
-      </Card>
+              Continue
+            </button>
+          </Actions>
+        </>
+      ) : null}
     </div>
   );
 }

@@ -49,7 +49,7 @@ export function GitHubSignInButton({ callbackURL }: { callbackURL: string }) {
         className={buttonClass("primary", "w-full")}
       >
         <GitHubMark />
-        {pending ? "Redirecting to GitHub…" : "Continue with GitHub"}
+        {pending ? "Redirecting to GitHub" : "Continue with GitHub"}
       </button>
     </div>
   );
