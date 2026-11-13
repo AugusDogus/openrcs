@@ -25,7 +25,7 @@ RUN bun run build \
 FROM ghcr.io/linuxserver/baseimage-selkies:debiantrixie
 
 RUN apt-get update \
- && apt-get install -y --no-install-recommends chromium jq \
+ && apt-get install -y --no-install-recommends chromium \
  && apt-get autoclean \
  && rm -rf /var/lib/apt/lists/* /var/tmp/* /tmp/*
 COPY --from=node /usr/local/bin/node /usr/local/bin/node

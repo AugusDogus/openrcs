@@ -13,7 +13,7 @@ fail() {
   exit 1
 }
 
-[ -n "${OPENRCS_URL:-}" ] || fail "OPENRCS_URL is not set. Set it to the address people open, for example https://openrcs.<your-tailnet>.ts.net (no trailing slash)."
+[ -n "${OPENRCS_URL:-}" ] || fail "OPENRCS_URL is not set. Set it to the Tailscale Serve address people open, for example https://myserver.<your-tailnet>.ts.net:5443 (no trailing slash)."
 export BETTER_AUTH_URL="$OPENRCS_URL"
 
 # A secret from the environment wins. Otherwise it is generated once and kept

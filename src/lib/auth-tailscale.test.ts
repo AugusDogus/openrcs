@@ -39,7 +39,8 @@ describe("Tailscale sign-in", () => {
     const first = await signIn(auth, { "tailscale-user-login": "Augie@GitHub", "tailscale-user-name": "Augie L" });
     expect(first.status).toBe(200);
     const cookie = first.headers.getSetCookie().map((value) => value.split(";")[0]).join("; ");
-    expect(cookie).toContain("session_token");
+    // Prefixed, so another Better Auth app on the same host name cannot overwrite it.
+    expect(cookie).toMatch(/(^|; )(__Secure-)?openrcs\.session_token=/);
 
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
     expect(session?.user.email).toBe("augie@github");
