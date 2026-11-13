@@ -2,7 +2,7 @@
 
 Run openrcs on your own machine (an Unraid server, a NAS, any Docker host)
 and reach it only over Tailscale. Nothing is published to the internet or to
-your LAN, and there is no Vercel, Turso or GitHub app to set up.
+your LAN.
 
 ```
 agent or browser on your tailnet
@@ -18,18 +18,9 @@ openrcs container
                            you are pairing, only for you)
 ```
 
-What differs from the hosted setup:
-
-| | Hosted (Vercel) | Self-hosted |
-| --- | --- | --- |
-| Sign-in | GitHub | Your Tailscale identity (`AUTH_PROVIDER=tailscale`) |
-| Database | Turso | A SQLite file in `/data` |
-| Secrets | Vercel env vars | Generated into `/data/secrets` on first start, or passed as env |
-| Reachable from | The internet | Your tailnet only |
-| Google cookies for pairing | Copy as cURL from DevTools | Sign in to Google in a browser embedded in the pairing page |
-
-Pairing, the split-key vault, the OAuth server and the MCP tools are the same
-code (see [security.md](security.md)).
+Sign-in is your Tailscale identity, the database is a SQLite file in
+`/data`, and secrets are generated into `/data/secrets` on first start (or
+passed as env). Security design: [security.md](security.md).
 
 ## How sign-in works
 
@@ -51,18 +42,17 @@ token you approved in your browser.
 
 The image is built on LinuxServer's
 [Selkies](https://docs.linuxserver.io/images/docker-baseimage-selkies/) base,
-so the pairing page can show a real Chromium running in the container instead
-of asking you for a cURL command:
+so the pairing page can show a real Chromium running in the container:
 
-1. Opening **Pair your phone** starts Chromium with a fresh profile in
+1. Opening openrcs with no phone paired starts Chromium with a fresh profile in
    `/dev/shm` (RAM) and streams it into the page.
 2. You sign in to Google there. Chromium runs without a debugging port,
    because Google refuses sign-in from browsers that have one.
 3. Google then sends the browser to Messages for web. openrcs sees that
    request in Chromium's network log (no cookies are logged) within a second
    or two, closes Chromium, reads the Google cookies from the profile on disk
-   and deletes the profile. It then pairs with those cookies exactly as with
-   a pasted cURL command: you tap the emoji on your phone.
+   and deletes the profile. It then pairs with those cookies: you tap the
+   emoji on your phone.
 
 nginx asks openrcs before serving any part of the stream, so only the
 signed-in user who opened the browser can see it, and only while it is open
@@ -161,10 +151,9 @@ the same setup as the Docker Compose section above.
 
 ## Pair your phone and connect agents
 
-1. Open the dashboard (your Tailscale identity signs you in), press **Pair
-   your phone** and follow the steps on that page. Pairing is the same as on the hosted
-   version, and it must be done from the browser you will keep using, because
-   that browser holds your key.
+1. Open openrcs (your Tailscale identity signs you in) and pair: sign in to
+   Google in the browser on the page, then tap the emoji on your phone. Do it
+   from the browser you will keep using, because that browser holds your key.
 2. Add `https://openrcs.<tailnet-name>.ts.net/api/mcp` to an MCP client that
    runs on a tailnet device, for example:
 
@@ -183,10 +172,9 @@ integration). Otherwise use an agent on one of your own devices.
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `OPENRCS_URL` | detected when Tailscale runs in the same container, otherwise required | Public origin, no trailing slash. Also the OAuth issuer, so changing it invalidates agent tokens |
-| `AUTH_PROVIDER` | `tailscale` | `github` needs `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET` and a public callback URL |
 | `KEY_PEPPER` | generated into `/data/secrets/key-pepper` | Server key share for the vault, base64 of 32 bytes |
 | `BETTER_AUTH_SECRET` | generated into `/data/secrets/auth-secret` | Signs session cookies |
-| `TURSO_DATABASE_URL` | `file:/data/openrcs.db` | Any libSQL URL works |
+| `DATABASE_URL` | `file:/data/openrcs.db` | Any libSQL URL works |
 | `OPENRCS_BIND` | `127.0.0.1` | nginx listen address. Leave it alone (see "How sign-in works") |
 | `PUID` / `PGID` | `911` (Unraid template: `99` / `100`) | User and group that own `/data` and run the app |
 
@@ -201,9 +189,6 @@ files.
   the point of the vault.
 - Update: pull or rebuild the image and recreate the container. Migrations
   run on every start; if one fails the container exits without starting.
-- Moving from the hosted version: there is no data migration. Pair again on
-  the self-hosted instance and reconnect your agents; then unpair the hosted
-  one.
 
 ## Troubleshooting
 

@@ -6,7 +6,6 @@ import { Actions, Alert, buttonClass, PageTitle, Spinner } from "@/app/_componen
 import { PairingEvent } from "@/lib/rcs/pairing-event";
 
 type FlowState =
-  | { readonly stage: "idle" }
   | { readonly stage: "browserStarting" }
   | { readonly stage: "browser" }
   | { readonly stage: "starting" }
@@ -15,15 +14,9 @@ type FlowState =
   | { readonly stage: "done"; readonly warning: string | null }
   | { readonly stage: "error"; readonly message: string };
 
-/** How the user gives openrcs their Google cookies: the self-hosted sign-in browser, or (hosted) a pasted cURL command. */
-type Method = "browser" | "curl";
-
 /** Where nginx serves the sign-in browser stream (docker/root/defaults/default.conf). */
 const BROWSER_STREAM_PATH = "/pairing-browser/";
 const BROWSER_POLL_MS = 1_500;
-
-/** Where the cookies for pairing come from: pasted text, or the self-hosted sign-in browser. */
-type CookieSource = { readonly cookies: string } | { readonly source: "browser" };
 
 type BrowserReply =
   | { readonly ok: true; readonly status: "idle" | "signingIn" | "signedIn" }
@@ -63,9 +56,8 @@ const browserAction = async (action: "start" | "poll" | "stop", signal?: AbortSi
     : { ok: false, message: "openrcs sent an unexpected answer. Reload the page and try again." };
 };
 
-/** POST the cookies (or the browser sign-in) to the pairing route and drive `setState` from its event stream. */
+/** Ask openrcs to pair with the cookies the sign-in browser captured, and drive `setState` from its event stream. */
 const runPairing = async (
-  from: CookieSource,
   signal: AbortSignal,
   setState: (state: FlowState) => void,
 ): Promise<void> => {
@@ -74,8 +66,6 @@ const runPairing = async (
   try {
     response = await fetch("/api/pair/gaia", {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(from),
       signal,
     });
   } catch {
@@ -133,29 +123,7 @@ const runPairing = async (
   }
 };
 
-function GaiaInstructions() {
-  return (
-    <ol className="flex list-decimal flex-col gap-2 pl-5 text-sm leading-6">
-      <li>
-        Open a new Incognito window in Chrome (Cmd+Shift+N, or Ctrl+Shift+N on Windows), go to{" "}
-        <code className="font-mono text-xs">messages.google.com/web</code>, and sign in with the Google account
-        your phone&apos;s Google Messages uses.
-      </li>
-      <li>Open DevTools (F12, or Cmd+Option+I on a Mac), select the Network tab, then reload the page.</li>
-      <li>
-        Right-click any request to <code className="font-mono text-xs">messages.google.com</code> and choose
-        Copy &gt; Copy as cURL.
-      </li>
-      <li>
-        Close the Incognito window without signing out. This gives openrcs its own Google session that no
-        browser keeps changing; signing out would end it.
-      </li>
-      <li>Paste the copied command below.</li>
-    </ol>
-  );
-}
-
-/** One fixed-size stage that every step of the browser method shows in, so the page never jumps. */
+/** One fixed-size stage that every step shows in, so the page never jumps. */
 function Stage({ children }: { children: ReactNode }) {
   return (
     <div className="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-border bg-surface">
@@ -206,11 +174,10 @@ function Progress({ done, total }: { done: number; total: number | null }) {
   );
 }
 
-/** The browser method opens its browser straight away; the cURL method waits for a paste. */
-const initialState = (method: Method): FlowState =>
-  method === "browser" ? { stage: "browserStarting" } : { stage: "idle" };
+/** The sign-in browser opens straight away. */
+const INITIAL: FlowState = { stage: "browserStarting" };
 
-const headingFor = (state: FlowState, method: Method): { title: string; description?: string } => {
+const headingFor = (state: FlowState): { title: string; description?: string } => {
   switch (state.stage) {
     case "emoji":
       return { title: "Tap this emoji on your phone", description: "Google Messages on your phone shows a few. Pick this one." };
@@ -219,46 +186,35 @@ const headingFor = (state: FlowState, method: Method): { title: string; descript
     case "done":
       return { title: "Your phone is paired" };
     default:
-      return {
-        title: "Pair your phone",
-        description:
-          method === "browser"
-            ? "Sign in with the Google account your phone's Google Messages uses."
-            : "Paste a cURL command from the Google account your phone's Google Messages uses.",
-      };
+      return { title: "Pair your phone", description: "Sign in with the Google account your phone's Google Messages uses." };
   }
 };
 
-export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean; browserSignIn: boolean }) {
+export function PairingFlow({ resetsData }: { resetsData: boolean }) {
   const router = useRouter();
-  const method: Method = browserSignIn ? "browser" : "curl";
-  const [state, setState] = useState<FlowState>(initialState(method));
-  const [cookies, setCookies] = useState("");
+  const [state, setState] = useState<FlowState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
   // The browser's sign-in is handed to pairing once, however many polls see it.
   const handedOffRef = useRef(false);
 
   // Closing the tab or reloading unmounts nothing, so close the sign-in browser on the way out too.
   useEffect(() => {
-    if (method !== "browser") return;
     const close = () => void browserAction("stop");
     window.addEventListener("pagehide", close);
     return () => window.removeEventListener("pagehide", close);
-  }, [method]);
+  }, []);
 
   // Next keeps this page mounted but hidden after navigating away (Activity,
   // docs: guides/preserving-ui-state), and a Link back restores it. Reset on
-  // hide so returning starts over, pasted cookies do not linger in the hidden
-  // page, and the sign-in browser closes.
+  // hide so returning starts over and the sign-in browser closes.
   useLayoutEffect(
     () => () => {
       abortRef.current?.abort();
       abortRef.current = null;
-      setState(initialState(method));
-      setCookies("");
-      if (method === "browser") void browserAction("stop");
+      setState(INITIAL);
+      void browserAction("stop");
     },
-    [method],
+    [],
   );
 
   function freshSignal(): AbortSignal {
@@ -268,22 +224,22 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
     return controller.signal;
   }
 
-  /** Start over with the same method (a fresh sign-in browser, or the empty form). */
+  /** Start over with a fresh sign-in browser. */
   function reset() {
     abortRef.current?.abort();
     abortRef.current = null;
-    if (method === "browser") void browserAction("stop");
-    setState(initialState(method));
+    void browserAction("stop");
+    setState(INITIAL);
   }
 
   function pairFromBrowser(signal: AbortSignal) {
     if (handedOffRef.current) return;
     handedOffRef.current = true;
-    void runPairing({ source: "browser" }, signal, setState);
+    void runPairing(signal, setState);
   }
 
-  // Browser method: open the sign-in browser as soon as the page shows.
-  const browserStarting = method === "browser" && state.stage === "browserStarting";
+  // Open the sign-in browser as soon as the page shows.
+  const browserStarting = state.stage === "browserStarting";
   useEffect(() => {
     if (!browserStarting) return;
     const signal = freshSignal();
@@ -325,20 +281,20 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
   }, [pairedCleanly, router]);
 
   const contacting = state.stage === "starting";
-  const heading = headingFor(state, method);
+  const heading = headingFor(state);
   const inStage =
     state.stage === "browserStarting" ||
     state.stage === "browser" ||
     state.stage === "emoji" ||
     state.stage === "syncing" ||
     pairedCleanly ||
-    (method === "browser" && contacting);
+    contacting;
 
   return (
     <div className="flex flex-col gap-6">
       <PageTitle title={heading.title}>{heading.description}</PageTitle>
 
-      {resetsData && (state.stage === "idle" || state.stage === "browserStarting" || state.stage === "browser") ? (
+      {resetsData && (state.stage === "browserStarting" || state.stage === "browser") ? (
         <Alert tone="warning">
           This browser does not hold the key to your existing pairing, so pairing here deletes your stored messages and
           disconnects your agents. To keep them, pair from the browser you used before.
@@ -381,7 +337,7 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
         </Actions>
       ) : null}
 
-      {method === "browser" && state.stage === "error" ? (
+      {state.stage === "error" ? (
         <>
           <Alert tone="danger">{state.message}</Alert>
           <Actions>
@@ -390,39 +346,6 @@ export function PairingFlow({ resetsData, browserSignIn }: { resetsData: boolean
             </button>
           </Actions>
         </>
-      ) : null}
-
-      {method === "curl" && (state.stage === "idle" || state.stage === "error" || contacting) ? (
-        <form
-          className="flex flex-col gap-5"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void runPairing({ cookies }, freshSignal(), setState);
-          }}
-        >
-          <GaiaInstructions />
-          <label htmlFor="curl-command" className="flex flex-col gap-2">
-            <span className="text-sm font-medium">cURL command</span>
-            {/* Never id="cookies": cookie-banner ad-block lists hide "#cookies.py-2". */}
-            <textarea
-              id="curl-command"
-              value={cookies}
-              onChange={(event) => setCookies(event.target.value)}
-              rows={6}
-              spellCheck={false}
-              autoComplete="off"
-              placeholder="curl 'https://messages.google.com/...' -H 'cookie: ...'"
-              className="rounded-xl border border-border bg-surface px-3.5 py-3 font-mono text-xs text-foreground placeholder:text-muted focus:border-accent focus:outline-none focus:ring-2 focus:ring-ring"
-            />
-          </label>
-          {state.stage === "error" ? <Alert tone="danger">{state.message}</Alert> : null}
-          <Actions>
-            <button type="submit" disabled={contacting || cookies.trim() === ""} className={buttonClass("primary")}>
-              {contacting ? <Spinner className="size-3.5" /> : null}
-              {contacting ? "Contacting Google" : "Pair"}
-            </button>
-          </Actions>
-        </form>
       ) : null}
 
       {state.stage === "done" && state.warning !== null ? (

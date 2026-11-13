@@ -12,6 +12,5 @@ import { createAuth } from "../auth";
 export const auth = createAuth({
   baseURL: "http://localhost:3000",
   secret: "auth-cli-placeholder-secret-not-used-at-runtime",
-  provider: { kind: "github", clientId: "auth-cli-placeholder", clientSecret: "auth-cli-placeholder" },
   database: drizzleAdapter(drizzle(createClient({ url: ":memory:" })), { provider: "sqlite" }),
 });

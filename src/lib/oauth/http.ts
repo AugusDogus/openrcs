@@ -150,9 +150,9 @@ const throttleBucket = (address: string): string => {
 };
 
 /**
- * Best-effort client address for throttling (see `throttleBucket`). On
- * Vercel `x-forwarded-for` is set by the platform; elsewhere it may be
- * absent, so everything unknown shares one bucket.
+ * Best-effort client address for throttling (see `throttleBucket`).
+ * Tailscale Serve sets `x-forwarded-for` to the tailnet address and nginx
+ * passes it on; without it, everything unknown shares one bucket.
  */
 const clientIp = (request: Request): string => {
   const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();

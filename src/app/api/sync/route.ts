@@ -6,7 +6,6 @@ import { SyncLimits, syncUser, type SyncError } from "@/lib/rcs/sync";
 import { DeviceUnlock } from "@/lib/vault";
 
 /** Dashboard "Sync now": incremental sync unlocked by this browser's device cookie. */
-export const maxDuration = 60;
 
 const SYNC_BUDGET_MS = 45_000;
 

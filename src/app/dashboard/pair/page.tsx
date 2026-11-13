@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { AppShell } from "@/app/_components/ui";
 import { requireCurrentUser } from "@/app/_lib/session";
-import { PairingBrowser } from "@/lib/pairing-browser/pairing-browser";
 import { loadPhoneState } from "../_lib/phone-state";
 import { PairingFlow } from "./_components/pairing-flow";
 
@@ -23,5 +22,5 @@ async function PairContent() {
   const user = await requireCurrentUser();
   const state = await loadPhoneState(user.id);
   // Pairing from a browser that cannot unlock an existing session mints a new key.
-  return <PairingFlow resetsData={state.kind === "locked"} browserSignIn={PairingBrowser.enabled()} />;
+  return <PairingFlow resetsData={state.kind === "locked"} />;
 }

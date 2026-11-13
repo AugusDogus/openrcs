@@ -32,7 +32,7 @@ export type PairingStart = {
 export const PAIRING_BUDGET = {
   /** How long the user has to tap the emoji. */
   waitForPhoneMs: 180_000,
-  /** Backfill stops by this offset from the request start (route maxDuration is 300 s). */
+  /** Backfill stops by this offset from the request start, so the first sync stays bounded. */
   backfillDeadlineMs: 240_000,
   keepAliveMs: 15_000,
   leaseTtlMs: 60_000,
@@ -58,7 +58,7 @@ export const describePairingError = (error: Tagged): string => {
     case "GaiaPairingFailedError":
       return "Google Messages refused the pairing for an unknown reason. Try again in a few minutes; if it keeps failing, update Google Messages on your phone and try again.";
     case "GMAuthExpiredError":
-      return "Google rejected these cookies (they may have expired, or that browser signed out). Copy a fresh request from messages.google.com and try again.";
+      return "Google rejected these cookies (they may have expired, or that browser signed out). Pair again and sign in to Google when asked.";
     default:
       return describePhoneError(error);
   }

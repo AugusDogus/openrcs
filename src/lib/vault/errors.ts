@@ -58,6 +58,6 @@ export const VaultErrors = {
       operation,
       userId,
       cause,
-      message: `Vault operation "${operation}" failed in the database${userId === null ? "" : ` for user ${userId}`}. Previously committed keys and grants are unchanged; retry, and check database connectivity (TURSO_DATABASE_URL) if it persists.`,
+      message: `Vault operation "${operation}" failed in the database${userId === null ? "" : ` for user ${userId}`}. Previously committed keys and grants are unchanged; retry, and check database connectivity (DATABASE_URL) if it persists.`,
     }),
 } as const;

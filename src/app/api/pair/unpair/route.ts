@@ -8,7 +8,6 @@ import { Vault } from "@/lib/vault";
  * Unpair: best-effort unpair on the phone, then delete stored messages, the
  * session, every key slot and grant, and the device cookie.
  */
-export const maxDuration = 60;
 
 export async function POST(request: Request): Promise<Response> {
   const signedIn = await RequestGuard.requireSignedIn(request);

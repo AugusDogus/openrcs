@@ -17,11 +17,10 @@ afterEach(async () => {
   await t.cleanup();
 });
 
-const authFor = (kind: "tailscale" | "github") =>
+const newAuth = () =>
   createAuth({
     baseURL: ORIGIN,
     secret: randomBytes(32).toString("base64"),
-    provider: kind === "tailscale" ? { kind } : { kind, clientId: "id", clientSecret: "secret" },
     database: drizzleAdapter(t.db, { provider: "sqlite", schema }),
   });
 
@@ -36,7 +35,7 @@ const signIn = (auth: ReturnType<typeof createAuth>, headers: Record<string, str
 
 describe("Tailscale sign-in", () => {
   test("creates one user per tailnet login and issues a working session cookie", async () => {
-    const auth = authFor("tailscale");
+    const auth = newAuth();
     const first = await signIn(auth, { "tailscale-user-login": "Augie@GitHub", "tailscale-user-name": "Augie L" });
     expect(first.status).toBe(200);
     const cookie = first.headers.getSetCookie().map((value) => value.split(";")[0]).join("; ");
@@ -58,18 +57,12 @@ describe("Tailscale sign-in", () => {
   });
 
   test("refuses requests without a usable identity and creates nothing", async () => {
-    const auth = authFor("tailscale");
+    const auth = newAuth();
     for (const login of [null, "", "no-at-sign"]) {
       const response = await signIn(auth, login === null ? {} : { "tailscale-user-login": login });
       expect(response.status).toBe(401);
       expect(response.headers.getSetCookie()).toEqual([]);
     }
-    expect(await t.db.select().from(user)).toHaveLength(0);
-  });
-
-  test("does not exist when the provider is github", async () => {
-    const response = await signIn(authFor("github"), { "tailscale-user-login": "augie@github" });
-    expect(response.status).toBe(404);
     expect(await t.db.select().from(user)).toHaveLength(0);
   });
 });

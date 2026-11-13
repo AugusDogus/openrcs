@@ -3,10 +3,8 @@ import { randomBytes } from "node:crypto";
 import { Env } from "@/lib/env";
 
 const validAuth = {
-  BETTER_AUTH_URL: "https://openrcs.vercel.app/",
+  BETTER_AUTH_URL: "https://openrcs.tail1234.ts.net/",
   BETTER_AUTH_SECRET: "x".repeat(32),
-  GITHUB_CLIENT_ID: "Iv1.abc",
-  GITHUB_CLIENT_SECRET: "secret",
 };
 
 /** Distinct variable names an error names (one variable can have several issues). */
@@ -16,7 +14,7 @@ const issueVariables = (
 
 describe("Env.parseAuth", () => {
   test("accepts a complete section and strips the trailing slash", () => {
-    expect(Env.parseAuth(validAuth).unwrap().BETTER_AUTH_URL).toBe("https://openrcs.vercel.app");
+    expect(Env.parseAuth(validAuth).unwrap().BETTER_AUTH_URL).toBe("https://openrcs.tail1234.ts.net");
   });
 
   test("names every missing or invalid variable without echoing values", () => {
@@ -24,37 +22,12 @@ describe("Env.parseAuth", () => {
       BETTER_AUTH_URL: "ftp://example.com",
       BETTER_AUTH_SECRET: "short-secret-value",
     });
-    expect(issueVariables(result).sort()).toEqual(
-      ["BETTER_AUTH_SECRET", "BETTER_AUTH_URL", "GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"].sort(),
-    );
+    expect(issueVariables(result).sort()).toEqual(["BETTER_AUTH_SECRET", "BETTER_AUTH_URL"]);
     if (result.isErr()) {
       expect(result.error.section).toBe("auth");
       expect(result.error.message).toContain(".env.example");
       expect(result.error.message).not.toContain("short-secret-value");
     }
-  });
-});
-
-describe("Env.parseAuth with AUTH_PROVIDER", () => {
-  const base = { BETTER_AUTH_URL: "https://openrcs.tail1234.ts.net", BETTER_AUTH_SECRET: "x".repeat(32) };
-
-  test("defaults to github, which needs the GitHub pair", () => {
-    expect(Env.parseAuth(validAuth).unwrap().AUTH_PROVIDER).toBe("github");
-    expect(issueVariables(Env.parseAuth({ ...base, AUTH_PROVIDER: "" })).sort()).toEqual([
-      "GITHUB_CLIENT_ID",
-      "GITHUB_CLIENT_SECRET",
-    ]);
-  });
-
-  test("tailscale needs no GitHub variables", () => {
-    expect(Env.parseAuth({ ...base, AUTH_PROVIDER: "tailscale" }).unwrap()).toEqual({
-      ...base,
-      AUTH_PROVIDER: "tailscale",
-    });
-  });
-
-  test("rejects an unknown provider by name", () => {
-    expect(issueVariables(Env.parseAuth({ ...base, AUTH_PROVIDER: "google" }))).toEqual(["AUTH_PROVIDER"]);
   });
 });
 
@@ -78,20 +51,14 @@ describe("Env.parseVault", () => {
 });
 
 describe("Env.parseDatabase", () => {
-  test("accepts file: and libsql: URLs and treats an empty token as unset", () => {
-    expect(Env.parseDatabase({ TURSO_DATABASE_URL: "file:./.data/dev.db", TURSO_AUTH_TOKEN: "" }).unwrap()).toEqual({
-      TURSO_DATABASE_URL: "file:./.data/dev.db",
-      TURSO_AUTH_TOKEN: undefined,
+  test("accepts file: and libsql: URLs", () => {
+    expect(Env.parseDatabase({ DATABASE_URL: "file:/data/openrcs.db" }).unwrap()).toEqual({
+      DATABASE_URL: "file:/data/openrcs.db",
     });
-    expect(
-      Env.parseDatabase({ TURSO_DATABASE_URL: "libsql://db-org.turso.io", TURSO_AUTH_TOKEN: "t" }).unwrap()
-        .TURSO_AUTH_TOKEN,
-    ).toBe("t");
+    expect(Env.parseDatabase({ DATABASE_URL: "libsql://127.0.0.1:8080" }).isOk()).toBe(true);
   });
 
   test("rejects other schemes", () => {
-    expect(issueVariables(Env.parseDatabase({ TURSO_DATABASE_URL: "postgres://x" }))).toEqual([
-      "TURSO_DATABASE_URL",
-    ]);
+    expect(issueVariables(Env.parseDatabase({ DATABASE_URL: "postgres://x" }))).toEqual(["DATABASE_URL"]);
   });
 });

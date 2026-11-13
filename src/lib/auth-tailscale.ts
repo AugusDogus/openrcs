@@ -10,7 +10,7 @@ import { setSessionCookie } from "better-auth/cookies";
  * Funnel traffic carry no identity and cannot sign in.
  *
  * The endpoint only turns that identity into an ordinary Better Auth session
- * cookie; everything after sign-in is the same as with GitHub.
+ * cookie; everything after sign-in is ordinary Better Auth.
  */
 export const TAILSCALE_PROVIDER_ID = "tailscale";
 
@@ -58,7 +58,7 @@ export const tailscaleSignIn = () => ({
       const owner = await internalAdapter.findAccountOwnerByKey(key);
       let user = owner?.kind === "owned" ? owner.user : null;
       if (user === null) {
-        // Same address signed up another way (e.g. a database moved from a GitHub deployment).
+        // Same address already has a user (e.g. created by an older openrcs).
         const byEmail = await internalAdapter.findUserByEmail(identity.login);
         if (byEmail) {
           await internalAdapter.linkAccount({ ...key, userId: byEmail.user.id });

@@ -246,7 +246,7 @@ describe("/oauth/authorize validation", () => {
     }
   });
 
-  test("not signed in: relative redirect to GitHub sign-in that resumes this request", async () => {
+  test("not signed in: relative redirect to sign-in that resumes this request", async () => {
     const client = await registerClient();
     const params = authorizeParams(client.client_id, OAuthTesting.pkce().challenge);
     const response = await authorize(params);

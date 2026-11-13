@@ -18,8 +18,7 @@ import { createRcsMcpServer, type RcsMcpContext } from "./server";
 // Tools resolve the app database with getDb(); point it at a temp file before
 // the first call (never at the developer's .env.local database).
 const dbPath = join(tmpdir(), `openrcs-mcp-test-${randomBytes(8).toString("hex")}.db`);
-process.env.TURSO_DATABASE_URL = `file:${dbPath}`;
-delete process.env.TURSO_AUTH_TOKEN;
+process.env.DATABASE_URL = `file:${dbPath}`;
 
 const userId = `user_${randomBytes(6).toString("hex")}`;
 const dek = Dek.generate();

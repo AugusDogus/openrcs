@@ -182,7 +182,7 @@ const cookiesRejected = (status: number): GMAuthExpiredError =>
   new GMAuthExpiredError({
     reason: "cookiesRejected",
     status,
-    message: `Google rejected the account cookies (HTTP ${status}); they have expired or belong to a signed-out session. Nothing was paired; copy fresh cookies from a signed-in messages.google.com tab and try again.`,
+    message: `Google rejected the account cookies (HTTP ${status}); they have expired or belong to a signed-out session. Nothing was paired; sign in to Google again and retry.`,
   });
 
 const cancelledByCaller = (): GaiaCancelledError =>

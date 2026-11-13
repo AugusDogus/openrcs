@@ -10,8 +10,6 @@ const ActionSchema = z.object({ action: z.enum(["start", "poll", "stop"]) });
 
 const statusFor = (error: PairingBrowserError): number => {
   switch (error.reason) {
-    case "disabled":
-      return 404;
     case "busy":
       return 409;
     case "launch":
@@ -29,15 +27,12 @@ const noStore = (response: Response): Response => {
 export const handlePairingBrowserAction = async (request: Request): Promise<Response> => {
   const signedIn = await RequestGuard.requireSignedIn(request);
   if (signedIn.isErr()) return RequestGuard.errorResponse(signedIn.error.status, signedIn.error.message);
-  const browser = PairingBrowser.fromEnv();
-  if (browser.isErr()) return RequestGuard.errorResponse(statusFor(browser.error), browser.error.message);
-
   const body = ActionSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
     return RequestGuard.errorResponse(400, 'Expected a JSON body like {"action": "start"} (start, poll or stop).');
   }
   const userId = signedIn.value.userId;
-  const b = browser.value;
+  const b = PairingBrowser.fromEnv();
   if (body.data.action === "stop") {
     await b.stop(userId);
     return noStore(Response.json({ status: "idle" }));
@@ -59,12 +54,10 @@ export const handlePairingBrowserAction = async (request: Request): Promise<Resp
  * its WebSocket are not fetch() calls.
  */
 export const handlePairingBrowserAuthorize = async (request: Request): Promise<Response> => {
-  const browser = PairingBrowser.fromEnv();
-  if (browser.isErr()) return noStore(new Response(null, { status: 404 }));
   const session = await Result.tryPromise({
     try: () => getAuth().api.getSession({ headers: request.headers }),
     catch: () => null,
   });
   if (session.isErr() || session.value === null) return noStore(new Response(null, { status: 401 }));
-  return noStore(new Response(null, { status: browser.value.canView(session.value.user.id) ? 204 : 403 }));
+  return noStore(new Response(null, { status: PairingBrowser.fromEnv().canView(session.value.user.id) ? 204 : 403 }));
 };

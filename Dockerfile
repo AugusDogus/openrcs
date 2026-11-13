@@ -18,7 +18,7 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 COPY . .
-ENV OPENRCS_STANDALONE=1 NEXT_TELEMETRY_DISABLED=1
+ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build \
  && bun build src/lib/db/migrate.ts --target=node --format=esm --external @libsql/client --outfile .next/standalone/migrate.mjs
 
@@ -56,7 +56,7 @@ ENV TITLE=openrcs \
     SELKIES_ENABLE_CLIPBOARD=in \
     NODE_ENV=production \
     NEXT_TELEMETRY_DISABLED=1 \
-    TURSO_DATABASE_URL=file:/data/openrcs.db \
+    DATABASE_URL=file:/data/openrcs.db \
     OPENRCS_MIGRATIONS_DIR=/app/drizzle \
     OPENRCS_PAIRING_BROWSER_DIR=/dev/shm/openrcs-browser
 
