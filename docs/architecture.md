@@ -25,8 +25,7 @@ vectors), create a module under `/tmp/` that requires
 - Next.js 16 App Router (Node.js runtime only), React 19, Tailwind v4
 - Better Auth for Tailscale-identity sign-in and browser sessions only
 - Our own OAuth 2.1 authorization server for MCP in `src/lib/oauth` (DCR,
-  PKCE, refresh rotation) whose tokens carry a client-held key share; see
-  docs/security.md
+  PKCE, refresh rotation); see docs/security.md
 - MCP server: `@modelcontextprotocol/server` v2 `createMcpHandler`, behind
   our bearer-token check
 - SQLite via `@libsql/client` + Drizzle ORM (`file:/data/openrcs.db` in the
@@ -74,25 +73,27 @@ src/
   lib/auth-tailscale.ts   sign-in from Tailscale Serve identity headers
   lib/pairing-browser/    the Chromium used for Google sign-in: launch, NetLog sign-in
                           detection, cookie decryption, stream authorization
-  lib/vault/              split-key vault: DEK, key slots, DataBox, device unlock
+  lib/vault/              vault: DEK, server key, DataBox, OAuth credential slots
   lib/oauth/              OAuth 2.1 authorization server for MCP
   lib/secret-box.ts       AES-256-GCM envelope primitive
   lib/env.ts              validated env (zod)
-  lib/rcs/                service layer: phone lease, session persistence, sync, search, send, pairing,
-                          attachments and their download links
+  lib/rcs/                service layer: phone lease, session persistence, sync (first sync after
+                          pairing, background sync), search, send, pairing, attachments and their
+                          download links
+  instrumentation.ts      starts the background sync once per server process
   lib/mcp/                MCP server and tools (one file per tool)
   app/                    routes and pages
 ```
 
 ## Phone model
 
-Nothing talks to the phone in the background. Every operation that needs the
-phone runs inside one request:
+Every operation that needs the phone, whether a request or background work,
+runs the same way:
 
-1. Acquire a per-user phone lease (DB row with expiry) so only one request
+1. Acquire a per-user phone lease (DB row with expiry) so only one operation
    talks to the phone at a time.
 2. Load the user's `AuthData` and decrypt it with the DEK unwrapped from the
-   caller's key slot or access token (docs/security.md).
+   user's server key (docs/security.md).
 3. Refresh the tachyon token if it expires within 1 hour.
 4. Open the `ReceiveMessages` long poll (streaming fetch), set the active
    session (`GET_UPDATES`), then issue RPCs. RPC responses arrive on the long
@@ -101,14 +102,24 @@ phone runs inside one request:
 6. Persist `AuthData` changes (token, cookies), ack received messages, close
    the stream, release the lease.
 
-Reads and search serve from the database (encrypted per user), populated by a
-backfill at pairing and a throttled incremental sync whenever a client calls
-in. There is no unattended background sync: the server cannot decrypt
-anything without a client's key share. Sends always go to the phone.
+Reads and search serve from the database (encrypted per user). It is filled
+by:
+
+- the first sync after pairing: the pairing request ends once the phone
+  confirms, and a backfill of the recent conversations (up to about four
+  minutes) keeps running on the server, holding the lease the pairing took.
+  Its progress lives in server memory; the dashboard polls
+  `GET /api/sync/status` while it runs (src/lib/rcs/first-sync.ts);
+- a background incremental sync every minute for each paired user, started
+  by `src/instrumentation.ts` (src/lib/rcs/background-sync.ts). It skips a
+  user who synced in the last 30 seconds or whose phone lease is busy;
+- a throttled incremental sync when an agent or the dashboard calls in.
+
+Sends always go to the phone.
 
 ## Security
 
-See docs/security.md (split-key vault, OAuth design, breach analysis).
+See docs/security.md (key hierarchy, OAuth design, breach analysis).
 
 ## Environment
 
@@ -120,4 +131,4 @@ docs/self-hosting.md lists what you can override.
 | `BETTER_AUTH_URL` | Public origin, e.g. `https://openrcs.example.ts.net` (also the OAuth issuer) |
 | `BETTER_AUTH_SECRET` | Better Auth secret |
 | `DATABASE_URL` | libSQL URL, `file:/data/openrcs.db` in the container |
-| `KEY_PEPPER` | base64 32-byte server key share for the vault (docs/security.md) |
+| `KEY_PEPPER` | base64 32-byte server key every user's DEK is wrapped under (docs/security.md) |

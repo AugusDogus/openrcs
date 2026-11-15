@@ -1,66 +1,50 @@
-# Security model: split-key vault
+# Security model
 
-Goal: a server that can act on a user's Google Messages session only
-while one of that user's own clients (their browser, or an MCP client they
-authorized) is talking to it. A full leak of the database **and** the server's
-environment secrets must not reveal any user's Google cookies, pairing keys,
-or message content.
+openrcs runs on its owner's own box and is reachable only over their tailnet
+(docs/self-hosting.md). It encrypts every user's data at rest, but the server
+holds what it needs to decrypt it: that is what lets it sync in the
+background, show the dashboard in any browser, and let any signed-in browser
+approve agents. Whoever has a full copy of the data folder (database plus the
+generated secrets) can read every stored message, so back it up encrypted or
+keep it private.
 
 ## What each breach reveals
 
 | Attacker has | Learns |
 | --- | --- |
-| Database dump | Opaque ids, timestamps, row counts. No secrets, no content. |
-| Database + `KEY_PEPPER` (a copy of the whole data folder) | Same as above. Every key-encryption key also needs a client-held secret that is never stored. |
-| One user's live refresh token or device cookie, plus DB + env | That one user's data. Used, rotated, revoked or expired codes, refresh tokens and device cookies reveal nothing: their slot's wrapped DEK is destroyed. |
-| Any access token ever issued to a user, plus env (`KEY_PEPPER`) | That user's DEK, so with the DB their data, until the DEK is rotated (re-pairing from a browser with no valid device slot). Expiry and revocation stop the server honoring the token but cannot take back the DEK it carries. |
-| A live compromise of the running code | Data of users whose clients make requests during the compromise. No server-side design can prevent this. |
-
-The unavoidable trade-off: the server cannot sync while no client is
-connected, so there is no unattended background sync. Instead, a large backfill
-runs at pairing, and an incremental sync runs (throttled) whenever an MCP
-client or the dashboard calls in.
+| Database dump alone | Opaque ids, timestamps, row counts and flags. No content, cookies or keys: every DEK is wrapped under a key derived from `KEY_PEPPER`. |
+| Database + `KEY_PEPPER` (a copy of the whole data folder) | Every user's messages, conversation names, participants and numbers, attachment keys, and the Google Messages session (cookies and pairing keys), which can act as the paired web device until the user unpairs or Google signs it out. With network access to openrcs it could also forge access tokens for live grants. |
+| One refresh or access token | That grant's scopes through `/api/mcp` (from the tailnet) until the token expires or the grant is revoked. Tokens carry no key material. |
+| A live compromise of the running server | Everything, at any time: the server decrypts without any client. |
 
 ## Key hierarchy
 
-- **DEK** (data encryption key): 32 random bytes per user, created at first
-  pairing. Encrypts the user's `AuthData` (Google cookies, pairing keys,
-  tokens) and every piece of message/conversation content. Never stored
-  unwrapped; exists only in memory during a request.
-- **Key slots**: copies of the DEK wrapped with AES-256-GCM under a
-  key-encryption key (KEK). For each slot:
-  `KEK = HKDF-SHA256(ikm = slotSecret, salt = KEY_PEPPER, info = "openrcs/kek/v1|" + kind + "|" + slotId)`.
-  `slotSecret` is 32 random bytes held only by the client. The DB stores the
-  slot id, kind, `verifier = SHA-256(HKDF(slotSecret, salt = KEY_PEPPER, info = "openrcs/verifier/v1|" + slotId))`,
-  the wrapped DEK (AAD = `userId|kind|slotId|dekId`), expiry, and revocation state.
-  So unwrapping needs three things: the DB row, the env pepper, and the
-  client's secret. When a slot stops being usable (a code is redeemed, a
-  refresh token rotated, a slot revoked, or an expired slot is presented or
-  swept on the user's next token or consent write) its wrapped DEK is
-  overwritten with an empty tombstone. The row (id, verifier, grant,
-  consumed/revoked times) stays for replay detection.
-- Slot kinds:
-  - `device`: the browser that paired. Its secret lives in an HttpOnly,
-    Secure, SameSite=Lax cookie `__Host-openrcs-device-<tag>` = `<slotId>.<base64url secret>`
-    (1 year), where `<tag>` is the first 16 characters of
-    base64url(SHA-256(userId)): one cookie per account, so accounts sharing
-    a browser never overwrite each other's key. (The unscoped
-    `__Host-openrcs-device` of browsers paired earlier is still read, and only
-    unlocks its own account.) Lets the dashboard unlock data and approve new
-    MCP clients.
-  - `oauth_code`: an authorization code (single use, 60 s TTL). The code
-    string itself carries the secret.
-  - `oauth_refresh`: a refresh token (rotated on every use). The token string
-    carries the secret.
+- **DEK** (data encryption key): 32 random bytes per user, created at the
+  first pairing. Encrypts the user's `AuthData` (Google cookies, pairing keys,
+  tokens) and every piece of message/conversation content.
+- **Server key**: the only stored copy of the DEK, one `user_key` row per
+  user (src/lib/vault/server-key.ts):
+  `KEK = HKDF-SHA256(ikm = KEY_PEPPER, salt = "", info = "openrcs/server-kek/v1|" + JSON[userId, dekId])`,
+  `wrapped_dek = AES-256-GCM(KEK, DEK, AAD = JSON["openrcs/user-key", userId, dekId])`
+  in a versioned envelope (`s1`). The KEK and AAD bind the row to its user
+  and DEK id, so a row copied to another user or relabelled does not open.
+  The server unwraps it whenever it needs the user's data: background sync,
+  the dashboard, MCP tools.
+- **OAuth credentials** (rows in `key_slot`, a name kept from when slots also
+  wrapped a DEK): authorization codes `oac_<slotId>.<secret>` (single use,
+  60 s) and refresh tokens `ort_<slotId>.<secret>` (rotated on every use, 90
+  days). The database keeps only
+  `verifier = SHA-256(HKDF(secret, salt = KEY_PEPPER, info = "openrcs/verifier/v1|" + slotId))`,
+  the grant, a non-secret payload for codes, expiry, and consumed/revoked
+  times. Used rows stay for replay detection.
 - **Access tokens** are stateless sealed envelopes:
-  `"oat_" + AES-256-GCM(key = HKDF(KEY_PEPPER, info = "openrcs/access-token/v1"), JSON{v, uid, gid, cid, scope, exp, did, dek})`
-  (`did` is the DEK id).
-  They are never stored server-side, live 1 hour, and are checked against the
-  grant row (not revoked) on every request. Because the DEK is inside, any
-  access token ever issued (even expired or revoked) plus the env pepper
-  gives the DEK, and that DEK stays valid until the user's DEK is rotated by
-  re-pairing from a browser with no valid device slot. Revoking a grant does
-  not rotate the DEK (that would disconnect every other client).
+  `"oat_" + AES-256-GCM(key = HKDF(KEY_PEPPER, info = "openrcs/access-token/v1"), JSON{v, uid, gid, cid, scope, exp})`.
+  They are never stored server-side, live 1 hour, and are checked against
+  the grant row (not revoked, same user and client) on every request. Tokens
+  issued before the server key also carry `did` and `dek` (a copy of the DEK
+  of that time); they are still accepted and those claims are ignored. That
+  old DEK opens nothing: the data sealed under it was deleted when openrcs
+  moved to the server key.
 
 ## Data at rest
 
@@ -114,8 +98,9 @@ sign-in and browser sessions). Follows the MCP authorization spec:
   bounded: per-address limit (IPv6 counted per /64), a global hourly cap,
   URIs of at most 512 characters, and registrations without a grant are
   pruned after 24 hours.
-- `GET /oauth/authorize` -> sign-in if needed -> consent page that
-  requires an unlocked device slot -> authorization code. Invalid requests
+- `GET /oauth/authorize` -> sign-in if needed -> consent page (any
+  signed-in browser of the user approves their own clients) ->
+  authorization code. Invalid requests
   get an error page, never an automatic redirect: every redirect URI comes
   from open registration, so redirecting errors would make the issuer an
   open redirector (RFC 9700 section 4.11.2). Only the user's own consent
@@ -137,28 +122,31 @@ Scopes: `messages:read`, `messages:send`.
 
 ## Re-pairing and key loss
 
-- Re-pairing from the paired browser (device slot valid) keeps the DEK, so
-  existing MCP grants keep working.
-- Re-pairing from a browser with no valid device slot creates a new DEK: all
-  old slots and grants are revoked and the user's old encrypted data is
-  deleted (it is unreadable without the old DEK).
-- Unpair / delete deletes the session, all slots and grants, and all stored
-  conversations and messages. It first takes the phone lease (waiting up to
-  30 s for a sync, send or pairing in progress, else refusing and deleting
-  nothing), so no in-flight operation can store rows or re-create the session
-  afterwards.
+- Re-pairing, from any browser, reuses the user's server key, so stored
+  messages stay readable. Grants are not tied to a DEK, so connected agents
+  stay connected.
+- When the user has no server key (first pairing, after unpairing, or a key
+  that no longer opens because `KEY_PEPPER` changed), pairing mints a new DEK
+  and first deletes anything stored under an older key.
+- Unpair / delete stops a running first sync, then takes the phone lease
+  (waiting up to 30 s for a sync, send or pairing in progress, else refusing
+  and deleting nothing), so no in-flight operation can store rows or
+  re-create the session afterwards. It then deletes the session, the server
+  key, all OAuth credentials and grants, and all stored conversations and
+  messages.
 
 ## Operational rules
 
 - Never log cookies, tokens, slot secrets, DEKs, message content, names, or
   phone numbers.
-- `KEY_PEPPER` is 32 random bytes (base64). Rotating it makes every slot and
-  access token unusable (users re-pair and re-authorize).
+- `KEY_PEPPER` is 32 random bytes (base64). Rotating it makes every server
+  key, refresh token and access token unusable (users re-pair, which deletes
+  their stored messages, and re-authorize their agents).
 - Sign-in trusts the `Tailscale-User-Login` header that Tailscale Serve sets
   (docs/self-hosting.md), so nginx listens on loopback only. `KEY_PEPPER`
   lives in the data folder beside the database: a copy of that folder is the
-  "database + `KEY_PEPPER`" row of the breach table, and still decrypts
-  nothing without a client's secret.
+  "database + `KEY_PEPPER`" row of the breach table and reveals everything.
+  Back it up encrypted, or keep it where only you can read it.
 - The sign-in browser (src/lib/pairing-browser) holds a live
   Google session while it is open: its profile is in RAM (`/dev/shm`), the
   stream is served only after openrcs authorizes the request (the signed-in

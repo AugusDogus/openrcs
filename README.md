@@ -48,17 +48,17 @@ Until a phone is paired, openrcs is the pairing page:
    the Google cookies it needs and deletes the rest.
 2. Tap the emoji openrcs shows in the prompt on your phone.
 
-Keep the phone on and online. Pair from the browser you will keep using: it
-holds your key, so a different browser can only re-pair (which resets stored
-messages and disconnects agents). After pairing, openrcs syncs your recent
-conversations (up to about four minutes); the rest syncs incrementally later.
+Keep the phone on and online. After pairing, openrcs syncs your recent
+conversations on the server (up to about four minutes; the dashboard shows the
+progress), then keeps syncing in the background every minute. Re-pairing, from
+any browser, keeps the stored messages and connected agents.
 
 ## Connecting an agent
 
 The MCP endpoint is `https://<machine>.<your-tailnet>.ts.net:5443/api/mcp` (on the
 dashboard with a copy button). Agents sign in with OAuth: the client opens
-openrcs in your browser and you approve it from the browser that paired your
-phone. There are no API keys. The agent must run on a tailnet device.
+openrcs in your browser and you approve it while signed in. There are no API
+keys. The agent must run on a tailnet device.
 
 - **Claude Code**: `claude mcp add --transport http openrcs https://<machine>.<your-tailnet>.ts.net:5443/api/mcp`
 - **Claude Desktop, Cursor and other JSON-configured clients**:
@@ -78,20 +78,20 @@ for reading, `messages:send` for sending.
 
 ## Security model
 
-openrcs is designed so that a full copy of the data folder (database and
-generated secrets) reveals no Google cookies, pairing keys or message content.
+openrcs runs on your own box and is reachable only over your tailnet. It
+encrypts what it stores, but the server holds the keys to decrypt it, so it
+can sync with no browser or agent connected.
 
 - Each user has a random data encryption key (DEK). It encrypts the stored
   Google session and every conversation and message (AES-256-GCM, bound to the
   owning user and row).
-- The DEK is never stored unwrapped. Copies are wrapped under keys derived from
-  a secret that only a client holds (your paired browser's device cookie, or
-  an MCP client's OAuth refresh token) combined with the server's `KEY_PEPPER`.
-- So the server can only act while one of your clients is talking to it. There
-  is no unattended background sync: a large backfill runs at pairing, and an
-  incremental sync runs (at most once a minute) whenever an agent or the
-  dashboard calls in.
-- Unpairing deletes the session, every key slot and grant, and all stored
+- The server keeps one copy of each DEK, wrapped under a key derived from
+  `KEY_PEPPER`. Both live in the data folder.
+- So a full copy of the data folder (database plus generated secrets) reveals
+  your messages and your Google Messages session. Back it up encrypted, or
+  keep it somewhere only you can read. A database file without
+  `secrets/key-pepper` reveals no content.
+- Unpairing deletes the session, the key, every grant and all stored
   messages.
 
 Read [docs/security.md](docs/security.md) for the key hierarchy, OAuth design
