@@ -111,8 +111,8 @@ configuration across restarts.
 ## Pair your phone and connect agents
 
 1. Open openrcs (your Tailscale identity signs you in) and pair: sign in to
-   Google in the browser on the page, then tap the emoji on your phone. Do it
-   from the browser you will keep using, because that browser holds your key.
+   Google in the browser on the page, then tap the emoji on your phone. The
+   server keeps your key, so any of your browsers can open the dashboard later.
 2. Add `https://<machine>.<tailnet>.ts.net:5443/api/mcp` to an MCP client
    that runs on a tailnet device (or to a self-hosted MCP gateway such as
    Executor on the same tailnet), for example:
