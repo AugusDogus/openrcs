@@ -26,6 +26,8 @@ export const PAIRING_BUDGET = {
   waitForPhoneMs: 180_000,
   keepAliveMs: 15_000,
   leaseTtlMs: FIRST_SYNC.leaseTtlMs,
+  /** How long to wait for a sync or send to release the phone. */
+  leaseWaitMs: 30_000,
 } as const;
 
 type Tagged = { readonly _tag: string; readonly message: string };
@@ -138,8 +140,9 @@ const runPairing = async (
 };
 
 /**
- * Acquire the lease, then return the SSE stream that runs the pairing. Fails
- * fast (before any stream) when the phone is busy.
+ * Acquire the lease, then return the SSE stream that runs the pairing. Waits
+ * for a sync or send in progress (the background sync runs every minute), and
+ * fails before any stream when the phone stays busy.
  */
 export const startPairing = async (
   db: Database,
@@ -149,19 +152,24 @@ export const startPairing = async (
     readonly signal: AbortSignal;
   },
 ): Promise<Result<PairingStart, RcsPhoneBusyError | RcsStorageError>> => {
-  const acquired = await PhoneLease.tryAcquire(db, opts.userId, { ttlMs: PAIRING_BUDGET.leaseTtlMs });
-  if (acquired.isErr()) return Result.err(acquired.error);
-  const lease = acquired.value;
-  if (lease === null) {
+  const acquired = await PhoneLease.acquire(db, opts.userId, {
+    ttlMs: PAIRING_BUDGET.leaseTtlMs,
+    waitMs: PAIRING_BUDGET.leaseWaitMs,
+    signal: opts.signal,
+  });
+  if (acquired.isErr()) {
     return Result.err(
-      new RcsPhoneBusyError({
-        userId: opts.userId,
-        waitedMs: 0,
-        message:
-          "openrcs is already talking to your phone (a pairing, sync or send is in progress). Wait a minute and start pairing again.",
-      }),
+      acquired.error._tag === "RcsPhoneBusyError"
+        ? new RcsPhoneBusyError({
+            userId: opts.userId,
+            waitedMs: acquired.error.waitedMs,
+            message:
+              "openrcs is still talking to your phone (a pairing, sync or send is in progress). Wait a minute and start pairing again.",
+          })
+        : acquired.error,
     );
   }
+  const lease = acquired.value;
   const aborter = new AbortController();
   const signal = AbortSignal.any([opts.signal, aborter.signal]);
   const encoder = new TextEncoder();
