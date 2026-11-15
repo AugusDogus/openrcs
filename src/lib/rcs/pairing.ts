@@ -6,27 +6,26 @@ import { GaiaPairing } from "@/lib/gm/pair-gaia";
 import { ServerKey, VaultConfig, type VaultStorageError } from "@/lib/vault";
 import type { RcsContext } from "./context";
 import { describeForLog, RcsPhoneBusyError, type RcsStorageError } from "./errors";
+import { FIRST_SYNC, FirstSync } from "./first-sync";
 import { PairingEvent } from "./pairing-event";
 import { describePhoneError } from "./phone";
 import { PhoneLease } from "./phone-lease";
 import { SessionStore } from "./session-store";
 import { deleteUserData } from "./store";
-import { backfill } from "./sync";
 
 /**
  * Google-account (Gaia) pairing orchestration behind `POST /api/pair/gaia`.
- * Holds the phone lease for the whole flow and streams PairingEvents:
- * emoji -> paired -> sync* -> done (or error at any point).
+ * Holds the phone lease and streams PairingEvents: emoji -> paired (or error
+ * at any point). After `paired` the stream ends and the lease passes to the
+ * first sync, which keeps running on the server (src/lib/rcs/first-sync.ts).
  */
 export type PairingStart = { readonly stream: ReadableStream<Uint8Array> };
 
 export const PAIRING_BUDGET = {
   /** How long the user has to tap the emoji. */
   waitForPhoneMs: 180_000,
-  /** Backfill stops by this offset from the request start, so the first sync stays bounded. */
-  backfillDeadlineMs: 240_000,
   keepAliveMs: 15_000,
-  leaseTtlMs: 60_000,
+  leaseTtlMs: FIRST_SYNC.leaseTtlMs,
 } as const;
 
 type Tagged = { readonly _tag: string; readonly message: string };
@@ -108,6 +107,7 @@ export const savePairing = async (
   return saved.map(() => ctx);
 };
 
+/** Runs the pairing; resolves true when the lease was handed to the first sync. */
 const runPairing = async (
   db: Database,
   userId: string,
@@ -115,36 +115,26 @@ const runPairing = async (
   emit: Emit,
   signal: AbortSignal,
   lease: PhoneLease,
-  startedAt: number,
-): Promise<void> => {
+): Promise<boolean> => {
   const paired = await pairWithGaia(cookies, emit, signal);
-  if (paired.isErr()) return emit({ type: "error", message: paired.error });
+  if (paired.isErr()) {
+    emit({ type: "error", message: paired.error });
+    return false;
+  }
 
   const saved = await savePairing(db, { userId, paired: paired.value });
   if (saved.isErr()) {
     console.error(`[rcs:pairing] saving the pairing failed: ${describeForLog(saved.error)}`);
-    return emit({
+    emit({
       type: "error",
       message:
         "Your phone confirmed, but openrcs could not save the pairing because the database did not respond. Start pairing again; the phone may list an extra web device you can remove.",
     });
+    return false;
   }
-  const ctx = saved.value;
+  void FirstSync.run(db, saved.value, lease);
   emit({ type: "paired" });
-
-  const synced = await backfill(db, ctx, {
-    deadlineMs: startedAt + PAIRING_BUDGET.backfillDeadlineMs,
-    signal,
-    onProgress: (progress) => emit({ type: "sync", ...progress }),
-    phone: { lease: { held: lease } },
-  });
-  if (synced.isErr()) {
-    return emit({
-      type: "error",
-      message: `Your phone is paired, but the first sync stopped: ${describePhoneError(synced.error)} Messages will keep syncing when you use openrcs.`,
-    });
-  }
-  emit({ type: "done" });
+  return true;
 };
 
 /**
@@ -157,10 +147,8 @@ export const startPairing = async (
     readonly userId: string;
     readonly cookies: GoogleCookies;
     readonly signal: AbortSignal;
-    readonly startedAt?: number;
   },
 ): Promise<Result<PairingStart, RcsPhoneBusyError | RcsStorageError>> => {
-  const startedAt = opts.startedAt ?? Date.now();
   const acquired = await PhoneLease.tryAcquire(db, opts.userId, { ttlMs: PAIRING_BUDGET.leaseTtlMs });
   if (acquired.isErr()) return Result.err(acquired.error);
   const lease = acquired.value;
@@ -195,7 +183,7 @@ export const startPairing = async (
         ttlMs: PAIRING_BUDGET.leaseTtlMs,
         onLost: (error) => console.warn(`[rcs:pairing] lease renewal failed: ${describeForLog(error)}`),
       });
-      void runPairing(db, opts.userId, opts.cookies, emit, signal, lease, startedAt)
+      void runPairing(db, opts.userId, opts.cookies, emit, signal, lease)
         .catch((error: unknown) => {
           console.error(
             `[rcs:pairing] unexpected failure: ${error instanceof Error ? error.name : "unknown"}`,
@@ -204,13 +192,17 @@ export const startPairing = async (
             type: "error",
             message: "Pairing failed unexpectedly. Nothing else was changed; start pairing again.",
           });
+          return false;
         })
-        .finally(async () => {
+        .then(async (handedOff) => {
           clearInterval(ping);
           stopKeepAlive();
-          const released = await PhoneLease.release(db, lease);
-          if (released.isErr()) {
-            console.warn(`[rcs:pairing] lease release failed: ${describeForLog(released.error)}`);
+          // The first sync owns the lease from here and releases it when done.
+          if (!handedOff) {
+            const released = await PhoneLease.release(db, lease);
+            if (released.isErr()) {
+              console.warn(`[rcs:pairing] lease release failed: ${describeForLog(released.error)}`);
+            }
           }
           if (!closed) {
             closed = true;

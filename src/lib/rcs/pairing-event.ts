@@ -8,12 +8,6 @@ import { z } from "zod";
 export const PairingEventSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("emoji"), emoji: z.string(), emojiImageUrl: z.string() }),
   z.object({ type: z.literal("paired") }),
-  z.object({
-    type: z.literal("sync"),
-    conversationsDone: z.number().int().nonnegative(),
-    conversationsTotal: z.number().int().nonnegative(),
-  }),
-  z.object({ type: z.literal("done") }),
   z.object({ type: z.literal("error"), message: z.string() }),
 ]);
 
