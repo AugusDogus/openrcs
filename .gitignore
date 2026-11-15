@@ -47,3 +47,6 @@ next-env.d.ts
 
 # self-hosting data and env
 /data/
+
+# demo recording output (scripts/demo/record.ts)
+/.demo/

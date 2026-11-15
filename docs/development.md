@@ -22,7 +22,7 @@ the container's Chromium, so run the app itself with
 | `bun test` | Unit tests (`bun:test`, temp databases with the real migrations) |
 | `bun run db:migrate` | Apply the `drizzle/` migrations to `DATABASE_URL` |
 | `bun run gen:proto` | Regenerate `src/gen/gmproto` from `proto/` |
-| `bun run demo:record` | Re-record the README demo (needs ffmpeg and `bunx playwright-core install chromium`; see `scripts/demo/record.ts`) |
+| `bun run demo:record` | Re-record the README demo into `.demo/openrcs.mp4` (needs ffmpeg and `bunx playwright-core install chromium`; publishing it is described in `scripts/demo/record.ts`) |
 
 Stack: Next.js 16 (App Router), React 19, Tailwind v4, Better Auth for
 sign-in, an OAuth 2.1 server of its own for MCP clients,
