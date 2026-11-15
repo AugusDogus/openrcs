@@ -3,9 +3,9 @@ import { getAuth } from "@/lib/auth";
 import { Env } from "@/lib/env";
 
 /**
- * Checks shared by the dashboard's state-changing routes (pairing, sync,
- * unpair, account deletion): the request must come from our own origin
- * (CSRF defense on top of SameSite cookies) and carry a Better Auth session.
+ * Checks shared by the dashboard's routes: every request carries a Better
+ * Auth session, and state-changing ones (pairing, sync, unpair) must also
+ * come from our own origin (CSRF defense on top of SameSite cookies).
  */
 export type SignedInRequest = { readonly userId: string };
 
@@ -20,18 +20,8 @@ const isSameOrigin = (request: Request, appOrigin: string): boolean =>
 
 const appOrigin = (): string => new URL(Env.auth().BETTER_AUTH_URL).origin;
 
-const requireSignedIn = async (
-  request: Request,
-): Promise<Result<SignedInRequest, RequestRejectedError>> => {
-  if (!isSameOrigin(request, appOrigin())) {
-    return Result.err(
-      new RequestRejectedError({
-        status: 403,
-        message:
-          "This request did not come from the openrcs dashboard, so it was refused. Nothing was changed. Reload the dashboard and try again.",
-      }),
-    );
-  }
+/** The Better Auth session alone, for read-only routes (browsers send no Origin on same-origin GETs). */
+const requireSession = async (request: Request): Promise<Result<SignedInRequest, RequestRejectedError>> => {
   const session = await Result.tryPromise({
     try: () => getAuth().api.getSession({ headers: request.headers }),
     catch: () =>
@@ -53,6 +43,21 @@ const requireSignedIn = async (
   return Result.ok({ userId: session.value.user.id });
 };
 
+const requireSignedIn = async (
+  request: Request,
+): Promise<Result<SignedInRequest, RequestRejectedError>> => {
+  if (!isSameOrigin(request, appOrigin())) {
+    return Result.err(
+      new RequestRejectedError({
+        status: 403,
+        message:
+          "This request did not come from the openrcs dashboard, so it was refused. Nothing was changed. Reload the dashboard and try again.",
+      }),
+    );
+  }
+  return requireSession(request);
+};
+
 /** JSON error body `{ error }` with no-store caching. */
 const errorResponse = (status: number, message: string, headers?: HeadersInit): Response => {
   const response = Response.json({ error: message }, { status, headers });
@@ -60,4 +65,4 @@ const errorResponse = (status: number, message: string, headers?: HeadersInit): 
   return response;
 };
 
-export const RequestGuard = { isSameOrigin, appOrigin, requireSignedIn, errorResponse } as const;
+export const RequestGuard = { isSameOrigin, appOrigin, requireSession, requireSignedIn, errorResponse } as const;

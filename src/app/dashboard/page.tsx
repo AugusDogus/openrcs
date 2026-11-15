@@ -4,6 +4,8 @@ import { Alert, AppShell, Section } from "@/app/_components/ui";
 import { requireCurrentUser } from "@/app/_lib/session";
 import { timeAgo } from "@/app/_lib/time";
 import { Env } from "@/lib/env";
+import { FirstSync } from "@/lib/rcs/first-sync";
+import type { FirstSyncProgress } from "@/lib/rcs/first-sync-status";
 import { Agents } from "./_components/agents";
 import { PhoneRow } from "./_components/phone-actions";
 import { loadPhoneState, type PhoneState } from "./_lib/phone-state";
@@ -46,7 +48,7 @@ async function Home() {
   return (
     <>
       <Section title="Phone">
-        <Phone state={state} />
+        <Phone state={state} firstSync={FirstSync.progress(user.id)} />
       </Section>
       <Suspense fallback={<div aria-hidden className="h-32 animate-pulse rounded-xl bg-surface-muted" />}>
         <Agents userId={user.id} mcpUrl={Env.mcpResourceUrl()} />
@@ -55,7 +57,13 @@ async function Home() {
   );
 }
 
-function Phone({ state }: { state: Extract<PhoneState, { kind: "paired" }> }) {
+function Phone({
+  state,
+  firstSync,
+}: {
+  state: Extract<PhoneState, { kind: "paired" }>;
+  firstSync: FirstSyncProgress | null;
+}) {
   const { session } = state;
   const name = session.phoneLabel ?? "Your phone";
   const lastError = session.lastError ?? state.lastSyncError;
@@ -74,13 +82,16 @@ function Phone({ state }: { state: Extract<PhoneState, { kind: "paired" }> }) {
   return (
     <div className="flex flex-col gap-3">
       <PhoneRow
+        // A new first sync remounts the row, so its progress starts fresh.
+        key={firstSync === null ? "idle" : "first-sync"}
         name={name}
         status={state.lastSyncAt ? `Synced ${timeAgo(state.lastSyncAt)}` : "Paired, not synced yet"}
         tone="ok"
         canSync
         repair={null}
+        firstSync={firstSync}
       />
-      {lastError ? <p className="text-sm leading-6 text-muted">Last error: {lastError}</p> : null}
+      {lastError && firstSync === null ? <p className="text-sm leading-6 text-muted">Last error: {lastError}</p> : null}
     </div>
   );
 }
