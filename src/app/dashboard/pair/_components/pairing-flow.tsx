@@ -162,18 +162,20 @@ function Emoji({ emoji, imageUrl }: { emoji: string; imageUrl: string }) {
   );
 }
 
+/** A spinner until the phone says how many conversations there are, then real progress. */
 function Progress({ done, total }: { done: number; total: number | null }) {
-  const percent = total === null || total === 0 ? null : Math.min(100, Math.round((done / total) * 100));
+  if (total === null) return <Waiting>Connecting to your phone</Waiting>;
+  const percent = total === 0 ? 100 : Math.min(100, Math.round((done / total) * 100));
   return (
     <div className="flex w-full max-w-xs flex-col items-center gap-3">
       <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
         <div
-          className={`h-full rounded-full bg-accent transition-[width] duration-300 ease-out ${percent === null ? "w-1/3 animate-pulse" : ""}`}
-          style={percent === null ? undefined : { width: `${percent}%` }}
+          className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out"
+          style={{ width: `${percent}%` }}
         />
       </div>
       <p className="text-sm text-muted tabular-nums">
-        {total === null ? "Starting…" : `${done} of ${total} conversations`}
+        {done} of {total} conversations
       </p>
     </div>
   );
