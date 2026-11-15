@@ -16,7 +16,9 @@
  *   ./server-preload.mjs, which also keeps the background sync off.
  *
  * Needs ffmpeg and Playwright's Chromium (`bunx playwright-core install chromium`).
- * Writes docs/media/demo.mp4, demo-poster.webp and demo-preview.webp.
+ * Writes .demo/openrcs.mp4 (not committed). To publish it, attach it to a PR
+ * comment (`gh issue comment <pr> --attach .demo/openrcs.mp4`) and put the
+ * comment's github.com/user-attachments URL on its own line in the README.
  * DEMO_SKIP_BUILD=1 reuses the existing `.next` build.
  */
 import { spawn, type ChildProcess } from "node:child_process";
@@ -34,7 +36,7 @@ import { run, startScreencast, writeFrameSequence } from "./screencast";
 import { Seed } from "./seed";
 
 const ROOT = resolve(import.meta.dirname, "../..");
-const OUT_DIR = join(ROOT, "docs/media");
+const OUT_DIR = join(ROOT, ".demo");
 
 /** 1280x800 video of a 1120x700 window. */
 const VIEWPORT = { width: 1120, height: 700 };
@@ -319,26 +321,17 @@ const main = async () => {
     const tEnd = Date.now() / 1000;
     const frames = await capture.stop();
 
-    // Encode: H.264 MP4, a poster and an animated preview for the README.
+    // Encode: H.264 MP4.
     const framesDir = mkdtempSync(join(work, "frames-"));
     const input = writeFrameSequence(frames, framesDir, tStart, tEnd);
-    const mp4 = join(OUT_DIR, "demo.mp4");
+    const mp4 = join(OUT_DIR, "openrcs.mp4");
     run("ffmpeg", [
       ...["-v", "error", "-y", ...input],
       ...["-vf", `scale=${VIDEO.width}:${VIDEO.height}:flags=lanczos:out_range=tv,format=yuv420p`, "-color_range", "tv"],
       ...["-c:v", "libx264", "-preset", "veryslow", "-crf", "20", "-tune", "animation", "-profile:v", "high"],
       ...["-movflags", "+faststart", "-an", mp4],
     ]);
-    run("ffmpeg", ["-v", "error", "-y", "-i", mp4, "-frames:v", "1", "-c:v", "libwebp", "-quality", "88", join(OUT_DIR, "demo-poster.webp")]);
-    run("ffmpeg", [
-      ...["-v", "error", "-y", "-i", mp4],
-      ...["-vf", "fps=15", "-c:v", "libwebp_anim", "-quality", "90", "-compression_level", "6"],
-      ...["-loop", "0", join(OUT_DIR, "demo-preview.webp")],
-    ]);
-    for (const name of ["demo.mp4", "demo-poster.webp", "demo-preview.webp"]) {
-      console.log(`${name}: ${(statSync(join(OUT_DIR, name)).size / 1024).toFixed(0)} KiB`);
-    }
-    console.log(`duration: ${(tEnd - tStart).toFixed(1)} s`);
+    console.log(`${mp4}: ${(statSync(mp4).size / 1024).toFixed(0)} KiB, ${(tEnd - tStart).toFixed(1)} s`);
   } finally {
     await browser.close();
     pairing.close();

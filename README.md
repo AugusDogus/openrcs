@@ -9,11 +9,7 @@
   Self-hosted in one Docker container, reachable only over your tailnet.
 </p>
 
-<p align="center">
-  <a href="docs/media/demo.mp4">
-    <img src="docs/media/demo-preview.webp" width="800" alt="Demo: signing in to Google in the browser on the pairing page, tapping the emoji on the phone, then the dashboard syncing 58 conversations and Claude Code showing up under Agents">
-  </a>
-</p>
+https://github.com/user-attachments/assets/e7479373-922e-401b-a877-2a8598acd378
 
 ## Quick start
 
