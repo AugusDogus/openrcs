@@ -2,26 +2,7 @@ import { TaggedError } from "better-result";
 import type { KeySlotKind } from "@/lib/db/vault-schema";
 
 /** Why a key slot could not be used. None of these reveal whether a secret was close. */
-export type KeySlotRejection =
-  | "not_found"
-  | "wrong_kind"
-  | "wrong_user"
-  | "wrong_secret"
-  | "revoked"
-  | "expired"
-  | "stale_key"
-  | "unwrap_failed";
-
-/**
- * This browser cannot unlock the user's DEK: no device cookie, or its slot is
- * unknown, revoked, expired, for an older key, or does not match. Nothing was
- * changed. The user re-pairs in this browser or uses the browser that paired.
- */
-export class VaultLockedError extends TaggedError("VaultLockedError")<{
-  userId: string;
-  reason: "no_cookie" | "malformed_cookie" | "paired_elsewhere" | KeySlotRejection;
-  message: string;
-}> {}
+export type KeySlotRejection = "not_found" | "wrong_kind" | "wrong_user" | "wrong_secret" | "revoked" | "expired";
 
 /** A vault read or write failed in the database. Earlier committed state is intact. */
 export class VaultStorageError extends TaggedError("VaultStorageError")<{
@@ -31,7 +12,7 @@ export class VaultStorageError extends TaggedError("VaultStorageError")<{
   message: string;
 }> {}
 
-/** A presented slot credential (device cookie, code, refresh token) cannot be used. */
+/** A presented slot credential (authorization code, refresh token) cannot be used. */
 export class KeySlotInvalidError extends TaggedError("KeySlotInvalidError")<{
   slotId: string;
   kind: KeySlotKind;

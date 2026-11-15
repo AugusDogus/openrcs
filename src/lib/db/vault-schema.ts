@@ -3,10 +3,9 @@ import { check, index, integer, sqliteTable, text } from "drizzle-orm/sqlite-cor
 import { user } from "./auth-schema";
 
 /**
- * Split-key vault and OAuth authorization server tables (docs/security.md).
- * Nothing here is secret on its own: slot secrets and DEKs never reach the
- * database; `verifier` is a one-way hash and `wrapped_dek` needs both the
- * client-held slot secret and the server's KEY_PEPPER to open.
+ * Vault and OAuth authorization server tables (docs/security.md). Client
+ * secrets (authorization codes, refresh tokens) never reach the database,
+ * only a one-way `verifier`. `user_key.wrapped_dek` opens with KEY_PEPPER.
  */
 
 const nowMs = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
@@ -52,8 +51,6 @@ export const oauthGrant = sqliteTable(
       .references(() => oauthClient.clientId, { onDelete: "cascade" }),
     /** Space-separated granted scopes. */
     scope: text("scope").notNull(),
-    /** The DEK generation this grant unlocks (matches gm_session.dek_id). */
-    dekId: text("dek_id").notNull(),
     createdAt: integer("created_at").default(nowMs).notNull(),
     lastUsedAt: integer("last_used_at"),
     revokedAt: integer("revoked_at"),
@@ -62,22 +59,22 @@ export const oauthGrant = sqliteTable(
   (table) => [index("oauth_grant_user_idx").on(table.userId)],
 );
 
-export const KEY_SLOT_KINDS = ["device", "oauth_code", "oauth_refresh"] as const;
+export const KEY_SLOT_KINDS = ["oauth_code", "oauth_refresh"] as const;
 export type KeySlotKind = (typeof KEY_SLOT_KINDS)[number];
 
-/** A copy of a user's DEK wrapped under a KEK derived from a client-held secret plus KEY_PEPPER. */
+/**
+ * An OAuth credential the client holds (an authorization code or a refresh
+ * token): its id and secret verifier, lifecycle and replay state. The table
+ * keeps its historical name from when slots also wrapped a DEK.
+ */
 export const keySlot = sqliteTable(
   "key_slot",
   {
     id: text("id").primaryKey(),
     userId: userIdRef(),
     kind: text("kind", { enum: KEY_SLOT_KINDS }).notNull(),
-    dekId: text("dek_id").notNull(),
     /** base64url SHA-256 verifier of the slot secret (see docs/security.md). */
     verifier: text("verifier").notNull(),
-    /** AES-256-GCM envelope of the DEK under the slot's KEK. */
-    wrappedDek: text("wrapped_dek").notNull(),
-    /** Set for oauth_code / oauth_refresh slots. */
     grantId: text("grant_id").references(() => oauthGrant.id, { onDelete: "cascade" }),
     /** Non-secret JSON for oauth_code slots: client id, redirect URI, PKCE challenge, scope, resource. */
     payloadJson: text("payload_json"),
@@ -92,10 +89,7 @@ export const keySlot = sqliteTable(
   (table) => [
     index("key_slot_user_kind_idx").on(table.userId, table.kind),
     index("key_slot_grant_idx").on(table.grantId),
-    check(
-      "key_slot_kind_check",
-      sql`${table.kind} in ('device', 'oauth_code', 'oauth_refresh')`,
-    ),
+    check("key_slot_kind_check", sql`${table.kind} in ('oauth_code', 'oauth_refresh')`),
   ],
 );
 

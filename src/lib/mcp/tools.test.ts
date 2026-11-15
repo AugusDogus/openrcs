@@ -20,10 +20,8 @@ import { createRcsMcpServer, type RcsMcpContext } from "./server";
 // the first call (never at the developer's .env.local database).
 const dbPath = join(tmpdir(), `openrcs-mcp-test-${randomBytes(8).toString("hex")}.db`);
 process.env.DATABASE_URL = `file:${dbPath}`;
-// Tools unlock data with the server key, which needs the vault environment.
+// Tools unlock data with the server key, which needs KEY_PEPPER.
 process.env.KEY_PEPPER = randomBytes(32).toString("base64");
-process.env.BETTER_AUTH_URL ??= "https://openrcs.test";
-process.env.BETTER_AUTH_SECRET ??= randomBytes(32).toString("base64");
 
 const userId = `user_${randomBytes(6).toString("hex")}`;
 let dek: Dek;

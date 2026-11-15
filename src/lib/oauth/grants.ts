@@ -2,7 +2,6 @@ import { Result } from "better-result";
 import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { keySlot, oauthClient, oauthGrant } from "@/lib/db/vault-schema";
-import { KeySlot } from "@/lib/vault/key-slot";
 import { OAuthErrors, type OAuthStorageError } from "./errors";
 import { McpScope } from "./scopes";
 
@@ -34,7 +33,7 @@ const load = (db: Database, grantId: string): Promise<Result<OAuthGrantRow | nul
 
 /**
  * Revokes a grant and every key slot (codes, refresh tokens) under it in one
- * batch, destroying the slots' key shares. Access tokens die with it because
+ * batch. Access tokens die with it because
  * every request checks the grant. Revoking an already revoked grant keeps the
  * first reason and time.
  */
@@ -53,7 +52,7 @@ const revoke = (
           .where(and(eq(oauthGrant.id, grantId), isNull(oauthGrant.revokedAt))),
         db
           .update(keySlot)
-          .set({ revokedAt: sql`coalesce(${keySlot.revokedAt}, ${now})`, wrappedDek: KeySlot.TOMBSTONE })
+          .set({ revokedAt: sql`coalesce(${keySlot.revokedAt}, ${now})` })
           .where(eq(keySlot.grantId, grantId)),
       ]);
     },

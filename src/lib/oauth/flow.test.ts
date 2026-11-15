@@ -91,7 +91,7 @@ const decide = (ticket: string, decision: "approve" | "deny", cookie: string, or
     OAuthTesting.form(`${TEST_ORIGIN}/oauth/consent/decision`, { ticket, decision }, { origin, cookie }),
   );
 
-/** Runs authorize -> consent -> approve for `browser` and returns the code plus the browser's new cookies. */
+/** Runs authorize -> consent -> approve for `browser` and returns the code. */
 const approve = async (browser: Browser, clientId: string, challenge: string, extra: Record<string, string> = {}) => {
   const ticket = readyTicket(await consentView(authorizeParams(clientId, challenge, extra), browser.cookie));
   const response = await decide(ticket, "approve", browser.cookie);
@@ -100,9 +100,8 @@ const approve = async (browser: Browser, clientId: string, challenge: string, ex
   expect(`${location.origin}${location.pathname}`).toBe(REDIRECT);
   expect(location.searchParams.get("state")).toBe("state-123");
   expect(location.searchParams.get("iss")).toBe(TEST_ORIGIN);
-  const setCookie = response.headers.get("set-cookie");
-  browser.cookie = OAuthTesting.mergeCookies(browser.cookie, setCookie ? VaultTesting.cookiePair(setCookie) : null);
-  return { code: location.searchParams.get("code") ?? "", setCookie };
+  expect(response.headers.get("set-cookie")).toBeNull();
+  return { code: location.searchParams.get("code") ?? "" };
 };
 
 const token = (params: Record<string, string>, headers: Record<string, string> = {}) =>
@@ -139,11 +138,11 @@ const connected = async () => {
   const client = await registerClient();
   const browser = await h.signIn();
   const { verifier, challenge } = OAuthTesting.pkce();
-  const { code, setCookie } = await approve(browser, client.client_id, challenge);
+  const { code } = await approve(browser, client.client_id, challenge);
   const response = await exchange(client.client_id, code, verifier);
   expect(response.status).toBe(200);
   const tokens = tokenResponse.parse(await response.json());
-  return { client, browser, code, verifier, tokens, setCookie };
+  return { client, browser, code, verifier, tokens };
 };
 
 const grantOf = async (userId: string) => {
@@ -154,10 +153,8 @@ const grantOf = async (userId: string) => {
 
 describe("authorization code flow", () => {
   test("register -> authorize -> consent -> token -> authenticated MCP request", async () => {
-    const { client, browser, tokens, setCookie } = await connected();
+    const { client, browser, tokens } = await connected();
     expect(tokens.scope).toBe("messages:read messages:send");
-    // First consent before pairing minted the vault key and set the device cookie.
-    expect(setCookie).toMatch(/^__Host-openrcs-device-[A-Za-z0-9_-]{16}=.*; HttpOnly; SameSite=Lax; Secure$/);
 
     const auth = (await McpAuth.authenticate(h.ctx, mcpRequest(tokens.access_token))).unwrap();
     expect(auth.userId).toBe(browser.userId);
@@ -167,13 +164,12 @@ describe("authorization code flow", () => {
     expect(auth.grantId).toBe(grant.id);
   });
 
-  test("a second consent from the paired browser reuses its key and sets no cookie", async () => {
+  test("a second client gets its own grant", async () => {
     const { browser, tokens } = await connected();
     const first = (await McpAuth.authenticate(h.ctx, mcpRequest(tokens.access_token))).unwrap();
     const other = await registerClient();
     const { verifier, challenge } = OAuthTesting.pkce();
-    const { code, setCookie } = await approve(browser, other.client_id, challenge);
-    expect(setCookie).toBeNull();
+    const { code } = await approve(browser, other.client_id, challenge);
     const second = tokenResponse.parse(await (await exchange(other.client_id, code, verifier)).json());
     const auth = (await McpAuth.authenticate(h.ctx, mcpRequest(second.access_token))).unwrap();
     expect(auth.userId).toBe(first.userId);
@@ -310,31 +306,19 @@ describe("consent CSRF protection", () => {
   });
 });
 
-describe("consent lock rule", () => {
-  test("after pairing, a browser that cannot unlock the account sees the locked page and cannot approve", async () => {
-    const { browser, client } = await connected();
-    const grant = await grantOf(browser.userId);
-    // Pair the phone under the DEK this browser holds.
-    await VaultTesting.pairSession(h.ctx.db, browser.userId, { id: grant.dekId, bytes: new Uint8Array(32) });
+describe("who can approve", () => {
+  test("after pairing, any signed-in browser of the user approves, and the grant is theirs", async () => {
+    const client = await registerClient();
+    const firstBrowser = await h.signIn();
+    await ServerKey.createWith(h.ctx.db, h.ctx.vault, firstBrowser.userId);
+    await VaultTesting.pairSession(h.ctx.db, firstBrowser.userId, Dek.generate());
 
-    const sessionOnly = {
-      userId: browser.userId,
-      cookie: browser.cookie
-        .split("; ")
-        .filter((cookie) => !cookie.startsWith("__Host-openrcs-device"))
-        .join("; "),
-    };
-    const params = authorizeParams(client.client_id, OAuthTesting.pkce().challenge);
-    const view = await consentView(params, sessionOnly.cookie);
-    expect(view.kind).toBe("locked");
-
-    // A ticket obtained by the paired browser cannot be redeemed without its device cookie either.
-    const ticket = readyTicket(await consentView(params, browser.cookie));
-    const response = await decide(ticket, "approve", sessionOnly.cookie);
-    expect(response.status).toBe(303);
-    expect(response.headers.get("location")?.startsWith("/oauth/consent?")).toBe(true);
-    const grants = await h.ctx.db.select().from(oauthGrant).where(eq(oauthGrant.userId, browser.userId));
-    expect(grants).toHaveLength(1);
+    const otherBrowser = await h.signIn(firstBrowser.userId);
+    const { verifier, challenge } = OAuthTesting.pkce();
+    const { code } = await approve(otherBrowser, client.client_id, challenge);
+    const tokens = tokenResponse.parse(await (await exchange(client.client_id, code, verifier)).json());
+    const auth = (await McpAuth.authenticate(h.ctx, mcpRequest(tokens.access_token))).unwrap();
+    expect(auth.userId).toBe(firstBrowser.userId);
   });
 });
 
@@ -507,38 +491,25 @@ describe("token endpoint: refresh_token", () => {
   });
 });
 
-describe("key share destruction", () => {
-  test("after use, rotation and revocation, no old credential can unwrap the DEK", async () => {
+describe("used credentials", () => {
+  test("after use, rotation and revocation, every credential row stays for replay detection and none opens", async () => {
     const { client, code, tokens, browser } = await connected();
     const rotated = tokenResponse.parse(await (await refresh(client.client_id, tokens.refresh_token)).json());
     const grant = await grantOf(browser.userId);
     expect((await OAuthGrants.revokeOwned(h.ctx.db, browser.userId, grant.id, h.clock.now())).unwrap()).toBe(true);
 
     const credentials = [
-      AuthorizationCode.parse(code),
-      RefreshToken.parse(tokens.refresh_token),
-      RefreshToken.parse(rotated.refresh_token),
+      { credential: AuthorizationCode.parse(code), kind: "oauth_code" as const },
+      { credential: RefreshToken.parse(tokens.refresh_token), kind: "oauth_refresh" as const },
+      { credential: RefreshToken.parse(rotated.refresh_token), kind: "oauth_refresh" as const },
     ];
-    for (const credential of credentials) {
+    for (const { credential, kind } of credentials) {
       if (!credential) throw new Error("expected a parsable credential");
       const [row] = await h.ctx.db.select().from(keySlot).where(eq(keySlot.id, credential.slotId));
       if (!row) throw new Error("expected the slot row to remain for replay detection");
       expect(KeySlot.verify(h.ctx.vault, row, credential).isOk()).toBe(true);
-      expect(KeySlot.unwrap(h.ctx.vault, row, credential).isErr()).toBe(true);
+      expect((await KeySlot.open(h.ctx.db, h.ctx.vault, { credential, kind })).isErr()).toBe(true);
     }
-  });
-
-  test("an unredeemed, expired code loses its key share on the user's next token write", async () => {
-    const { client, tokens, browser } = await connected();
-    const { challenge } = OAuthTesting.pkce();
-    const { code } = await approve(browser, client.client_id, challenge);
-    h.clock.advance(60_000);
-    expect((await refresh(client.client_id, tokens.refresh_token)).status).toBe(200);
-    const credential = AuthorizationCode.parse(code);
-    if (!credential) throw new Error("expected a parsable code");
-    const [row] = await h.ctx.db.select().from(keySlot).where(eq(keySlot.id, credential.slotId));
-    if (!row) throw new Error("expected the code slot row");
-    expect(KeySlot.unwrap(h.ctx.vault, row, credential).isErr()).toBe(true);
   });
 });
 

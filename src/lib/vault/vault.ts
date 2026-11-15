@@ -2,9 +2,6 @@ import { Result } from "better-result";
 import { eq } from "drizzle-orm";
 import type { Database } from "@/lib/db/client";
 import { keySlot, oauthGrant } from "@/lib/db/vault-schema";
-import { Env } from "@/lib/env";
-import { VaultConfig, type DeviceCookieSettings } from "./config";
-import { DeviceCookie } from "./device";
 import { VaultErrors, type VaultStorageError } from "./errors";
 
 const revokeAll = (db: Database, userId: string): Promise<Result<void, VaultStorageError>> =>
@@ -21,9 +18,4 @@ const revokeAll = (db: Database, userId: string): Promise<Result<void, VaultStor
 export const Vault = {
   /** Unpair/delete: revoke and delete every slot and grant of the user. */
   revokeAll,
-  /** Set-Cookie header value removing `userId`'s device cookie (other accounts in the browser keep theirs). */
-  clearDeviceCookie: (userId: string): string =>
-    DeviceCookie.clear(VaultConfig.deviceCookieFor(Env.auth().BETTER_AUTH_URL), userId),
-  clearDeviceCookieWith: (settings: DeviceCookieSettings, userId: string): string =>
-    DeviceCookie.clear(settings, userId),
 } as const;

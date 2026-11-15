@@ -43,6 +43,13 @@
       "when": 1794713325009,
       "tag": "0005_server_key",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1794713740701,
+      "tag": "0006_oauth_credentials_without_dek",
+      "breakpoints": true
     }
   ]
 }
