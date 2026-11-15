@@ -2,11 +2,10 @@ import { getDb } from "@/lib/db/client";
 import { describeForLog } from "@/lib/rcs/errors";
 import { RequestGuard } from "@/lib/rcs/request-guard";
 import { unpairUser } from "@/lib/rcs/unpair";
-import { Vault } from "@/lib/vault";
 
 /**
  * Unpair: best-effort unpair on the phone, then delete stored messages, the
- * session, every key slot and grant, and the device cookie.
+ * session, every key slot and grant, and the server key.
  */
 
 export async function POST(request: Request): Promise<Response> {
@@ -29,6 +28,6 @@ export async function POST(request: Request): Promise<Response> {
   }
   return Response.json(
     { ok: true, phoneNotified: unpaired.value.phoneNotified },
-    { headers: { "cache-control": "no-store", "set-cookie": Vault.clearDeviceCookie(signedIn.value.userId) } },
+    { headers: { "cache-control": "no-store" } },
   );
 }

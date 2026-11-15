@@ -33,7 +33,7 @@ const DatabaseEnvSchema = z.object({
   ),
 });
 
-/** Server key share for the split-key vault (docs/security.md). */
+/** The server key every user's data key is wrapped under (docs/security.md). */
 const VaultEnvSchema = z.object({
   KEY_PEPPER: nonEmpty("KEY_PEPPER").refine(
     (value) =>
@@ -116,7 +116,7 @@ export const Env = {
   auth: lazySection(parseAuth),
   /** DATABASE_URL (a libSQL URL, `file:/data/openrcs.db` in the container). */
   database: lazySection(parseDatabase),
-  /** KEY_PEPPER (base64, 32 bytes): the server's key share. */
+  /** KEY_PEPPER (base64, 32 bytes): the server key. */
   vault: lazySection(parseVault),
   parseAuth,
   parseDatabase,

@@ -4,14 +4,12 @@ import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { keySlot } from "@/lib/db/vault-schema";
 import { Base64Url } from "@/lib/vault/base64url";
-import type { Dek } from "@/lib/vault/dek";
 import { KeySlot, type KeySlotRow, type SlotCredential } from "@/lib/vault/key-slot";
 import { OAuthClients, type OAuthClientRecord } from "./clients";
 import { OAuthContext } from "./context";
 import { OAuthErrors, type OAuthProtocolError, type OAuthStorageError } from "./errors";
 import { OAuthGrants, type GrantRevocationReason, type OAuthGrantRow } from "./grants";
 import { OAuthHttp } from "./http";
-import { OAuthLog } from "./log";
 import { McpScope } from "./scopes";
 import { RequestThrottle } from "./throttle";
 import {
@@ -79,23 +77,20 @@ const liveGrant = async (
 type IssuedTokens = { readonly refreshToken: string; readonly accessToken: string; readonly scope: string };
 
 /**
- * Marks `consumedSlotId` used (destroying its key share) and stores a new
- * refresh slot in one write transaction. Ok(null) when another request
- * consumed the slot first.
+ * Marks `consumedSlotId` used and stores a new refresh slot in one write
+ * transaction. Ok(null) when another request consumed the slot first.
  */
 const rotate = async (
   ctx: OAuthContext,
   consumedSlotId: string,
   grant: OAuthGrantRow,
   client: OAuthClientRecord,
-  dek: Dek,
   scopes: readonly McpScope[],
 ): Promise<Result<IssuedTokens | null, OAuthStorageError>> => {
   const now = ctx.vault.now();
   const refresh = KeySlot.mint(ctx.vault, {
     userId: grant.userId,
     kind: "oauth_refresh",
-    dek,
     grantId: grant.id,
     expiresAt: now + REFRESH_TOKEN_TTL_MS,
   });
@@ -104,7 +99,7 @@ const rotate = async (
       ctx.db.transaction(async (tx) => {
         const consumed = await tx
           .update(keySlot)
-          .set({ consumedAt: now, lastUsedAt: now, wrappedDek: KeySlot.TOMBSTONE })
+          .set({ consumedAt: now, lastUsedAt: now })
           .where(
             and(eq(keySlot.id, consumedSlotId), isNull(keySlot.consumedAt), isNull(keySlot.revokedAt)),
           )
@@ -117,9 +112,6 @@ const rotate = async (
   });
   if (committed.isErr()) return Result.err(committed.error);
   if (!committed.value) return Result.ok(null);
-  // Maintenance: the tokens are issued either way, so a failure is only logged.
-  const swept = await KeySlot.destroyExpired(ctx.db, grant.userId, now);
-  if (swept.isErr()) OAuthLog.failure(swept.error.operation, swept.error.cause);
   return Result.ok({
     refreshToken: RefreshToken.format(refresh.credential),
     accessToken: AccessToken.seal(ctx.vault.pepper, {
@@ -148,7 +140,7 @@ const openSlot = async (
   kind: "oauth_code" | "oauth_refresh",
   replayReason: GrantRevocationReason,
   classifyReplay: (consumedAt: number) => ReplayVerdict,
-): Promise<Result<{ row: KeySlotRow; dek: Dek }, TokenError>> => {
+): Promise<Result<KeySlotRow, TokenError>> => {
   const what = kind === "oauth_code" ? "authorization code" : "refresh token";
   if (!credential) return Result.err(invalidGrant(`The ${what} is invalid.`));
   const opened = await KeySlot.open(ctx.db, ctx.vault, { credential, kind });
@@ -164,9 +156,7 @@ const openSlot = async (
             ? `The ${what} has expired.`
             : error.reason === "revoked"
               ? `The ${what} was revoked. Authorize the client again.`
-              : error.reason === "stale_key"
-                ? `The ${what} is for an older pairing. Authorize the client again.`
-                : `The ${what} is invalid.`,
+              : `The ${what} is invalid.`,
         ),
       );
     case "KeySlotConsumedError": {
@@ -211,7 +201,7 @@ const exchangeCode = async (
     (consumedAt) => (now - consumedAt <= AUTHORIZATION_CODE_REPLAY_WINDOW_MS ? "theft" : "stale"),
   );
   if (opened.isErr()) return Result.err(opened.error);
-  const { row, dek } = opened.value;
+  const row = opened.value;
   const payload = codePayloadSchema.safeParse(
     Result.try((): unknown => JSON.parse(row.payloadJson ?? "null")).unwrapOr(null),
   );
@@ -234,7 +224,7 @@ const exchangeCode = async (
   const grant = await liveGrant(ctx, row, client);
   if (grant.isErr()) return Result.err(grant.error);
 
-  const rotated = await rotate(ctx, row.id, grant.value, client, dek, McpScope.parse(issued.scope).scopes);
+  const rotated = await rotate(ctx, row.id, grant.value, client, McpScope.parse(issued.scope).scopes);
   if (rotated.isErr()) return Result.err(rotated.error);
   if (rotated.value === null) {
     // Another request redeemed this code between our read and write.
@@ -265,7 +255,7 @@ const refresh = async (
     (consumedAt) => (now - consumedAt <= REFRESH_REUSE_GRACE_MS ? "benign" : "theft"),
   );
   if (opened.isErr()) return Result.err(opened.error);
-  const { row, dek } = opened.value;
+  const row = opened.value;
   const grant = await liveGrant(ctx, row, client);
   if (grant.isErr()) return Result.err(grant.error);
 
@@ -282,7 +272,7 @@ const refresh = async (
     scopes = requested.scopes;
   }
 
-  const rotated = await rotate(ctx, row.id, grant.value, client, dek, scopes);
+  const rotated = await rotate(ctx, row.id, grant.value, client, scopes);
   if (rotated.isErr()) return Result.err(rotated.error);
   if (rotated.value === null) {
     // A concurrent refresh with the same token won; treat as a retry inside the grace window.

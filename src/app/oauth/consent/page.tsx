@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import { Actions, Alert, AuthShell, buttonClass, PageTitle } from "@/app/_components/ui";
@@ -45,18 +44,6 @@ async function ConsentContent({ searchParams }: { searchParams: Promise<SearchPa
       return <Alert tone="warning">{view.message}</Alert>;
     case "unavailable":
       return <Alert tone="danger">{view.message}</Alert>;
-    case "locked":
-      return (
-        <>
-          <PageTitle title={`Allow ${view.clientName} to use openrcs?`} />
-          <Alert tone="warning">{view.message}</Alert>
-          <Actions>
-            <Link href="/dashboard" className={buttonClass("primary")}>
-              Open openrcs
-            </Link>
-          </Actions>
-        </>
-      );
     case "ready":
       return (
         <>
@@ -74,11 +61,6 @@ async function ConsentContent({ searchParams }: { searchParams: Promise<SearchPa
               </li>
             ))}
           </ul>
-          {view.createsKey ? (
-            <p className="text-sm leading-6 text-muted">
-              This browser becomes the one that holds your key, so pair your phone from it afterwards.
-            </p>
-          ) : null}
           <form method="post" action="/oauth/consent/decision">
             <input type="hidden" name="ticket" value={view.ticket} />
             <Actions>

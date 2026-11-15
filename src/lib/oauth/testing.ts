@@ -25,8 +25,8 @@ export type OAuthTestHarness = {
   readonly ctx: OAuthContext;
   readonly clock: TestClock;
   readonly cleanup: () => Promise<void>;
-  /** A signed-in browser for a new user: its Cookie header (session cookie only). */
-  readonly signIn: () => Promise<{ readonly userId: string; readonly cookie: string }>;
+  /** A signed-in browser for a new user, or another browser of `userId`: its Cookie header (session cookie only). */
+  readonly signIn: (userId?: string) => Promise<{ readonly userId: string; readonly cookie: string }>;
 };
 
 const create = async (): Promise<OAuthTestHarness> => {
@@ -37,10 +37,7 @@ const create = async (): Promise<OAuthTestHarness> => {
   const ctx: OAuthContext = {
     db: database.db,
     origin: TEST_ORIGIN,
-    vault: {
-      ...VaultTesting.vaultConfig({ now: clock.now }),
-      deviceCookie: { name: "__Host-openrcs-device", secure: true },
-    },
+    vault: VaultTesting.vaultConfig({ now: clock.now }),
     ticketSecret: secret,
     getSession: async (headers) => {
       const session = await auth.api.getSession({ headers });
@@ -51,8 +48,8 @@ const create = async (): Promise<OAuthTestHarness> => {
     ctx,
     clock,
     cleanup: database.cleanup,
-    signIn: async () => {
-      const userId = await VaultTesting.createUser(database.db);
+    signIn: async (existing) => {
+      const userId = existing ?? (await VaultTesting.createUser(database.db));
       const { test } = await auth.$context;
       const login = await test.login({ userId });
       return { userId, cookie: login.headers.get("cookie") ?? "" };
@@ -81,16 +78,4 @@ const json = (url: string, body: unknown, headers: Record<string, string> = {}) 
     body: JSON.stringify(body),
   });
 
-/** Merges Cookie headers, later values winning per name. */
-const mergeCookies = (...headers: readonly (string | null | undefined)[]): string => {
-  const jar = new Map<string, string>();
-  for (const header of headers) {
-    for (const part of (header ?? "").split(";")) {
-      const index = part.indexOf("=");
-      if (index > 0) jar.set(part.slice(0, index).trim(), part.slice(index + 1).trim());
-    }
-  }
-  return [...jar].map(([name, value]) => `${name}=${value}`).join("; ");
-};
-
-export const OAuthTesting = { create, pkce, form, json, mergeCookies } as const;
+export const OAuthTesting = { create, pkce, form, json } as const;

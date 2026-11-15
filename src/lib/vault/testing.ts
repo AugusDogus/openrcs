@@ -39,7 +39,7 @@ const createUser = async (db: Database, id = `user_${randomBytes(6).toString("he
   return id;
 };
 
-/** Simulates a paired phone: a gm_session row for `dek` (contents are irrelevant to the vault). */
+/** Simulates a paired phone: a gm_session row for `dek` (contents are irrelevant here). */
 const pairSession = async (db: Database, userId: string, dek: Dek) => {
   await db
     .insert(gmSession)
@@ -62,18 +62,10 @@ const clock = (start = Date.UTC(2026, 10, 6, 12, 0, 0)): TestClock => {
   };
 };
 
-const vaultConfig = (
-  options: { pepper?: Uint8Array; now?: () => number; secure?: boolean } = {},
-): VaultConfig => ({
+const vaultConfig = (options: { pepper?: Uint8Array; now?: () => number } = {}): VaultConfig => ({
   pepper: options.pepper ?? new Uint8Array(randomBytes(32)),
-  deviceCookie: options.secure === false
-    ? { name: "__openrcs-device", secure: false }
-    : { name: "__Host-openrcs-device", secure: true },
   now: options.now ?? (() => Date.now()),
 });
-
-/** "name=value" from a Set-Cookie header value, for building a Cookie header. */
-const cookiePair = (setCookie: string): string => setCookie.split(";")[0] ?? "";
 
 export const VaultTesting = {
   createDb,
@@ -81,5 +73,4 @@ export const VaultTesting = {
   pairSession,
   clock,
   vaultConfig,
-  cookiePair,
 } as const;

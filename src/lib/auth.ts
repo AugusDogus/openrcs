@@ -10,8 +10,7 @@ import { SessionCookie } from "@/lib/session-cookie";
 /**
  * Better Auth handles sign-in (your Tailscale identity, src/lib/auth-tailscale.ts)
  * and browser sessions only. MCP clients authenticate through our own OAuth
- * server in `src/lib/oauth`, whose tokens carry a client-held key share
- * (docs/security.md).
+ * server in `src/lib/oauth` (docs/security.md).
  */
 export type AuthConfig = {
   /** Public origin without trailing slash, e.g. `https://openrcs.example.ts.net`. */

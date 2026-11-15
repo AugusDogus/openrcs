@@ -218,7 +218,7 @@ describe("POST /oauth/register", () => {
     });
     await h.ctx.db.insert(oauthClient).values([client("unused-old", old), client("used-old", old), client("unused-new", h.clock.now())]);
     const userId = await VaultTesting.createUser(h.ctx.db);
-    await h.ctx.db.insert(oauthGrant).values({ id: "g1", userId, clientId: "used-old", scope: "messages:read", dekId: "d1" });
+    await h.ctx.db.insert(oauthGrant).values({ id: "g1", userId, clientId: "used-old", scope: "messages:read" });
     await h.ctx.db.insert(requestThrottle).values([
       { key: "token:ip:192.0.2.1", windowStart: old, count: 3 },
       { key: "token:ip:192.0.2.2", windowStart: h.clock.now(), count: 3 },
