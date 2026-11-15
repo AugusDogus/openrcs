@@ -6,7 +6,10 @@ import { PairingBrowser, type PairingBrowserError } from "./pairing-browser";
 
 /** Route glue for the self-hosted sign-in browser (POST /api/pair/browser, GET /api/pair/browser/authorize). */
 
-const ActionSchema = z.object({ action: z.enum(["start", "poll", "stop"]) });
+const ActionSchema = z.discriminatedUnion("action", [
+  z.object({ action: z.literal("start"), colorScheme: z.enum(["light", "dark"]) }),
+  z.object({ action: z.enum(["poll", "stop"]) }),
+]);
 
 const statusFor = (error: PairingBrowserError): number => {
   switch (error.reason) {
@@ -29,18 +32,22 @@ export const handlePairingBrowserAction = async (request: Request): Promise<Resp
   if (signedIn.isErr()) return RequestGuard.errorResponse(signedIn.error.status, signedIn.error.message);
   const body = ActionSchema.safeParse(await request.json().catch(() => null));
   if (!body.success) {
-    return RequestGuard.errorResponse(400, 'Expected a JSON body like {"action": "start"} (start, poll or stop).');
+    return RequestGuard.errorResponse(
+      400,
+      'Expected a JSON body like {"action": "start", "colorScheme": "dark"} or {"action": "poll"} (or "stop").',
+    );
   }
   const userId = signedIn.value.userId;
   const b = PairingBrowser.fromEnv();
-  if (body.data.action === "stop") {
+  const action = body.data;
+  if (action.action === "stop") {
     await b.stop(userId);
     return noStore(Response.json({ status: "idle" }));
   }
-  const result = body.data.action === "start" ? await b.start(userId) : await b.poll(userId);
+  const result = action.action === "start" ? await b.start(userId, action.colorScheme) : await b.poll(userId);
   if (result.isErr()) {
     if (result.error.reason === "launch" || result.error.reason === "cookies") {
-      console.error(`[pairing-browser] ${body.data.action} failed: ${result.error.reason}`);
+      console.error(`[pairing-browser] ${action.action} failed: ${result.error.reason}`);
     }
     return RequestGuard.errorResponse(statusFor(result.error), result.error.message);
   }
