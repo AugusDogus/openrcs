@@ -12,7 +12,8 @@
     "gen:proto": "buf generate",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "bun src/lib/db/migrate.ts",
-    "db:auth-schema": "bunx auth@1.7.18 generate --config src/lib/db/auth-cli.config.ts --output src/lib/db/auth-schema.ts --yes"
+    "db:auth-schema": "bunx auth@1.7.18 generate --config src/lib/db/auth-cli.config.ts --output src/lib/db/auth-schema.ts --yes",
+    "demo:record": "bun scripts/demo/record.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "^2.17.0",
@@ -37,6 +38,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.5",
+    "playwright-core": "1.58.2",
     "tailwindcss": "^4",
     "typescript": "^5"
   },
