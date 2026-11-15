@@ -10,8 +10,7 @@ type FlowState =
   | { readonly stage: "browser" }
   | { readonly stage: "starting" }
   | { readonly stage: "emoji"; readonly emoji: string; readonly emojiImageUrl: string }
-  | { readonly stage: "syncing"; readonly done: number; readonly total: number | null }
-  | { readonly stage: "done"; readonly warning: string | null }
+  | { readonly stage: "paired" }
   | { readonly stage: "error"; readonly message: string };
 
 /** Where nginx serves the sign-in browser stream (docker/root/defaults/default.conf). */
@@ -86,7 +85,6 @@ const runPairing = async (
 
   const parser = PairingEvent.createParser();
   const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
-  let paired = false;
   let finished = false;
   const handle = (event: PairingEvent) => {
     switch (event.type) {
@@ -94,19 +92,12 @@ const runPairing = async (
         setState({ stage: "emoji", emoji: event.emoji, emojiImageUrl: event.emojiImageUrl });
         break;
       case "paired":
-        paired = true;
-        setState({ stage: "syncing", done: 0, total: null });
-        break;
-      case "sync":
-        setState({ stage: "syncing", done: event.conversationsDone, total: event.conversationsTotal });
-        break;
-      case "done":
         finished = true;
-        setState({ stage: "done", warning: null });
+        setState({ stage: "paired" });
         break;
       case "error":
         finished = true;
-        setState(paired ? { stage: "done", warning: event.message } : { stage: "error", message: event.message });
+        setState({ stage: "error", message: event.message });
         break;
     }
   };
@@ -120,11 +111,7 @@ const runPairing = async (
     if (signal.aborted) return;
   }
   if (!finished && !signal.aborted) {
-    setState(
-      paired
-        ? { stage: "done", warning: "The connection closed during the first sync. Messages keep syncing when you use openrcs." }
-        : { stage: "error", message: "The connection to openrcs closed before pairing finished. Start again." },
-    );
+    setState({ stage: "error", message: "The connection to openrcs closed before pairing finished. Start again." });
   }
 };
 
@@ -162,25 +149,6 @@ function Emoji({ emoji, imageUrl }: { emoji: string; imageUrl: string }) {
   );
 }
 
-/** A spinner until the phone says how many conversations there are, then real progress. */
-function Progress({ done, total }: { done: number; total: number | null }) {
-  if (total === null) return <Waiting>Connecting to your phone</Waiting>;
-  const percent = total === 0 ? 100 : Math.min(100, Math.round((done / total) * 100));
-  return (
-    <div className="flex w-full max-w-xs flex-col items-center gap-3">
-      <div className="h-1.5 w-full overflow-hidden rounded-full bg-surface-muted">
-        <div
-          className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out"
-          style={{ width: `${percent}%` }}
-        />
-      </div>
-      <p className="text-sm text-muted tabular-nums">
-        {done} of {total} conversations
-      </p>
-    </div>
-  );
-}
-
 /** The sign-in browser opens straight away. */
 const INITIAL: FlowState = { stage: "browserStarting" };
 
@@ -188,9 +156,7 @@ const headingFor = (state: FlowState): { title: string; description?: string } =
   switch (state.stage) {
     case "emoji":
       return { title: "Tap this emoji on your phone", description: "Google Messages on your phone shows a few. Pick this one." };
-    case "syncing":
-      return { title: "Syncing your messages" };
-    case "done":
+    case "paired":
       return { title: "Your phone is paired" };
     default:
       return { title: "Pair your phone", description: "Sign in with the Google account your phone's Google Messages uses." };
@@ -279,23 +245,17 @@ export function PairingFlow() {
     return () => clearInterval(timer);
   }, [browserOpen]);
 
-  // Paired cleanly: go straight to the dashboard, which now shows the phone.
-  const pairedCleanly = state.stage === "done" && state.warning === null;
+  // Paired: go straight to the dashboard, which shows the phone and the first sync.
+  const paired = state.stage === "paired";
   useEffect(() => {
-    if (!pairedCleanly) return;
+    if (!paired) return;
     router.replace("/dashboard");
     router.refresh();
-  }, [pairedCleanly, router]);
+  }, [paired, router]);
 
   const contacting = state.stage === "starting";
   const heading = headingFor(state);
-  const inStage =
-    state.stage === "browserStarting" ||
-    state.stage === "browser" ||
-    state.stage === "emoji" ||
-    state.stage === "syncing" ||
-    pairedCleanly ||
-    contacting;
+  const inStage = state.stage !== "error";
 
   return (
     <div className="flex flex-col gap-6">
@@ -317,13 +277,9 @@ export function PairingFlow() {
               <Emoji emoji={state.emoji} imageUrl={state.emojiImageUrl} />
               <Waiting>Waiting for your phone</Waiting>
             </Centered>
-          ) : state.stage === "syncing" ? (
-            <Centered>
-              <Progress done={state.done} total={state.total} />
-            </Centered>
           ) : (
             <Centered>
-              <Waiting>{contacting ? "Contacting Google" : pairedCleanly ? "Opening openrcs" : "Starting a browser"}</Waiting>
+              <Waiting>{contacting ? "Contacting Google" : paired ? "Opening openrcs" : "Starting a browser"}</Waiting>
             </Centered>
           )}
         </Stage>
@@ -343,24 +299,6 @@ export function PairingFlow() {
           <Actions>
             <button type="button" onClick={reset} className={buttonClass("primary")}>
               Try again
-            </button>
-          </Actions>
-        </>
-      ) : null}
-
-      {state.stage === "done" && state.warning !== null ? (
-        <>
-          <Alert tone="warning">{state.warning}</Alert>
-          <Actions>
-            <button
-              type="button"
-              onClick={() => {
-                router.replace("/dashboard");
-                router.refresh();
-              }}
-              className={buttonClass("primary")}
-            >
-              Continue
             </button>
           </Actions>
         </>

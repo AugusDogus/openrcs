@@ -11,7 +11,6 @@ import { RequestGuard } from "./request-guard";
 
 /** POST handler body of /api/pair/gaia. */
 export const handlePairingRequest = async (request: Request): Promise<Response> => {
-  const startedAt = Date.now();
   const signedIn = await RequestGuard.requireSignedIn(request);
   if (signedIn.isErr()) return RequestGuard.errorResponse(signedIn.error.status, signedIn.error.message);
 
@@ -27,7 +26,6 @@ export const handlePairingRequest = async (request: Request): Promise<Response> 
     userId: signedIn.value.userId,
     cookies,
     signal: request.signal,
-    startedAt,
   });
   if (started.isErr()) {
     const error = started.error;

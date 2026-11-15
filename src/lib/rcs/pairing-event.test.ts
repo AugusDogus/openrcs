@@ -3,10 +3,8 @@ import { PairingEvent } from "./pairing-event";
 
 const events: PairingEvent[] = [
   { type: "emoji", emoji: "🦊", emojiImageUrl: "https://fonts.gstatic.com/s/e/notoemoji/latest/1f98a/512.png" },
-  { type: "paired" },
-  { type: "sync", conversationsDone: 3, conversationsTotal: 10 },
   { type: "error", message: "Line one.\nLine two with \"quotes\"." },
-  { type: "done" },
+  { type: "paired" },
 ];
 
 describe("PairingEvent", () => {
@@ -30,8 +28,8 @@ describe("PairingEvent", () => {
   test("drops malformed and unknown frames", () => {
     const parser = PairingEvent.createParser();
     const parsed = parser.push(
-      'data: not json\n\ndata: {"type":"unknown"}\n\ndata: {"type":"sync","conversationsDone":-1,"conversationsTotal":1}\n\nevent: x\n\ndata: {"type":"done"}\r\n\r\n',
+      'data: not json\n\ndata: {"type":"unknown"}\n\ndata: {"type":"emoji","emoji":1}\n\nevent: x\n\ndata: {"type":"paired"}\r\n\r\n',
     );
-    expect(parsed).toEqual([{ type: "done" }]);
+    expect(parsed).toEqual([{ type: "paired" }]);
   });
 });

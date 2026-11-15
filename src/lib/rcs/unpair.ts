@@ -2,6 +2,7 @@ import { Result } from "better-result";
 import type { Database } from "@/lib/db/client";
 import { ServerKey, Vault, VaultConfig, type VaultStorageError } from "@/lib/vault";
 import { describeForLog, GmFailure, type RcsPhoneBusyError, type RcsStorageError } from "./errors";
+import { FirstSync } from "./first-sync";
 import { withPhone, type WithPhoneOptions } from "./phone";
 import { PhoneLease, type AcquireOptions } from "./phone-lease";
 import { SessionStore } from "./session-store";
@@ -26,9 +27,9 @@ export type UnpairOptions = {
 export const UNPAIR_LEASE_WAIT_MS = 30_000;
 
 /**
- * Unpair: take the phone lease (waiting for any sync, send or pairing in
- * progress, so none of them can store rows or re-create the session after
- * the deletes); ask Google to drop the web device (best effort); then delete
+ * Unpair: stop a running first sync, take the phone lease (waiting for any
+ * sync, send or pairing in progress, so none of them can store rows or
+ * re-create the session after the deletes); ask Google to drop the web device (best effort); then delete
  * stored conversations/messages/sync state, the gm_session row, every key
  * slot and grant, and the server key. Fails with RcsPhoneBusyError, deleting
  * nothing, if the phone stays busy.
@@ -38,6 +39,7 @@ export const unpairUser = async (
   opts: UnpairOptions,
 ): Promise<Result<UnpairSummary, RcsPhoneBusyError | RcsStorageError | VaultStorageError>> => {
   const { userId } = opts;
+  FirstSync.cancel(userId);
   const acquired = await PhoneLease.acquire(db, userId, { waitMs: UNPAIR_LEASE_WAIT_MS, ...opts.lease });
   if (acquired.isErr()) return Result.err(acquired.error);
   const lease = acquired.value;
