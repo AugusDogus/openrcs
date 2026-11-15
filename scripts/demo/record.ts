@@ -41,10 +41,11 @@ const VIEWPORT = { width: 1120, height: 700 };
 const SCALE = 8 / 7;
 const VIDEO = { width: 1280, height: 800 };
 
-// Demo identities only: an example tailnet address and made-up people.
+// Demo identities: an example tailnet address, and the owner as the signed-in user.
 const ORIGIN = "https://tower.example-tailnet.ts.net:5443";
-const IDENTITY = { login: "alex@example.com", name: "Alex Morgan" };
-const GOOGLE_EMAIL = "alex.morgan.demo@gmail.com";
+const IDENTITY = { login: "augusdogus@github", name: "Augie" };
+/** Typed into Google's page, never submitted: the public GitHub commit address. */
+const GOOGLE_EMAIL = "9794679+AugusDogus@users.noreply.github.com";
 const PHONE_ID = "c81f2a94d03e7b52";
 const EMOJI = "🦊";
 const AGENT = "Claude Code";
