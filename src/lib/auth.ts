@@ -5,6 +5,7 @@ import { getDb } from "@/lib/db/client";
 import * as schema from "@/lib/db/schema";
 import { tailscaleSignIn } from "@/lib/auth-tailscale";
 import { Env } from "@/lib/env";
+import { SessionCookie } from "@/lib/session-cookie";
 
 /**
  * Better Auth handles sign-in (your Tailscale identity, src/lib/auth-tailscale.ts)
@@ -43,10 +44,8 @@ export const createAuth = (config: AuthConfig) =>
     baseURL: config.baseURL,
     secret: config.secret,
     database: config.database,
-    // Its own cookie names: on a shared host (Tailscale Serve ports on one
-    // machine name) other Better Auth apps such as Executor would otherwise
-    // overwrite openrcs's session, since cookies ignore ports.
-    advanced: { cookiePrefix: "openrcs" },
+    // Its own cookie names (see ./session-cookie.ts); the proxy checks the same ones.
+    advanced: { cookiePrefix: SessionCookie.prefix },
     logger: {
       log: (level, message, ...args: unknown[]) => {
         const details = args.map(describeAuthLogArg).join(" | ");

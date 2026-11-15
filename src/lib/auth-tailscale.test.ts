@@ -6,6 +6,7 @@ import * as schema from "@/lib/db/schema";
 import { VaultTesting, type TestDatabase } from "@/lib/vault/testing";
 import { createAuth } from "./auth";
 import { TailscaleIdentity } from "./auth-tailscale";
+import { SessionCookie } from "./session-cookie";
 
 const ORIGIN = "https://openrcs.tail1234.ts.net";
 
@@ -41,6 +42,8 @@ describe("Tailscale sign-in", () => {
     const cookie = first.headers.getSetCookie().map((value) => value.split(";")[0]).join("; ");
     // Prefixed, so another Better Auth app on the same host name cannot overwrite it.
     expect(cookie).toMatch(/(^|; )(__Secure-)?openrcs\.session_token=/);
+    // The proxy's optimistic redirect must recognize it, or /dashboard loops back to /sign-in.
+    expect(SessionCookie.isPresent(new Headers({ cookie }))).toBe(true);
 
     const session = await auth.api.getSession({ headers: new Headers({ cookie }) });
     expect(session?.user.email).toBe("augie@github");

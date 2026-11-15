@@ -1,5 +1,5 @@
-import { getSessionCookie } from "better-auth/cookies";
 import { NextResponse, type NextRequest } from "next/server";
+import { SessionCookie } from "@/lib/session-cookie";
 
 /** Pages with approve/revoke buttons must not be framed (clickjacking). */
 const frameProtection: Readonly<Record<string, string>> = {
@@ -13,7 +13,7 @@ const frameProtection: Readonly<Record<string, string>> = {
  * cookie is stale. The OAuth consent page does its own session check.
  */
 export function proxy(request: NextRequest) {
-  const hasSessionCookie = getSessionCookie(request) !== null;
+  const hasSessionCookie = SessionCookie.isPresent(request);
   const { pathname, search } = request.nextUrl;
 
   if (pathname === "/") {
