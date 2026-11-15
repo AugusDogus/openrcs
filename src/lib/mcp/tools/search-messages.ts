@@ -12,7 +12,6 @@ import {
   isCallToolResult,
   logToolError,
   ok,
-  rcsContext,
   refreshBeforeRead,
   requireSession,
 } from "./shared";
@@ -83,7 +82,7 @@ export const registerSearchMessagesTool: RcsToolRegistrar = (server, ctx) => {
       if (isCallToolResult(session)) return session;
       const freshness = await refreshBeforeRead(db, ctx, session, true, "search_messages");
 
-      const searched = await Store.searchMessages(db, rcsContext(ctx), {
+      const searched = await Store.searchMessages(db, session.rcs, {
         query,
         conversationId: conversation_id,
         sinceMs,

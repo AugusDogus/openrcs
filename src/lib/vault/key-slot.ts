@@ -269,8 +269,7 @@ export type OpenedSlot = { readonly row: KeySlotRow; readonly dek: Dek };
 /**
  * Loads a slot and returns its DEK if the credential is genuine and the slot
  * is usable: right kind and user, correct secret (constant-time verifier
- * check), not revoked, not consumed, not expired, and for the same DEK
- * generation as the user's gm_session (when one exists). Lifecycle checks run
+ * check), not revoked, not consumed, not expired. Lifecycle checks run
  * before unwrapping, so a consumed slot whose key share is gone still reports
  * KeySlotConsumedError (replay detection). An expired slot's key share is
  * destroyed when it is presented.
@@ -297,11 +296,6 @@ const open = async (
       if (destroyed.isErr()) return Result.err(destroyed.error);
     }
     return Result.err(state.error);
-  }
-  const currentDekId = await sessionDekId(db, row.userId);
-  if (currentDekId.isErr()) return Result.err(currentDekId.error);
-  if (currentDekId.value !== null && currentDekId.value !== row.dekId) {
-    return Result.err(invalid(row, "stale_key"));
   }
   const dek = unwrap(config, row, input.credential);
   if (dek.isErr()) return Result.err(dek.error);

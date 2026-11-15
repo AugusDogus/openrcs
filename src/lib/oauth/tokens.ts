@@ -2,8 +2,6 @@ import { createSecretKey, hkdfSync } from "node:crypto";
 import { Result, TaggedError } from "better-result";
 import { z } from "zod";
 import { SecretBox } from "@/lib/secret-box";
-import { Base64Url } from "@/lib/vault/base64url";
-import { Dek } from "@/lib/vault/dek";
 import { SlotCredential } from "@/lib/vault/key-slot";
 import { McpScope } from "./scopes";
 
@@ -47,7 +45,6 @@ export type AccessTokenClaims = {
   readonly clientId: string;
   readonly scopes: readonly McpScope[];
   readonly exp: number;
-  readonly dek: Dek;
 };
 
 /** The bearer token is not an openrcs access token, was modified, or was sealed under another KEY_PEPPER. */
@@ -59,7 +56,10 @@ export class AccessTokenInvalidError extends TaggedError("AccessTokenInvalidErro
 const ENVELOPE_VERSION = "v1";
 const ASSOCIATED_DATA = "openrcs/access-token";
 
-/** Sealed payload; short keys keep tokens compact. */
+/**
+ * Sealed payload; short keys keep tokens compact. Tokens issued before the
+ * server key also carry `did` and `dek` (a DEK copy); parsing ignores them.
+ */
 const payloadSchema = z.object({
   v: z.literal(1),
   uid: z.string().min(1),
@@ -67,8 +67,6 @@ const payloadSchema = z.object({
   cid: z.string().min(1),
   scope: z.string(),
   exp: z.number().int(),
-  did: z.string().min(1),
-  dek: z.string().min(1),
 });
 
 /** AES-256-GCM key for access tokens: HKDF-SHA256(KEY_PEPPER, info = "openrcs/access-token/v1"). */
@@ -86,8 +84,6 @@ const seal = (pepper: Uint8Array, claims: AccessTokenClaims): string => {
     cid: claims.clientId,
     scope: McpScope.format(claims.scopes),
     exp: claims.exp,
-    did: claims.dek.id,
-    dek: Base64Url.encode(claims.dek.bytes),
   };
   return `${ACCESS_TOKEN_PREFIX}${SecretBox.seal(sealingKey(pepper), JSON.stringify(payload), {
     associatedData: ASSOCIATED_DATA,
@@ -119,16 +115,12 @@ const open = (pepper: Uint8Array, token: string): Result<AccessTokenClaims, Acce
   const parsed = payloadSchema.safeParse(json.value);
   if (!parsed.success) return Result.err(invalid("malformed"));
   const payload = parsed.data;
-  const dekBytes = Base64Url.decode(payload.dek);
-  const dek = dekBytes ? Dek.fromBytes(payload.did, dekBytes) : undefined;
-  if (!dek) return Result.err(invalid("malformed"));
   return Result.ok({
     userId: payload.uid,
     grantId: payload.gid,
     clientId: payload.cid,
     scopes: McpScope.parse(payload.scope).scopes,
     exp: payload.exp,
-    dek,
   });
 };
 

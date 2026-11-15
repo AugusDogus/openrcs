@@ -18,7 +18,6 @@ import {
   isCallToolResult,
   logToolError,
   ok,
-  rcsContext,
   requireSession,
   skippedFreshness,
   TOOL_LEASE_WAIT_MS,
@@ -127,14 +126,14 @@ export const registerGetMessagesTool: RcsToolRegistrar = (server, ctx) => {
       const db = getDb();
       const session = await requireSession(db, ctx, "get_messages");
       if (isCallToolResult(session)) return session;
-      const rcs = rcsContext(ctx);
+      const rcs = session.rcs;
 
       let freshness: FreshnessOutput;
       const state = await SyncState.read(db, ctx.auth.userId);
       const lastSyncAt = state.isOk() ? state.value.lastSyncAt : null;
       if (beforeMs !== undefined || refresh === false) {
         freshness = skippedFreshness(lastSyncAt, "Showing stored messages (no refresh requested).");
-      } else if (session.status !== "paired") {
+      } else if (session.record.status !== "paired") {
         freshness = skippedFreshness(
           lastSyncAt,
           `Showing stored messages: the phone needs re-pairing (ask the user to pair again at ${dashboardUrl()}).`,

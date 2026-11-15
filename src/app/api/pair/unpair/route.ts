@@ -13,7 +13,7 @@ export async function POST(request: Request): Promise<Response> {
   const signedIn = await RequestGuard.requireSignedIn(request);
   if (signedIn.isErr()) return RequestGuard.errorResponse(signedIn.error.status, signedIn.error.message);
 
-  const unpaired = await unpairUser(getDb(), signedIn.value);
+  const unpaired = await unpairUser(getDb(), { userId: signedIn.value.userId });
   if (unpaired.isErr()) {
     if (unpaired.error._tag === "RcsPhoneBusyError") {
       return RequestGuard.errorResponse(

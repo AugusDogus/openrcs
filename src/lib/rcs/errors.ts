@@ -28,10 +28,7 @@ export class RcsNeedsRepairError extends TaggedError("RcsNeedsRepairError")<{
   message: string;
 }> {}
 
-/**
- * The caller's DEK is not the one the session was sealed with (stale device
- * slot or grant from before a re-pair). Nothing can be decrypted with it.
- */
+/** The caller's DEK is not the one the session was sealed with. Nothing can be decrypted with it. */
 export class RcsKeyMismatchError extends TaggedError("RcsKeyMismatchError")<{
   userId: string;
   sessionDekId: string;

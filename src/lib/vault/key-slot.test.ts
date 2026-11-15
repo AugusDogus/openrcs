@@ -157,18 +157,6 @@ describe("KeySlot", () => {
     }
   });
 
-  test("a slot for an older DEK than gm_session is stale", async () => {
-    const { credential, dek } = await mintAndStore();
-    await VaultTesting.pairSession(t.db, userId, dek);
-    expect((await KeySlot.open(t.db, config, { credential, kind: "device" })).isOk()).toBe(true);
-    await VaultTesting.pairSession(t.db, userId, Dek.generate());
-    await expectRejected(
-      await KeySlot.open(t.db, config, { credential, kind: "device" }),
-      "KeySlotInvalidError",
-      "stale_key",
-    );
-  });
-
   test("a consumed slot whose key share was destroyed still reports KeySlotConsumedError", async () => {
     const { credential, values } = await mintAndStore("oauth_refresh", clock.now() + 1_000);
     await t.db.update(keySlot).set({ consumedAt: clock.now() }).where(eq(keySlot.id, credential.slotId));

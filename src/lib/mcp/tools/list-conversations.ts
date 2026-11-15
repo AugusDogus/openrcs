@@ -13,7 +13,6 @@ import {
   isCallToolResult,
   logToolError,
   ok,
-  rcsContext,
   refreshBeforeRead,
   requireSession,
 } from "./shared";
@@ -80,7 +79,7 @@ export const registerListConversationsTool: RcsToolRegistrar = (server, ctx) => 
       if (isCallToolResult(session)) return session;
 
       const freshness = await refreshBeforeRead(db, ctx, session, refresh ?? true, "list_conversations");
-      const listed = await Store.listConversations(db, rcsContext(ctx), { limit: limit ?? 20, query });
+      const listed = await Store.listConversations(db, session.rcs, { limit: limit ?? 20, query });
       if (listed.isErr()) {
         if (listed.error._tag === "SearchQueryError") return fail(listed.error.message);
         logToolError("list_conversations", listed.error);

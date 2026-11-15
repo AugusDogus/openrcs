@@ -99,6 +99,19 @@ export const keySlot = sqliteTable(
   ],
 );
 
+/**
+ * The server's copy of each user's DEK, wrapped under a key derived from
+ * KEY_PEPPER alone (src/lib/vault/server-key.ts), so the server can open the
+ * user's data without a client.
+ */
+export const userKey = sqliteTable("user_key", {
+  userId: userIdRef().primaryKey(),
+  dekId: text("dek_id").notNull(),
+  /** AES-256-GCM envelope of the DEK under the server KEK. */
+  wrappedDek: text("wrapped_dek").notNull(),
+  createdAt: integer("created_at").default(nowMs).notNull(),
+});
+
 /** Fixed-window request counters for unauthenticated endpoints (DCR, token, pairing). */
 export const requestThrottle = sqliteTable("request_throttle", {
   key: text("key").primaryKey(),

@@ -56,12 +56,11 @@ const revokeForReplay = async (
   return Result.err(invalidGrant(description));
 };
 
-/** Loads the slot's grant and checks it is live, for this client, user and DEK. */
+/** Loads the slot's grant and checks it is live, for this client and user. */
 const liveGrant = async (
   ctx: OAuthContext,
   slot: KeySlotRow,
   client: OAuthClientRecord,
-  dek: Dek,
 ): Promise<Result<OAuthGrantRow, TokenError>> => {
   if (slot.grantId === null) return Result.err(invalidGrant("The grant is invalid."));
   const grant = await OAuthGrants.load(ctx.db, slot.grantId);
@@ -73,9 +72,7 @@ const liveGrant = async (
   if (row.clientId !== client.clientId) {
     return Result.err(invalidGrant("The grant was issued to a different client."));
   }
-  if (row.userId !== slot.userId || row.dekId !== dek.id) {
-    return Result.err(invalidGrant("The grant no longer matches the account's key. Authorize the client again."));
-  }
+  if (row.userId !== slot.userId) return Result.err(invalidGrant("The grant is invalid."));
   return Result.ok(row);
 };
 
@@ -131,7 +128,6 @@ const rotate = async (
       clientId: client.clientId,
       scopes,
       exp: Math.floor(now / 1000) + ACCESS_TOKEN_TTL_SECONDS,
-      dek,
     }),
     scope: McpScope.format(scopes),
   });
@@ -235,7 +231,7 @@ const exchangeCode = async (
   if (resource !== undefined && (resource !== mcpResource || (issued.resource !== null && issued.resource !== resource))) {
     return Result.err(OAuthErrors.protocol(400, "invalid_target", `resource must be ${mcpResource}.`));
   }
-  const grant = await liveGrant(ctx, row, client, dek);
+  const grant = await liveGrant(ctx, row, client);
   if (grant.isErr()) return Result.err(grant.error);
 
   const rotated = await rotate(ctx, row.id, grant.value, client, dek, McpScope.parse(issued.scope).scopes);
@@ -270,7 +266,7 @@ const refresh = async (
   );
   if (opened.isErr()) return Result.err(opened.error);
   const { row, dek } = opened.value;
-  const grant = await liveGrant(ctx, row, client, dek);
+  const grant = await liveGrant(ctx, row, client);
   if (grant.isErr()) return Result.err(grant.error);
 
   const granted = McpScope.parse(grant.value.scope).scopes;

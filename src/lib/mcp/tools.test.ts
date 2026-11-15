@@ -12,6 +12,7 @@ import type { McpScope } from "@/lib/oauth/scopes";
 import { Store } from "@/lib/rcs/store";
 import { RcsTesting } from "@/lib/rcs/testing";
 import { Dek } from "@/lib/vault/dek";
+import { ServerKey } from "@/lib/vault/server-key";
 import { GMMessage } from "@/lib/gm/message";
 import { createRcsMcpServer, type RcsMcpContext } from "./server";
 
@@ -19,14 +20,19 @@ import { createRcsMcpServer, type RcsMcpContext } from "./server";
 // the first call (never at the developer's .env.local database).
 const dbPath = join(tmpdir(), `openrcs-mcp-test-${randomBytes(8).toString("hex")}.db`);
 process.env.DATABASE_URL = `file:${dbPath}`;
+// Tools unlock data with the server key, which needs the vault environment.
+process.env.KEY_PEPPER = randomBytes(32).toString("base64");
+process.env.BETTER_AUTH_URL ??= "https://openrcs.test";
+process.env.BETTER_AUTH_SECRET ??= randomBytes(32).toString("base64");
 
 const userId = `user_${randomBytes(6).toString("hex")}`;
-const dek = Dek.generate();
+let dek: Dek;
 
 beforeAll(async () => {
   const db = getDb();
   await migrate(db, { migrationsFolder: resolve(import.meta.dir, "../../../drizzle") });
   await db.insert(user).values({ id: userId, name: "Tool Tester", email: `${userId}@example.test` });
+  dek = (await ServerKey.create(db, userId)).unwrap();
 });
 
 afterAll(async () => {
@@ -34,12 +40,11 @@ afterAll(async () => {
   await Promise.all(["", "-wal", "-shm", "-journal"].map((s) => rm(`${dbPath}${s}`, { force: true })));
 });
 
-const auth = (scopes: readonly McpScope[], key = dek) => ({
-  userId,
+const auth = (scopes: readonly McpScope[], forUser = userId) => ({
+  userId: forUser,
   grantId: "grant-1",
   clientId: "client-1",
   scopes,
-  dek: key,
 });
 
 const ResultSchema = z.object({
@@ -55,9 +60,9 @@ const callTool = async (
   scopes: readonly McpScope[],
   name: string,
   args: Record<string, unknown>,
-  opts: { authInfo?: AuthInfo; key?: Dek; testing?: RcsMcpContext["testing"] } = {},
+  opts: { authInfo?: AuthInfo; userId?: string; testing?: RcsMcpContext["testing"] } = {},
 ) => {
-  const handler = createMcpHandler(() => createRcsMcpServer({ auth: auth(scopes, opts.key), testing: opts.testing }));
+  const handler = createMcpHandler(() => createRcsMcpServer({ auth: auth(scopes, opts.userId), testing: opts.testing }));
   const response = await handler.fetch(
     new Request("http://localhost/api/mcp", {
       method: "POST",
@@ -129,7 +134,7 @@ describe("pairing gates", () => {
     expect(result.structuredContent?.stored).toEqual({ conversations: 0, messages: 0 });
   });
 
-  test("once paired, cached data is served; a stale key is refused", async () => {
+  test("once paired, cached data is served, unlocked with the server key", async () => {
     const db = getDb();
     const ctx = { userId, dek };
     await RcsTesting.pair(db, ctx);
@@ -161,11 +166,18 @@ describe("pairing gates", () => {
       },
     ]);
 
-    const stale = await toolResult(
-      await callTool(["messages:read"], "list_conversations", { refresh: false }, { key: Dek.generate() }),
+  });
+
+  test("a session without a server key is not paired", async () => {
+    const db = getDb();
+    const other = `user_${randomBytes(6).toString("hex")}`;
+    await db.insert(user).values({ id: other, name: "No Key", email: `${other}@example.test` });
+    await RcsTesting.pair(db, { userId: other, dek: Dek.generate() });
+    const result = await toolResult(
+      await callTool(["messages:read"], "list_conversations", { refresh: false }, { userId: other }),
     );
-    expect(stale.isError).toBe(true);
-    expect(stale.content[0]?.text).toContain("Re-authorize");
+    expect(result.isError).toBe(true);
+    expect(result.content[0]?.text).toContain("No phone is paired");
   });
 
   test("send_message validates the target before touching the phone", async () => {
