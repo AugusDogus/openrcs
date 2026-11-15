@@ -132,7 +132,7 @@ integration). Otherwise use an agent on one of your own devices.
 | Variable | Default | Meaning |
 | --- | --- | --- |
 | `OPENRCS_URL` | required | The Tailscale Serve address, port included, no trailing slash. Also the OAuth issuer, so changing it invalidates agent tokens |
-| `KEY_PEPPER` | generated into `/data/secrets/key-pepper` | Server key share for the vault, base64 of 32 bytes |
+| `KEY_PEPPER` | generated into `/data/secrets/key-pepper` | Server key every user's data key is wrapped under, base64 of 32 bytes |
 | `BETTER_AUTH_SECRET` | generated into `/data/secrets/auth-secret` | Signs session cookies |
 | `DATABASE_URL` | `file:/data/openrcs.db` | Any libSQL URL works |
 | `OPENRCS_BIND` | `0.0.0.0` | nginx listen address inside the container. Publish the port on `127.0.0.1` only (see "How sign-in works") |
@@ -144,9 +144,9 @@ files.
 ## Backups, updates, moving
 
 - Back up the whole data folder while the container is stopped. The database
-  is useless without `secrets/key-pepper`, and both are useless without a
-  client's key (your browser's device cookie or an agent's token), which is
-  the point of the vault.
+  is useless without `secrets/key-pepper`, but together they decrypt every
+  stored message and the Google session (docs/security.md). Keep backups
+  encrypted, or somewhere only you can read.
 - Update: pull or rebuild the image and recreate the container. Migrations
   run on every start; if one fails the container exits without starting.
 
@@ -160,4 +160,3 @@ files.
 | Agent gets 401 after a rename | The address changed, so old tokens are for a different issuer. Remove and re-add the MCP server in the agent |
 | Google says "This browser or app may not be secure" in the sign-in browser | Not expected with this image; please report it |
 | The sign-in browser is blank | Chromium has not drawn yet or crashed; it restarts itself within a few seconds. Make sure the container has `--shm-size=1g` |
-| "This browser does not hold the key" | You are in a different browser or cleared cookies. Use the original browser, or re-pair here (deletes stored messages) |
