@@ -1,6 +1,7 @@
 import type { Database } from "@/lib/db/client";
 import type { RcsContext } from "./context";
 import { describeForLog } from "./errors";
+import type { FirstSyncProgress } from "./first-sync-status";
 import type { WithPhoneOptions } from "./phone";
 import { PhoneLease } from "./phone-lease";
 import { backfill, type SyncProgress } from "./sync";
@@ -18,9 +19,6 @@ export const FIRST_SYNC = {
   budgetMs: 240_000,
   leaseTtlMs: 60_000,
 } as const;
-
-/** `total` is null until the phone has listed the conversations to sync. */
-export type FirstSyncProgress = { readonly done: number; readonly total: number | null };
 
 type Running = { progress: FirstSyncProgress; readonly abort: AbortController };
 
