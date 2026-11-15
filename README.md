@@ -9,7 +9,7 @@
   Self-hosted in one Docker container, reachable only over your tailnet.
 </p>
 
-https://github.com/user-attachments/assets/e7479373-922e-401b-a877-2a8598acd378
+<video src="https://github.com/user-attachments/assets/e7479373-922e-401b-a877-2a8598acd378" width="1280" height="800" title="openrcs"></video>
 
 ## Quick start
 
