@@ -22,15 +22,12 @@ const outputSchema = z.object({
     last_sync_error: z.string().nullable(),
   }),
   stored: z.object({ conversations: z.number().int(), messages: z.number().int() }),
-  /** False when this client's key predates the current pairing (re-authorize). */
-  key_current: z.boolean(),
   scopes: z.array(z.string()),
   dashboard_url: z.string(),
 });
 
-const nextStep = (status: z.infer<typeof outputSchema>["pairing"]["status"], keyCurrent: boolean) => {
+const nextStep = (status: z.infer<typeof outputSchema>["pairing"]["status"]) => {
   if (status === "unpaired") return `Not paired: ask the user to pair their phone at ${dashboardUrl()}.`;
-  if (!keyCurrent) return "This client's key is stale: re-authorize this MCP client.";
   if (status === "needs_repair") {
     return `Needs re-pairing: ask the user to pair again at ${dashboardUrl()}. Stored messages are still readable.`;
   }
@@ -69,7 +66,6 @@ export const registerGetStatusTool: RcsToolRegistrar = (server, ctx) => {
       if (counts.isErr()) return storageFailure(counts.error);
       const session = record.value;
       const status = session?.status ?? "unpaired";
-      const keyCurrent = session === null || session.dekId === ctx.auth.dek.id;
       const output: z.infer<typeof outputSchema> = {
         pairing: {
           status,
@@ -83,7 +79,6 @@ export const registerGetStatusTool: RcsToolRegistrar = (server, ctx) => {
           last_sync_error: sync.value.lastSyncError,
         },
         stored: counts.value,
-        key_current: keyCurrent,
         scopes: [...ctx.auth.scopes],
         dashboard_url: dashboardUrl(),
       };
@@ -92,7 +87,7 @@ export const registerGetStatusTool: RcsToolRegistrar = (server, ctx) => {
         `Last synced: ${output.sync.last_sync_at ?? "never"}.`,
         `Stored: ${counts.value.conversations} conversations, ${counts.value.messages} messages.`,
         `Scopes: ${output.scopes.join(", ")}.`,
-        nextStep(status, keyCurrent),
+        nextStep(status),
       ].join(" ");
       return ok(text, output);
     },

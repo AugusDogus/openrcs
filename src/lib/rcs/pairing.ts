@@ -3,12 +3,8 @@ import type { Database } from "@/lib/db/client";
 import type { AuthData } from "@/lib/gm/auth-data";
 import type { GoogleCookies } from "@/lib/gm/google-cookies";
 import { GaiaPairing } from "@/lib/gm/pair-gaia";
-import {
-  PairingKeys,
-  type PreparedPairingKey,
-  type VaultLockedError,
-  type VaultStorageError,
-} from "@/lib/vault";
+import { ServerKey, VaultConfig, type VaultStorageError } from "@/lib/vault";
+import type { RcsContext } from "./context";
 import { describeForLog, RcsPhoneBusyError, type RcsStorageError } from "./errors";
 import { PairingEvent } from "./pairing-event";
 import { describePhoneError } from "./phone";
@@ -19,15 +15,10 @@ import { backfill } from "./sync";
 
 /**
  * Google-account (Gaia) pairing orchestration behind `POST /api/pair/gaia`.
- * Holds the phone lease for the whole flow, prepares the DEK (and device
- * cookie) before the stream starts, then streams PairingEvents:
+ * Holds the phone lease for the whole flow and streams PairingEvents:
  * emoji -> paired -> sync* -> done (or error at any point).
  */
-export type PairingStart = {
-  /** Send as Set-Cookie on the response (headers cannot change once the stream starts). */
-  readonly setCookie: string | null;
-  readonly stream: ReadableStream<Uint8Array>;
-};
+export type PairingStart = { readonly stream: ReadableStream<Uint8Array> };
 
 export const PAIRING_BUDGET = {
   /** How long the user has to tap the emoji. */
@@ -64,15 +55,13 @@ export const describePairingError = (error: Tagged): string => {
   }
 };
 
-type Paired = { readonly authData: AuthData; readonly phoneId: string };
-
 type Emit = (event: PairingEvent) => void;
 
 const pairWithGaia = async (
   cookies: GoogleCookies,
   emit: Emit,
   signal: AbortSignal,
-): Promise<Result<Paired, string>> => {
+): Promise<Result<PairedPhone, string>> => {
   const started = await GaiaPairing.start({ cookies, signal });
   if (started.isErr()) return Result.err(describePairingError(started.error));
   emit({ type: "emoji", emoji: started.value.emoji, emojiImageUrl: started.value.emojiImageUrl });
@@ -85,49 +74,62 @@ const pairWithGaia = async (
     : Result.err(describePairingError(finished.error));
 };
 
+export type PairedPhone = { readonly authData: AuthData; readonly phoneId: string };
+
+/**
+ * After the phone confirms: reuse the user's server key, so re-pairing from
+ * any browser keeps the stored messages, or mint one when there is none (or
+ * it no longer opens), deleting whatever was stored under an older key. Then
+ * save the session sealed under that key.
+ */
+export const savePairing = async (
+  db: Database,
+  opts: { readonly userId: string; readonly paired: PairedPhone; readonly vault?: VaultConfig },
+): Promise<Result<RcsContext, RcsStorageError | VaultStorageError>> => {
+  const { userId, paired } = opts;
+  const vault = opts.vault ?? VaultConfig.fromEnv();
+  const existing = await ServerKey.unlockWith(db, vault, userId);
+  if (existing.isErr() && existing.error._tag === "VaultStorageError") return Result.err(existing.error);
+  let dek = existing.isOk() ? existing.value : null;
+  if (dek === null) {
+    if (existing.isErr()) console.warn(`[rcs:pairing] replacing a server key that does not open: ${describeForLog(existing.error)}`);
+    const deleted = await deleteUserData(db, userId);
+    if (deleted.isErr()) return Result.err(deleted.error);
+    const created = await ServerKey.createWith(db, vault, userId);
+    if (created.isErr()) return Result.err(created.error);
+    dek = created.value;
+  }
+  const ctx = { userId, dek };
+  const saved = await SessionStore.save(db, ctx, {
+    kind: "gaia",
+    phoneLabel: SessionStore.phoneLabelFrom(paired.phoneId),
+    authData: paired.authData,
+  });
+  return saved.map(() => ctx);
+};
+
 const runPairing = async (
   db: Database,
-  prepared: PreparedPairingKey,
+  userId: string,
   cookies: GoogleCookies,
   emit: Emit,
   signal: AbortSignal,
   lease: PhoneLease,
   startedAt: number,
 ): Promise<void> => {
-  const userId = prepared.userId;
   const paired = await pairWithGaia(cookies, emit, signal);
   if (paired.isErr()) return emit({ type: "error", message: paired.error });
 
-  const committed = await PairingKeys.commit(db, prepared, {
-    onKeyRotated: async () => {
-      const deleted = await deleteUserData(db, userId);
-      // The hook contract is Promise<void>: a rejection makes commit fail with VaultStorageError.
-      if (deleted.isErr()) throw deleted.error;
-    },
-  });
-  if (committed.isErr()) {
-    console.error(`[rcs:pairing] key commit failed: ${describeForLog(committed.error)}`);
-    return emit({
-      type: "error",
-      message:
-        "Your phone confirmed, but openrcs could not save the encryption key for this browser. Nothing was stored; start pairing again.",
-    });
-  }
-
-  const ctx = { userId, dek: prepared.dek };
-  const saved = await SessionStore.save(db, ctx, {
-    kind: "gaia",
-    phoneLabel: SessionStore.phoneLabelFrom(paired.value.phoneId),
-    authData: paired.value.authData,
-  });
+  const saved = await savePairing(db, { userId, paired: paired.value });
   if (saved.isErr()) {
-    console.error(`[rcs:pairing] saving session failed: ${describeForLog(saved.error)}`);
+    console.error(`[rcs:pairing] saving the pairing failed: ${describeForLog(saved.error)}`);
     return emit({
       type: "error",
       message:
-        "Your phone confirmed, but openrcs could not save the session. Start pairing again; the phone may list an extra web device you can remove.",
+        "Your phone confirmed, but openrcs could not save the pairing because the database did not respond. Start pairing again; the phone may list an extra web device you can remove.",
     });
   }
+  const ctx = saved.value;
   emit({ type: "paired" });
 
   const synced = await backfill(db, ctx, {
@@ -146,22 +148,18 @@ const runPairing = async (
 };
 
 /**
- * Acquire the lease and prepare the key, then return the SSE stream that runs
- * the pairing. Fails fast (before any stream) when the phone is busy or the
- * vault cannot be read.
+ * Acquire the lease, then return the SSE stream that runs the pairing. Fails
+ * fast (before any stream) when the phone is busy.
  */
 export const startPairing = async (
   db: Database,
   opts: {
     readonly userId: string;
-    readonly cookieHeader: string | null;
     readonly cookies: GoogleCookies;
     readonly signal: AbortSignal;
     readonly startedAt?: number;
   },
-): Promise<
-  Result<PairingStart, RcsPhoneBusyError | RcsStorageError | VaultLockedError | VaultStorageError>
-> => {
+): Promise<Result<PairingStart, RcsPhoneBusyError | RcsStorageError>> => {
   const startedAt = opts.startedAt ?? Date.now();
   const acquired = await PhoneLease.tryAcquire(db, opts.userId, { ttlMs: PAIRING_BUDGET.leaseTtlMs });
   if (acquired.isErr()) return Result.err(acquired.error);
@@ -176,12 +174,6 @@ export const startPairing = async (
       }),
     );
   }
-  const prepared = await PairingKeys.prepare(db, opts.userId, opts.cookieHeader, { mode: "pairing" });
-  if (prepared.isErr()) {
-    await PhoneLease.release(db, lease);
-    return Result.err(prepared.error);
-  }
-
   const aborter = new AbortController();
   const signal = AbortSignal.any([opts.signal, aborter.signal]);
   const encoder = new TextEncoder();
@@ -203,7 +195,7 @@ export const startPairing = async (
         ttlMs: PAIRING_BUDGET.leaseTtlMs,
         onLost: (error) => console.warn(`[rcs:pairing] lease renewal failed: ${describeForLog(error)}`),
       });
-      void runPairing(db, prepared.value, opts.cookies, emit, signal, lease, startedAt)
+      void runPairing(db, opts.userId, opts.cookies, emit, signal, lease, startedAt)
         .catch((error: unknown) => {
           console.error(
             `[rcs:pairing] unexpected failure: ${error instanceof Error ? error.name : "unknown"}`,
@@ -236,16 +228,13 @@ export const startPairing = async (
     },
   });
 
-  return Result.ok({ setCookie: prepared.value.setCookie, stream });
+  return Result.ok({ stream });
 };
 
 /** Response headers for the pairing event stream. */
-export const pairingResponseHeaders = (setCookie: string | null): Headers => {
-  const headers = new Headers({
+export const pairingResponseHeaders = (): Headers =>
+  new Headers({
     "content-type": "text/event-stream; charset=utf-8",
     "cache-control": "no-store, no-transform",
     "x-accel-buffering": "no",
   });
-  if (setCookie !== null) headers.append("set-cookie", setCookie);
-  return headers;
-};

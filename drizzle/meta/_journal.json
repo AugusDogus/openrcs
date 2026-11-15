@@ -36,6 +36,13 @@
       "when": 1793994807861,
       "tag": "0004_split_key_vault",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794713325009,
+      "tag": "0005_server_key",
+      "breakpoints": true
     }
   ]
 }

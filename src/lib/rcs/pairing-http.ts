@@ -25,7 +25,6 @@ export const handlePairingRequest = async (request: Request): Promise<Response> 
 
   const started = await startPairing(getDb(), {
     userId: signedIn.value.userId,
-    cookieHeader: signedIn.value.cookieHeader,
     cookies,
     signal: request.signal,
     startedAt,
@@ -36,13 +35,11 @@ export const handlePairingRequest = async (request: Request): Promise<Response> 
     console.error(`[api:pair] could not start pairing: ${describeForLog(error)}`);
     return RequestGuard.errorResponse(
       503,
-      error._tag === "VaultLockedError"
-        ? error.message
-        : "openrcs could not start pairing because the database did not respond. Nothing was changed; try again in a moment.",
+      "openrcs could not start pairing because the database did not respond. Nothing was changed; try again in a moment.",
     );
   }
   return new Response(started.value.stream, {
     status: 200,
-    headers: pairingResponseHeaders(started.value.setCookie),
+    headers: pairingResponseHeaders(),
   });
 };

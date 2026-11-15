@@ -16,7 +16,7 @@ import {
  * Persistence of the user's Google Messages session (`gm_session`).
  * `auth_data_enc` is `AuthData.serialize` sealed with the user's DEK under the
  * contract AAD (docs/vault-contract.md). `dek_id` must equal the caller's DEK
- * id: a mismatch means the caller holds a stale key, and nothing is decrypted.
+ * id (the user's server key): on a mismatch nothing is decrypted.
  */
 export type GmSessionRecord = {
   readonly userId: string;
@@ -147,7 +147,7 @@ const load = async (
         sessionDekId: row.dekId,
         clientDekId: ctx.dek.id,
         message:
-          "This client holds an older key than the one protecting your phone session (the phone was re-paired since it was authorized). Nothing was decrypted. Re-authorize this agent, or open the dashboard in the browser that paired the phone.",
+          "Your stored phone session was sealed under a different key than your current one. Nothing was decrypted or changed. Pair your phone again from the openrcs dashboard to replace the session.",
       }),
     );
   }
@@ -203,8 +203,8 @@ const save = (
 
 /**
  * Re-seal changed AuthData (refreshed token, rotated cookies). Only writes a
- * row sealed with the same DEK, so a stale client cannot overwrite a newer
- * pairing.
+ * row sealed with the same DEK, so work started before a re-pairing under a
+ * new key cannot overwrite the newer session.
  */
 const saveAuthData = (
   db: Database,

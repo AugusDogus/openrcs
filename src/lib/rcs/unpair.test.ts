@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { eq } from "drizzle-orm";
 import { gmSession, syncState } from "@/lib/db/app-schema";
 import type { GMClientOptions } from "@/lib/gm/client";
-import { VaultTesting } from "@/lib/vault/testing";
+import { ServerKey } from "@/lib/vault/server-key";
 import { PhoneLease } from "./phone-lease";
 import { Store } from "./store";
 import { syncUser } from "./sync";
@@ -10,7 +10,6 @@ import { RcsTesting, type RcsTestEnv } from "./testing";
 import { unpairUser } from "./unpair";
 
 let env: RcsTestEnv;
-const vault = VaultTesting.vaultConfig();
 
 beforeEach(async () => {
   env = await RcsTesting.setup();
@@ -48,6 +47,7 @@ const rowsLeft = async () => ({
   ...(await Store.counts(env.db, env.userId)).unwrap(),
   syncState: (await env.db.select().from(syncState).where(eq(syncState.userId, env.userId))).length,
   session: (await env.db.select().from(gmSession).where(eq(gmSession.userId, env.userId))).length,
+  key: (await ServerKey.unlockWith(env.db, env.vault, env.userId)).unwrap() === null ? 0 : 1,
 });
 
 describe("unpairUser", () => {
@@ -65,8 +65,8 @@ describe("unpairUser", () => {
     let unpairDone = false;
     const unpair = unpairUser(env.db, {
       userId: env.userId,
-      cookieHeader: null,
-      vault,
+      vault: env.vault,
+      phone: { createClient: phone.createClient },
       lease: { waitMs: 10_000, pollMs: 20 },
     }).then((result) => {
       unpairDone = true;
@@ -78,7 +78,7 @@ describe("unpairUser", () => {
     phone.release();
     expect((await sync).isOk()).toBe(true);
     expect((await unpair).isOk()).toBe(true);
-    expect(await rowsLeft()).toEqual({ conversations: 0, messages: 0, syncState: 0, session: 0 });
+    expect(await rowsLeft()).toEqual({ conversations: 0, messages: 0, syncState: 0, session: 0, key: 0 });
   });
 
   test("refuses, deleting nothing, while the phone stays busy past the wait", async () => {
@@ -86,16 +86,21 @@ describe("unpairUser", () => {
     expect(held).not.toBeNull();
     const result = await unpairUser(env.db, {
       userId: env.userId,
-      cookieHeader: null,
-      vault,
+      vault: env.vault,
       lease: { waitMs: 100, pollMs: 20 },
     });
     expect(result.isErr() && result.error._tag).toBe("RcsPhoneBusyError");
-    expect((await rowsLeft()).session).toBe(1);
+    expect(await rowsLeft()).toMatchObject({ session: 1, key: 1 });
   });
 
   test("a sync that starts after the unpair records nothing", async () => {
-    expect((await unpairUser(env.db, { userId: env.userId, cookieHeader: null, vault })).isOk()).toBe(true);
+    const unpaired = await unpairUser(env.db, {
+      userId: env.userId,
+      vault: env.vault,
+      phone: { createClient: gatedPhone().createClient },
+    });
+    // The server key opens the session, so the phone is told to drop this web device.
+    expect(unpaired.unwrap().phoneNotified).toBe(true);
     const result = await syncUser(env.db, env.ctx, {
       conversationCount: 10,
       messagesPerPage: 5,
@@ -104,6 +109,6 @@ describe("unpairUser", () => {
       phone: { createClient: gatedPhone().createClient },
     });
     expect(result.isErr() && result.error._tag).toBe("RcsNotPairedError");
-    expect(await rowsLeft()).toEqual({ conversations: 0, messages: 0, syncState: 0, session: 0 });
+    expect(await rowsLeft()).toEqual({ conversations: 0, messages: 0, syncState: 0, session: 0, key: 0 });
   });
 });

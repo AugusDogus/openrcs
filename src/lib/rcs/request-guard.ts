@@ -7,11 +7,7 @@ import { Env } from "@/lib/env";
  * unpair, account deletion): the request must come from our own origin
  * (CSRF defense on top of SameSite cookies) and carry a Better Auth session.
  */
-export type SignedInRequest = {
-  readonly userId: string;
-  /** Raw Cookie header, for DeviceUnlock / PairingKeys. Never log it. */
-  readonly cookieHeader: string | null;
-};
+export type SignedInRequest = { readonly userId: string };
 
 export class RequestRejectedError extends TaggedError("RequestRejectedError")<{
   status: 401 | 403 | 503;
@@ -54,7 +50,7 @@ const requireSignedIn = async (
       }),
     );
   }
-  return Result.ok({ userId: session.value.user.id, cookieHeader: request.headers.get("cookie") });
+  return Result.ok({ userId: session.value.user.id });
 };
 
 /** JSON error body `{ error }` with no-store caching. */

@@ -10,7 +10,6 @@ import {
   fail,
   isCallToolResult,
   logToolError,
-  rcsContext,
   requirePhone,
   requireSession,
   TOOL_LEASE_WAIT_MS,
@@ -86,7 +85,7 @@ export const registerGetMediaTool: RcsToolRegistrar = (server, ctx) => {
       const unreachable = requirePhone(session);
       if (unreachable) return unreachable;
 
-      const opened = await Media.open(db, rcsContext(ctx), message_id, {
+      const opened = await Media.open(db, session.rcs, message_id, {
         inline: as_link === true ? undefined : { mimeTypes: INLINE_MIME_TYPES, maxBytes: INLINE_IMAGE_MAX_BYTES },
         phone: { lease: { waitMs: TOOL_LEASE_WAIT_MS }, ...ctx.testing?.phone },
       });

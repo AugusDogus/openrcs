@@ -31,7 +31,8 @@ import type { Database } from "@/lib/db/client";
 import { AuthData } from "@/lib/gm/auth-data";
 import type { GMClient, GMClientOptions, GMEvent } from "@/lib/gm/client";
 import { GMHttpError, GMRequestError, type GMConnectError, type GMRpcError } from "@/lib/gm/errors";
-import { Dek } from "@/lib/vault/dek";
+import type { VaultConfig } from "@/lib/vault/config";
+import { ServerKey } from "@/lib/vault/server-key";
 import { VaultTesting } from "@/lib/vault/testing";
 import type { RcsContext } from "./context";
 import { SessionStore } from "./session-store";
@@ -39,15 +40,19 @@ import { SessionStore } from "./session-store";
 export type RcsTestEnv = {
   readonly db: Database;
   readonly userId: string;
+  /** `dek` is the user's server key (stored in `user_key` under `vault`). */
   readonly ctx: RcsContext;
+  readonly vault: VaultConfig;
   readonly cleanup: () => Promise<void>;
 };
 
-/** Fresh migrated DB with one user and a random DEK. */
+/** Fresh migrated DB with one user and their server key. */
 const setup = async (): Promise<RcsTestEnv> => {
   const { db, cleanup } = await VaultTesting.createDb();
   const userId = await VaultTesting.createUser(db);
-  return { db, userId, ctx: { userId, dek: Dek.generate() }, cleanup };
+  const vault = VaultTesting.vaultConfig();
+  const dek = (await ServerKey.createWith(db, vault, userId)).unwrap();
+  return { db, userId, ctx: { userId, dek }, vault, cleanup };
 };
 
 /** A paired gm_session for `ctx` (fresh AuthData, never used against Google). */

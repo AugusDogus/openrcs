@@ -10,7 +10,6 @@ import {
   isCallToolResult,
   logToolError,
   ok,
-  rcsContext,
   requirePhone,
   requireSession,
   TOOL_LEASE_WAIT_MS,
@@ -70,7 +69,7 @@ export const registerSyncMessagesTool: RcsToolRegistrar = (server, ctx) => {
 
       const perConversation = messages_per_conversation ?? 30;
       const messagesPerPage = Math.min(perConversation, MAX_PAGE);
-      const synced = await syncUser(db, rcsContext(ctx), {
+      const synced = await syncUser(db, session.rcs, {
         conversationCount: conversation_count ?? 25,
         messagesPerPage,
         maxPagesPerConversation: Math.ceil(perConversation / messagesPerPage),

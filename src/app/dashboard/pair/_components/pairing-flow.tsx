@@ -197,7 +197,7 @@ const headingFor = (state: FlowState): { title: string; description?: string } =
   }
 };
 
-export function PairingFlow({ resetsData }: { resetsData: boolean }) {
+export function PairingFlow() {
   const router = useRouter();
   const [state, setState] = useState<FlowState>(INITIAL);
   const abortRef = useRef<AbortController | null>(null);
@@ -300,13 +300,6 @@ export function PairingFlow({ resetsData }: { resetsData: boolean }) {
   return (
     <div className="flex flex-col gap-6">
       <PageTitle title={heading.title}>{heading.description}</PageTitle>
-
-      {resetsData && (state.stage === "browserStarting" || state.stage === "browser") ? (
-        <Alert tone="warning">
-          This browser does not hold the key to your existing pairing, so pairing here deletes your stored messages and
-          disconnects your agents. To keep them, pair from the browser you used before.
-        </Alert>
-      ) : null}
 
       {inStage ? (
         <Stage>

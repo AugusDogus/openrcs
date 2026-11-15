@@ -1,8 +1,6 @@
 import { Result, TaggedError } from "better-result";
 import { and, eq, isNull, lte, or } from "drizzle-orm";
-import { gmSession } from "@/lib/db/app-schema";
 import { oauthGrant } from "@/lib/db/vault-schema";
-import type { Dek } from "@/lib/vault/dek";
 import { OAuthContext } from "./context";
 import { OAuthErrors, type OAuthStorageError } from "./errors";
 import { OAuthHttp } from "./http";
@@ -15,13 +13,12 @@ export type McpAuth = {
   readonly grantId: string;
   readonly clientId: string;
   readonly scopes: readonly McpScope[];
-  readonly dek: Dek;
 };
 
 /** No usable bearer token. `tokenPresent` decides whether the challenge carries error="invalid_token". */
 export class McpUnauthorizedError extends TaggedError("McpUnauthorizedError")<{
   tokenPresent: boolean;
-  reason: "missing" | "malformed" | "unauthentic" | "expired" | "revoked" | "stale_key";
+  reason: "missing" | "malformed" | "unauthentic" | "expired" | "revoked";
   message: string;
 }> {}
 
@@ -42,8 +39,8 @@ const bearerToken = (request: Request): string | null => {
 
 /**
  * Verifies "Authorization: Bearer oat_..." for /api/mcp: opens the sealed
- * token, checks expiry, then checks the grant is live for the same user,
- * client and DEK generation (and that the DEK still matches gm_session).
+ * token, checks expiry, then checks the grant is live for the same user and
+ * client.
  */
 const authenticate = async (
   ctx: OAuthContext,
@@ -61,20 +58,17 @@ const authenticate = async (
   if (claims.value.exp * 1000 <= now) {
     return unauthorized(true, "expired", "The access token has expired. Refresh it with the refresh token.");
   }
-  const { grantId, userId, clientId, dek } = claims.value;
+  const { grantId, userId, clientId } = claims.value;
   const loaded = await Result.tryPromise({
     try: async () => {
       const [row] = await ctx.db
         .select({
           userId: oauthGrant.userId,
           clientId: oauthGrant.clientId,
-          dekId: oauthGrant.dekId,
           revokedAt: oauthGrant.revokedAt,
           lastUsedAt: oauthGrant.lastUsedAt,
-          sessionDekId: gmSession.dekId,
         })
         .from(oauthGrant)
-        .leftJoin(gmSession, eq(gmSession.userId, oauthGrant.userId))
         .where(eq(oauthGrant.id, grantId))
         .limit(1);
       return row ?? null;
@@ -85,9 +79,6 @@ const authenticate = async (
   const grant = loaded.value;
   if (!grant || grant.revokedAt !== null || grant.userId !== userId || grant.clientId !== clientId) {
     return unauthorized(true, "revoked", "This authorization was revoked. Authorize the client again.");
-  }
-  if (grant.dekId !== dek.id || (grant.sessionDekId !== null && grant.sessionDekId !== dek.id)) {
-    return unauthorized(true, "stale_key", "This authorization is for an older pairing. Authorize the client again.");
   }
   if (grant.lastUsedAt === null || grant.lastUsedAt <= now - LAST_USED_RESOLUTION_MS) {
     const touched = await Result.tryPromise({
@@ -105,7 +96,7 @@ const authenticate = async (
     });
     if (touched.isErr()) return Result.err(touched.error);
   }
-  return Result.ok({ userId, grantId, clientId, scopes: claims.value.scopes, dek });
+  return Result.ok({ userId, grantId, clientId, scopes: claims.value.scopes });
 };
 
 const quote = (value: string) => `"${value.replace(/["\\]/g, "")}"`;

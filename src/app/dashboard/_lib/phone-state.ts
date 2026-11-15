@@ -1,29 +1,21 @@
-import { headers } from "next/headers";
 import { cache } from "react";
 import { getDb } from "@/lib/db/client";
 import { describeForLog } from "@/lib/rcs/errors";
 import { SessionStore, type GmSessionRecord } from "@/lib/rcs/session-store";
 import { SyncState } from "@/lib/rcs/sync-state";
-import { DeviceUnlock, type Dek } from "@/lib/vault";
+import { ServerKey } from "@/lib/vault";
 
 /**
- * What the dashboard can show for the signed-in user: the session metadata,
- * and whether this browser's device cookie unlocks it. The DEK stays on the
- * server; components only receive decrypted values they render.
+ * What the dashboard shows for the signed-in user. Paired means a session
+ * and the server key that opens it; a session without a usable key cannot be
+ * read, so it counts as unpaired and the page offers pairing.
  */
 export type PhoneState =
   | { readonly kind: "error"; readonly message: string }
-  | { readonly kind: "unpaired"; readonly lastSyncAt: Date | null }
+  | { readonly kind: "unpaired" }
   | {
-      readonly kind: "locked";
+      readonly kind: "paired";
       readonly session: GmSessionRecord;
-      readonly lastSyncAt: Date | null;
-      readonly lastSyncError: string | null;
-    }
-  | {
-      readonly kind: "unlocked";
-      readonly session: GmSessionRecord;
-      readonly dek: Dek;
       readonly lastSyncAt: Date | null;
       readonly lastSyncError: string | null;
     };
@@ -31,29 +23,30 @@ export type PhoneState =
 const DB_ERROR =
   "Could not load your phone status because the database did not respond. Your pairing is unchanged; reload the page to try again.";
 
-/** Memoized per request so several dashboard sections share one unlock. */
+/** Memoized per request so several dashboard sections share one read. */
 export const loadPhoneState = cache(async (userId: string): Promise<PhoneState> => {
-  const cookieHeader = (await headers()).get("cookie");
   const db = getDb();
-  const [record, sync] = await Promise.all([SessionStore.readRecord(db, userId), SyncState.read(db, userId)]);
+  const [record, sync, key] = await Promise.all([
+    SessionStore.readRecord(db, userId),
+    SyncState.read(db, userId),
+    ServerKey.unlock(db, userId),
+  ]);
   if (record.isErr()) {
     console.error(`[dashboard] ${describeForLog(record.error)}`);
     return { kind: "error", message: DB_ERROR };
   }
-  const lastSyncAt = sync.isOk() ? sync.value.lastSyncAt : null;
-  const lastSyncError = sync.isOk() ? sync.value.lastSyncError : null;
-  const session = record.value;
-  if (session === null || session.status === "unpaired") return { kind: "unpaired", lastSyncAt };
-
-  const unlocked = await DeviceUnlock.unlock(db, userId, cookieHeader);
-  if (unlocked.isErr()) {
-    if (unlocked.error._tag === "VaultStorageError") {
-      console.error(`[dashboard] ${describeForLog(unlocked.error)}`);
-      return { kind: "error", message: DB_ERROR };
-    }
-    return { kind: "locked", session, lastSyncAt, lastSyncError };
+  if (key.isErr()) {
+    console.error(`[dashboard] ${describeForLog(key.error)}`);
+    if (key.error._tag === "VaultStorageError") return { kind: "error", message: DB_ERROR };
   }
-  // A device slot for an older key cannot open data sealed with the current one.
-  if (unlocked.value.id !== session.dekId) return { kind: "locked", session, lastSyncAt, lastSyncError };
-  return { kind: "unlocked", session, dek: unlocked.value, lastSyncAt, lastSyncError };
+  const session = record.value;
+  if (session === null || session.status === "unpaired" || !key.isOk() || key.value === null) {
+    return { kind: "unpaired" };
+  }
+  return {
+    kind: "paired",
+    session,
+    lastSyncAt: sync.isOk() ? sync.value.lastSyncAt : null,
+    lastSyncError: sync.isOk() ? sync.value.lastSyncError : null,
+  };
 });

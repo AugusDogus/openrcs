@@ -42,7 +42,7 @@ async function Home() {
   const user = await requireCurrentUser();
   const state = await loadPhoneState(user.id);
   if (state.kind === "error") return <Alert tone="danger">{state.message}</Alert>;
-  if (state.kind === "unpaired") return <PairingFlow resetsData={false} />;
+  if (state.kind === "unpaired") return <PairingFlow />;
   return (
     <>
       <Section title="Phone">
@@ -55,22 +55,11 @@ async function Home() {
   );
 }
 
-function Phone({ state }: { state: Extract<PhoneState, { kind: "locked" | "unlocked" }> }) {
+function Phone({ state }: { state: Extract<PhoneState, { kind: "paired" }> }) {
   const { session } = state;
   const name = session.phoneLabel ?? "Your phone";
   const lastError = session.lastError ?? state.lastSyncError;
 
-  if (state.kind === "locked") {
-    return (
-      <div className="flex flex-col gap-3">
-        <PhoneRow name={name} status="Locked in this browser" tone="warning" canSync={false} repair="Re-pair here" />
-        <p className="text-sm leading-6 text-muted">
-          Your messages are encrypted with a key held by the browser that paired this phone. Open openrcs there, or
-          re-pair here, which deletes the stored messages and disconnects your agents.
-        </p>
-      </div>
-    );
-  }
   if (session.status === "needs_repair") {
     return (
       <PhoneRow

@@ -7,6 +7,7 @@ import { describeForLog } from "@/lib/rcs/errors";
 import { SessionStore, type GmSessionRecord } from "@/lib/rcs/session-store";
 import { ensureFresh, type Freshness } from "@/lib/rcs/sync";
 import { SyncState } from "@/lib/rcs/sync-state";
+import { ServerKey } from "@/lib/vault";
 import type { RcsMcpContext } from "../context";
 
 /** Helpers shared by the tool files: results, gating, time formats. */
@@ -17,11 +18,6 @@ export const TOOL_SYNC_BUDGET_MS = 25_000;
 export const FRESHNESS_MAX_AGE_MS = 60_000;
 /** How long a tool waits for another invocation to release the phone. */
 export const TOOL_LEASE_WAIT_MS = 10_000;
-
-export const rcsContext = (ctx: RcsMcpContext): RcsContext => ({
-  userId: ctx.auth.userId,
-  dek: ctx.auth.dek,
-});
 
 export const iso = (ms: number): string => new Date(ms).toISOString();
 export const isoOrNull = (date: Date | null): string | null => (date === null ? null : date.toISOString());
@@ -46,45 +42,51 @@ export const fail = (text: string): CallToolResult => ({
 export const logToolError = (tool: string, error: { readonly _tag: string }) =>
   console.error(`[mcp:${tool}] ${describeForLog(error)}`);
 
+/** A paired session and the server key that opens the user's data. */
+export type PairedSession = { readonly record: GmSessionRecord; readonly rcs: RcsContext };
+
 /**
- * The user's session metadata, or an isError result when there is nothing to
- * read (not paired) or this client's key is stale. `needs_repair` sessions
- * pass: their cached messages stay readable; tools that need the phone check
- * `status` themselves.
+ * The user's session and key, or an isError result when there is nothing to
+ * read (not paired). `needs_repair` sessions pass: their cached messages stay
+ * readable; tools that need the phone check `status` themselves.
  */
 export const requireSession = async (
   db: Database,
   ctx: RcsMcpContext,
   tool: string,
-): Promise<GmSessionRecord | CallToolResult> => {
-  const record = await SessionStore.readRecord(db, ctx.auth.userId);
+): Promise<PairedSession | CallToolResult> => {
+  const userId = ctx.auth.userId;
+  const [record, key] = await Promise.all([SessionStore.readRecord(db, userId), ServerKey.unlock(db, userId)]);
   if (record.isErr()) {
     logToolError(tool, record.error);
     return fail(record.error.message);
   }
+  if (key.isErr()) {
+    logToolError(tool, key.error);
+    return fail(
+      key.error._tag === "VaultStorageError"
+        ? "Could not open the stored messages because the database did not respond. Nothing was changed; try again in a moment."
+        : `openrcs cannot open the stored messages with this server's key. Nothing was read. Ask the user to pair their phone again at ${dashboardUrl()}.`,
+    );
+  }
   const session = record.value;
-  if (session === null || session.status === "unpaired") {
+  if (session === null || session.status === "unpaired" || key.value === null) {
     return fail(
       `No phone is paired with this openrcs account yet, so there are no messages to read or send. Ask the user to open ${dashboardUrl()} and pair their phone's Google Messages, then call get_status again.`,
     );
   }
-  if (session.dekId !== ctx.auth.dek.id) {
-    return fail(
-      "This client's authorization predates the current phone pairing, so its key cannot open the stored data. Nothing was read. Re-authorize this MCP client (disconnect and reconnect it) and approve it from the browser that paired the phone.",
-    );
-  }
-  return session;
+  return { record: session, rcs: { userId, dek: key.value } };
 };
 
 /** isError result when the session needs re-pairing (for tools that must reach the phone). */
-export const requirePhone = (session: GmSessionRecord): CallToolResult | null =>
-  session.status === "paired"
+export const requirePhone = (session: PairedSession): CallToolResult | null =>
+  session.record.status === "paired"
     ? null
     : fail(
         `Google signed openrcs out of the user's phone, so it cannot reach the phone right now. Ask the user to pair again at ${dashboardUrl()}. Stored messages are still readable with list_conversations, get_messages and search_messages (refresh is skipped).`,
       );
 
-export const isCallToolResult = (value: GmSessionRecord | CallToolResult): value is CallToolResult =>
+export const isCallToolResult = (value: PairedSession | CallToolResult): value is CallToolResult =>
   "content" in value;
 
 export const FreshnessSchema = z.object({
@@ -141,11 +143,11 @@ export const clip = (text: string, max: number): string => {
 export const refreshBeforeRead = async (
   db: Database,
   ctx: RcsMcpContext,
-  session: GmSessionRecord,
+  session: PairedSession,
   refresh: boolean,
   tool: string,
 ): Promise<FreshnessOutput> => {
-  if (!refresh || session.status !== "paired") {
+  if (!refresh || session.record.status !== "paired") {
     const state = await SyncState.read(db, ctx.auth.userId);
     const lastSyncAt = state.isOk() ? state.value.lastSyncAt : null;
     return skippedFreshness(
@@ -155,7 +157,7 @@ export const refreshBeforeRead = async (
         : "Showing stored data (refresh=false).",
     );
   }
-  const fresh = await ensureFresh(db, rcsContext(ctx), {
+  const fresh = await ensureFresh(db, session.rcs, {
     maxAgeMs: FRESHNESS_MAX_AGE_MS,
     deadlineMs: Date.now() + TOOL_SYNC_BUDGET_MS,
     phone: { lease: { waitMs: TOOL_LEASE_WAIT_MS } },

@@ -1,11 +1,12 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import { createSecretKey, hkdfSync } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { keySlot, oauthGrant } from "@/lib/db/vault-schema";
-import { DataBox } from "@/lib/vault/data-box";
+import { SecretBox } from "@/lib/secret-box";
 import { Dek } from "@/lib/vault/dek";
-import { DeviceUnlock } from "@/lib/vault/device";
 import { KeySlot } from "@/lib/vault/key-slot";
+import { ServerKey } from "@/lib/vault/server-key";
 import { VaultTesting } from "@/lib/vault/testing";
 import { AuthorizeEndpoint } from "./authorize";
 import { OAuthClients } from "./clients";
@@ -152,7 +153,7 @@ const grantOf = async (userId: string) => {
 };
 
 describe("authorization code flow", () => {
-  test("register -> authorize -> consent -> token -> authenticated MCP request with the user's DEK", async () => {
+  test("register -> authorize -> consent -> token -> authenticated MCP request", async () => {
     const { client, browser, tokens, setCookie } = await connected();
     expect(tokens.scope).toBe("messages:read messages:send");
     // First consent before pairing minted the vault key and set the device cookie.
@@ -164,12 +165,6 @@ describe("authorization code flow", () => {
     expect(auth.scopes).toEqual(["messages:read", "messages:send"]);
     const grant = await grantOf(browser.userId);
     expect(auth.grantId).toBe(grant.id);
-    expect(auth.dek.id).toBe(grant.dekId);
-
-    // The MCP DEK is the same key the browser's device slot unlocks.
-    const browserDek = (await DeviceUnlock.unlockWith(h.ctx.db, h.ctx.vault, browser.userId, browser.cookie)).unwrap();
-    const aad = { userId: browser.userId, table: "gm_session", rowKey: browser.userId, column: "auth_data" };
-    expect(DataBox.open(auth.dek, DataBox.seal(browserDek, "shared", aad), aad).unwrap()).toBe("shared");
   });
 
   test("a second consent from the paired browser reuses its key and sets no cookie", async () => {
@@ -181,7 +176,8 @@ describe("authorization code flow", () => {
     expect(setCookie).toBeNull();
     const second = tokenResponse.parse(await (await exchange(other.client_id, code, verifier)).json());
     const auth = (await McpAuth.authenticate(h.ctx, mcpRequest(second.access_token))).unwrap();
-    expect(auth.dek.id).toBe(first.dek.id);
+    expect(auth.userId).toBe(first.userId);
+    expect(auth.grantId).not.toBe(first.grantId);
   });
 
   test("requested scope is intersected with the client's registration", async () => {
@@ -585,7 +581,6 @@ describe("access tokens and /api/mcp authentication", () => {
       clientId: "c",
       scopes: ["messages:read"],
       exp: Math.floor(h.clock.now() / 1000) + 3600,
-      dek: Dek.generate(),
     });
     expect(await expectInvalidToken(foreign)).toBe("unauthentic");
   });
@@ -605,10 +600,44 @@ describe("access tokens and /api/mcp authentication", () => {
     expect(await expectInvalidToken(tokens.access_token)).toBe("revoked");
   });
 
-  test("re-pairing under a new DEK makes old tokens stale", async () => {
-    const { tokens, browser } = await connected();
+  test("access tokens issued before the server key, which carry a DEK copy, are still accepted", async () => {
+    const { client, tokens, browser } = await connected();
+    const grant = await grantOf(browser.userId);
+    const legacyKey = createSecretKey(
+      new Uint8Array(hkdfSync("sha256", h.ctx.vault.pepper, new Uint8Array(0), "openrcs/access-token/v1", 32)),
+    );
+    const dek = Dek.generate();
+    const legacy = `oat_${SecretBox.seal(
+      { key: legacyKey },
+      JSON.stringify({
+        v: 1,
+        uid: browser.userId,
+        gid: grant.id,
+        cid: client.client_id,
+        scope: "messages:read",
+        exp: Math.floor(h.clock.now() / 1000) + 3600,
+        did: dek.id,
+        dek: Buffer.from(dek.bytes).toString("base64url"),
+      }),
+      { associatedData: "openrcs/access-token", version: "v1" },
+    )}`;
+    const auth = (await McpAuth.authenticate(h.ctx, mcpRequest(legacy))).unwrap();
+    expect(auth).toEqual({ userId: browser.userId, grantId: grant.id, clientId: client.client_id, scopes: ["messages:read"] });
+    expect(JSON.stringify(auth)).not.toContain(dek.id);
+    // New tokens no longer carry key material.
+    expect(AccessToken.open(h.ctx.vault.pepper, tokens.access_token).unwrap()).not.toHaveProperty("dek");
+  });
+
+  test("re-pairing under a new key keeps grants, access tokens and refresh tokens working", async () => {
+    const { client, tokens, browser } = await connected();
+    await ServerKey.createWith(h.ctx.db, h.ctx.vault, browser.userId);
     await VaultTesting.pairSession(h.ctx.db, browser.userId, Dek.generate());
-    expect(await expectInvalidToken(tokens.access_token)).toBe("stale_key");
+    expect((await McpAuth.authenticate(h.ctx, mcpRequest(tokens.access_token))).isOk()).toBe(true);
+    const rotated = await refresh(client.client_id, tokens.refresh_token);
+    expect(rotated.status).toBe(200);
+    const next = tokenResponse.parse(await rotated.json());
+    expect((await McpAuth.authenticate(h.ctx, mcpRequest(next.access_token))).isOk()).toBe(true);
+    expect((await grantOf(browser.userId)).revokedAt).toBeNull();
   });
 
   test("last_used_at is updated at most once a minute", async () => {

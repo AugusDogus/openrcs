@@ -13,7 +13,6 @@ import {
   isCallToolResult,
   logToolError,
   ok,
-  rcsContext,
   requirePhone,
   requireSession,
   TOOL_LEASE_WAIT_MS,
@@ -73,7 +72,7 @@ export const registerListContactsTool: RcsToolRegistrar = (server, ctx) => {
       const userId = ctx.auth.userId;
       const listed = await withPhone(
         db,
-        rcsContext(ctx),
+        session.rcs,
         async (client) => {
           const response = await client.listContacts();
           return response.isOk()

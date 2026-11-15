@@ -1,8 +1,8 @@
 import { Result } from "better-result";
 import type { Database } from "@/lib/db/client";
-import { DeviceUnlock, Vault, VaultConfig, type VaultStorageError } from "@/lib/vault";
+import { ServerKey, Vault, VaultConfig, type VaultStorageError } from "@/lib/vault";
 import { describeForLog, GmFailure, type RcsPhoneBusyError, type RcsStorageError } from "./errors";
-import { withPhone } from "./phone";
+import { withPhone, type WithPhoneOptions } from "./phone";
 import { PhoneLease, type AcquireOptions } from "./phone-lease";
 import { SessionStore } from "./session-store";
 import { deleteUserData } from "./store";
@@ -14,11 +14,12 @@ export type UnpairSummary = {
 
 export type UnpairOptions = {
   readonly userId: string;
-  readonly cookieHeader: string | null;
   /** Waiting for an in-flight sync, send or pairing; default `UNPAIR_LEASE_WAIT_MS`. */
   readonly lease?: AcquireOptions;
   /** Defaults to `VaultConfig.fromEnv()`. */
   readonly vault?: VaultConfig;
+  /** Tests inject a scripted phone (`createClient`). */
+  readonly phone?: Pick<WithPhoneOptions, "createClient" | "fetch">;
 };
 
 /** Fits inside the unpair and account-delete routes' 60 s budget, with time left for the phone and the deletes. */
@@ -27,11 +28,10 @@ export const UNPAIR_LEASE_WAIT_MS = 30_000;
 /**
  * Unpair: take the phone lease (waiting for any sync, send or pairing in
  * progress, so none of them can store rows or re-create the session after
- * the deletes); if this browser can unlock the session, ask Google to drop
- * the web device (best effort); then delete stored conversations/messages/
- * sync state, the gm_session row, and every key slot and grant. Fails with
- * RcsPhoneBusyError, deleting nothing, if the phone stays busy. The caller
- * clears the device cookie with `Vault.clearDeviceCookie(userId)`.
+ * the deletes); ask Google to drop the web device (best effort); then delete
+ * stored conversations/messages/sync state, the gm_session row, every key
+ * slot and grant, and the server key. Fails with RcsPhoneBusyError, deleting
+ * nothing, if the phone stays busy.
  */
 export const unpairUser = async (
   db: Database,
@@ -43,8 +43,10 @@ export const unpairUser = async (
   const lease = acquired.value;
   try {
     let phoneNotified = false;
-    const unlocked = await DeviceUnlock.unlockWith(db, opts.vault ?? VaultConfig.fromEnv(), userId, opts.cookieHeader);
-    if (unlocked.isOk()) {
+    const unlocked = await ServerKey.unlockWith(db, opts.vault ?? VaultConfig.fromEnv(), userId);
+    if (unlocked.isErr()) {
+      console.warn(`[rcs:unpair] cannot open the session to tell the phone (continuing): ${describeForLog(unlocked.error)}`);
+    } else if (unlocked.value !== null) {
       const unpaired = await withPhone(
         db,
         { userId, dek: unlocked.value },
@@ -54,7 +56,7 @@ export const unpairUser = async (
             ? Result.ok(undefined)
             : Result.err(GmFailure.toPhoneError(userId, "unpair", result.error));
         },
-        { operation: "unpair", lease: { held: lease }, requestTimeoutMs: 10_000 },
+        { operation: "unpair", lease: { held: lease }, requestTimeoutMs: 10_000, ...opts.phone },
       );
       phoneNotified = unpaired.isOk();
       if (unpaired.isErr()) {
@@ -68,6 +70,8 @@ export const unpairUser = async (
     if (session.isErr()) return Result.err(session.error);
     const revoked = await Vault.revokeAll(db, userId);
     if (revoked.isErr()) return Result.err(revoked.error);
+    const key = await ServerKey.delete(db, userId);
+    if (key.isErr()) return Result.err(key.error);
     return Result.ok({ phoneNotified });
   } finally {
     const released = await PhoneLease.release(db, lease);

@@ -6,8 +6,8 @@ import { createRcsMcpServer } from "@/lib/mcp/server";
 
 /**
  * Remote MCP endpoint. Every request must carry an access token from our
- * OAuth server (docs/security.md); the verified grant (with the user's DEK)
- * is handed to a fresh per-request MCP server.
+ * OAuth server (docs/security.md); the verified grant is handed to a fresh
+ * per-request MCP server.
  */
 const handle = async (request: Request): Promise<Response> => {
   await connection();

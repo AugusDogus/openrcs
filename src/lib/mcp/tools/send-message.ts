@@ -11,7 +11,6 @@ import {
   isCallToolResult,
   logToolError,
   ok,
-  rcsContext,
   requirePhone,
   requireSession,
   TOOL_LEASE_WAIT_MS,
@@ -74,7 +73,7 @@ export const registerSendMessageTool: RcsToolRegistrar = (server, ctx) => {
       const offline = requirePhone(session);
       if (offline) return offline;
 
-      const sent = await sendText(db, rcsContext(ctx), request.value, {
+      const sent = await sendText(db, session.rcs, request.value, {
         phone: { lease: { waitMs: TOOL_LEASE_WAIT_MS } },
       });
       if (sent.isErr()) {
