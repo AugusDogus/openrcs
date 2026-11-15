@@ -61,6 +61,7 @@ type State =
   | {
       readonly kind: "running";
       readonly userId: string;
+      readonly colorScheme: ColorScheme;
       readonly child: ChildHandle;
       readonly profileDir: string;
       readonly timer: ReturnType<typeof setTimeout>;
@@ -71,7 +72,20 @@ type State =
 export const PAIRING_BROWSER_START_URL =
   "https://accounts.google.com/ServiceLogin?continue=https%3A%2F%2Fmessages.google.com%2Fweb%2F";
 
-const chromiumArgs = (profileDir: string, startUrl: string): string[] => [
+/** The openrcs page's own light or dark mode, which the browser's pages should match. */
+export type ColorScheme = "light" | "dark";
+
+/**
+ * What pages see as `prefers-color-scheme`, set both ways so the container's
+ * desktop theme never decides. --force-dark-mode also darkens Chromium's own
+ * dialogs (such as passkey prompts).
+ */
+const colorSchemeArgs = (colorScheme: ColorScheme): string[] =>
+  colorScheme === "dark"
+    ? ["--force-dark-mode", "--blink-settings=preferredColorScheme=0"]
+    : ["--blink-settings=preferredColorScheme=1"];
+
+const chromiumArgs = (profileDir: string, startUrl: string, colorScheme: ColorScheme): string[] => [
   // Same flags as linuxserver/chromium's wrapper, minus anything automation-like.
   "--no-sandbox",
   "--test-type",
@@ -83,6 +97,7 @@ const chromiumArgs = (profileDir: string, startUrl: string): string[] => [
   `--user-data-dir=${profileDir}`,
   // Request log for sign-in detection (default capture mode: no cookies or credentials).
   `--log-net-log=${join(profileDir, NET_LOG_FILE)}`,
+  ...colorSchemeArgs(colorScheme),
   "--kiosk",
   startUrl,
 ];
@@ -166,7 +181,11 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
     await wipe(state.profileDir);
   };
 
-  const launch = async (userId: string, profileDir: string): Promise<Result<void, PairingBrowserError>> => {
+  const launch = async (
+    userId: string,
+    profileDir: string,
+    colorScheme: ColorScheme,
+  ): Promise<Result<void, PairingBrowserError>> => {
     const made = await Result.tryPromise({
       try: () => mkdir(profileDir, { recursive: true, mode: 0o700 }),
       catch: (cause) =>
@@ -179,7 +198,7 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
     if (made.isErr()) return Result.err(made.error);
     let child: ChildHandle;
     try {
-      child = config.spawn(config.chromiumPath, chromiumArgs(profileDir, config.startUrl));
+      child = config.spawn(config.chromiumPath, chromiumArgs(profileDir, config.startUrl, colorScheme));
     } catch (cause) {
       await wipe(profileDir);
       return Result.err(
@@ -191,7 +210,7 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
       );
     }
     const timer = setTimeout(() => void serialized(shutDown), config.idleTimeoutMs);
-    h.state = { kind: "running", userId, child, profileDir, timer };
+    h.state = { kind: "running", userId, colorScheme, child, profileDir, timer };
     return Result.ok(undefined);
   };
 
@@ -228,7 +247,7 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
     missing: readonly string[],
   ): Promise<Result<PairingBrowserStatus, PairingBrowserError>> => {
     clearTimeout(state.timer);
-    const relaunched = await launch(state.userId, state.profileDir);
+    const relaunched = await launch(state.userId, state.profileDir, state.colorScheme);
     if (relaunched.isErr()) {
       h.state = { kind: "idle" };
       await wipe(state.profileDir);
@@ -242,8 +261,11 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
   };
 
   return {
-    /** Open the sign-in browser for this user (a fresh profile). Reuses one this user already has open. */
-    start: (userId: string): Promise<Result<PairingBrowserStatus, PairingBrowserError>> =>
+    /**
+     * Open the sign-in browser for this user (a fresh profile), its pages in
+     * `colorScheme`. Reuses one this user already has open, as it is.
+     */
+    start: (userId: string, colorScheme: ColorScheme): Promise<Result<PairingBrowserStatus, PairingBrowserError>> =>
       serialized(async () => {
         dropExpiredCapture();
         const state = h.state;
@@ -252,7 +274,7 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
         if (state.kind === "captured") h.state = { kind: "idle" };
         const profileDir = join(config.profileRoot, `profile-${config.now().toString(36)}`);
         await clearRoot();
-        const launched = await launch(userId, profileDir);
+        const launched = await launch(userId, profileDir, colorScheme);
         return launched.isErr() ? Result.err(launched.error) : Result.ok({ status: "signingIn", missing: [] });
       }),
 

@@ -40,7 +40,12 @@ const browserAction = async (action: "start" | "poll" | "stop", signal?: AbortSi
     response = await fetch("/api/pair/browser", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ action }),
+      // The browser's pages match this page's light or dark mode (the system's).
+      body: JSON.stringify(
+        action === "start"
+          ? { action, colorScheme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light" }
+          : { action },
+      ),
       signal,
       keepalive: action === "stop",
     });

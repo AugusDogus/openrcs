@@ -96,7 +96,7 @@ afterEach(async () => {
 describe("PairingBrowser", () => {
   test("start launches Chromium without a debugging port on a fresh profile under the root", async () => {
     await mkdir(join(root, "profile-stale"));
-    const status = (await browser().start("u1")).unwrap();
+    const status = (await browser().start("u1", "light")).unwrap();
     expect(status).toEqual({ status: "signingIn", missing: [] });
     expect(spawned).toHaveLength(1);
     const { command, args } = spawned[0] ?? { command: "", args: [] };
@@ -109,17 +109,33 @@ describe("PairingBrowser", () => {
     expect(await readdir(root)).toEqual([profileOf(args).slice(root.length + 1)]);
   });
 
+  test("pages match the openrcs page's color scheme, including after a reopen", async () => {
+    const scheme = (args: readonly string[]) => args.filter((arg) => arg.includes("-dark-") || arg.includes("ColorScheme"));
+    const dark = browser();
+    await dark.start("u1", "dark");
+    spawned[0]?.child.exit();
+    await dark.poll("u1");
+    expect(spawned.map(({ args }) => scheme(args))).toEqual([
+      ["--force-dark-mode", "--blink-settings=preferredColorScheme=0"],
+      ["--force-dark-mode", "--blink-settings=preferredColorScheme=0"],
+    ]);
+    await dark.stop("u1");
+
+    await browser().start("u1", "light");
+    expect(scheme(spawned[2]?.args ?? [])).toEqual(["--blink-settings=preferredColorScheme=1"]);
+  });
+
   test("starting again for the same user reuses the open browser", async () => {
     const b = browser();
-    await b.start("u1");
-    await b.start("u1");
+    await b.start("u1", "light");
+    await b.start("u1", "light");
     expect(spawned).toHaveLength(1);
   });
 
   test("another user is refused while the browser is open", async () => {
     const b = browser();
-    await b.start("u1");
-    const second = await b.start("u2");
+    await b.start("u1", "light");
+    const second = await b.start("u2", "light");
     expect(second.isErr() && second.error.reason).toBe("busy");
     expect(b.canView("u1")).toBe(true);
     expect(b.canView("u2")).toBe(false);
@@ -127,7 +143,7 @@ describe("PairingBrowser", () => {
 
   test("poll reports missing cookies, then captures once signed in: browser closed, profile deleted", async () => {
     const b = browser();
-    await b.start("u1");
+    await b.start("u1", "light");
     const profile = profileOf(spawned[0]?.args ?? []);
     await writeFile(join(profile, "marker"), "x");
     cookieReads = [signedOut(["SAPISID"]), signedIn(), signedIn()];
@@ -145,7 +161,7 @@ describe("PairingBrowser", () => {
 
   test("reaching Messages for web closes the browser at once and captures its cookies", async () => {
     const b = browser();
-    await b.start("u1");
+    await b.start("u1", "light");
     const profile = profileOf(spawned[0]?.args ?? []);
     // On disk the cookies are not written yet; the clean exit writes them.
     cookieReads = [signedOut(), signedIn()];
@@ -158,7 +174,7 @@ describe("PairingBrowser", () => {
 
   test("if the cookies are still missing after closing, the browser reopens on the same profile", async () => {
     const b = browser();
-    await b.start("u1");
+    await b.start("u1", "light");
     cookieReads = [signedOut(), signedOut(["SID"])];
     signInSeen = [true];
     expect((await b.poll("u1")).unwrap()).toEqual({ status: "signingIn", missing: ["SID"] });
@@ -171,7 +187,7 @@ describe("PairingBrowser", () => {
   test("a browser that ignores SIGTERM is killed", async () => {
     const stubborn = fakeChild({ ignoreTerm: true });
     const b = browser({ spawn: () => stubborn });
-    await b.start("u1");
+    await b.start("u1", "light");
     await b.stop("u1");
     expect(stubborn.signals).toEqual(["SIGTERM", "SIGKILL"]);
     expect(await readdir(root)).toEqual([]);
@@ -179,7 +195,7 @@ describe("PairingBrowser", () => {
 
   test("a browser that closed before sign-in is reopened on the same profile", async () => {
     const b = browser();
-    await b.start("u1");
+    await b.start("u1", "light");
     spawned[0]?.child.exit();
     expect((await b.poll("u1")).unwrap()).toMatchObject({ status: "signingIn" });
     expect(spawned).toHaveLength(2);
@@ -188,17 +204,17 @@ describe("PairingBrowser", () => {
 
   test("captured cookies expire if nobody pairs with them", async () => {
     const b = browser();
-    await b.start("u1");
+    await b.start("u1", "light");
     cookieReads = [signedIn(), signedIn()];
     await b.poll("u1");
     now += 5_000;
     expect(await b.take("u1")).toBeNull();
-    expect((await b.start("u2")).isOk()).toBe(true);
+    expect((await b.start("u2", "light")).isOk()).toBe(true);
   });
 
   test("stop only affects the owner", async () => {
     const b = browser();
-    await b.start("u1");
+    await b.start("u1", "light");
     await b.stop("u2");
     expect(b.canView("u1")).toBe(true);
     await b.stop("u1");
@@ -207,7 +223,7 @@ describe("PairingBrowser", () => {
 
   test("an abandoned browser closes after the idle timeout", async () => {
     const b = browser({ idleTimeoutMs: 10 });
-    await b.start("u1");
+    await b.start("u1", "light");
     await Bun.sleep(40);
     expect(b.canView("u1")).toBe(false);
     expect(spawned[0]?.child.signals).toEqual(["SIGTERM"]);
