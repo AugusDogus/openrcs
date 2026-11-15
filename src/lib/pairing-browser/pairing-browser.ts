@@ -163,7 +163,10 @@ export const createPairingBrowser = (config: PairingBrowserConfig) => {
     }
   };
 
-  const wipe = (profileDir: string) => rm(profileDir, { recursive: true, force: true });
+  // Chromium's helper processes (crash handler, utilities) can still write to
+  // the profile for a moment after the main process exits; rm retries ENOTEMPTY.
+  const wipe = (profileDir: string) =>
+    rm(profileDir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 });
 
   /** Delete every leftover profile (the root itself may be a tmpfs mount). */
   const clearRoot = async (): Promise<void> => {
