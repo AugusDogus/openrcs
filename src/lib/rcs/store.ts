@@ -205,9 +205,58 @@ const upsertConversations = (
     catch: (cause) => storageError("store.upsertConversations", ctx.userId, cause),
   });
 
+/** How far apart the server's time on a placeholder and the phone's time on the same message may be. */
+const PLACEHOLDER_MATCH_MS = 10 * 60_000;
+
 /**
- * Upsert messages on (user_id, message_id). A message that carries the temp
- * id of an optimistic row we stored at send time replaces that row.
+ * The placeholders (rows stored at send time under their temp id) that these
+ * outgoing messages are the real copies of although they carry no temp id, as
+ * a background sync's copy does not: same conversation and text, within
+ * PLACEHOLDER_MATCH_MS. Each message claims at most one placeholder, the
+ * closest in time, so two identical sends need two real copies.
+ */
+const placeholdersSyncedAs = async (
+  db: Database,
+  ctx: RcsContext,
+  messages: readonly PlainMessage[],
+): Promise<string[]> => {
+  const copies = messages.filter((m) => m.fromMe && m.tmpId === null);
+  if (copies.length === 0) return [];
+  const rows = await db
+    .select(messageColumns)
+    .from(message)
+    .where(
+      and(
+        eq(message.userId, ctx.userId),
+        eq(message.fromMe, true),
+        sql`${message.messageId} = ${message.tmpId}`,
+        inArray(message.conversationId, [...new Set(copies.map((m) => m.conversationId))]),
+      ),
+    );
+  const placeholders = rows
+    .map((row) => openMessage(ctx, row))
+    .filter((m): m is StoredMessage => m !== null);
+  const claimed = new Set<string>();
+  for (const copy of copies) {
+    const distance = (p: StoredMessage) => Math.abs(p.timestampMs - copy.timestampMs);
+    const [closest] = placeholders
+      .filter(
+        (p) =>
+          !claimed.has(p.messageId) &&
+          p.conversationId === copy.conversationId &&
+          p.body === copy.body &&
+          distance(p) <= PLACEHOLDER_MATCH_MS,
+      )
+      .sort((a, b) => distance(a) - distance(b));
+    if (closest !== undefined) claimed.add(closest.messageId);
+  }
+  return [...claimed];
+};
+
+/**
+ * Upsert messages on (user_id, message_id). A real copy of a message we sent
+ * replaces the placeholder stored at send time: by its temp id when it carries
+ * one (the phone's echo), otherwise by text and time (placeholdersSyncedAs).
  */
 const upsertMessages = (
   db: Database,
@@ -243,10 +292,12 @@ const upsertMessages = (
         tmpId: m.tmpId,
         updatedAt: now,
       }));
-      const replacedTmpIds = unique
+      const echoedTmpIds = unique
         .map((m) => m.tmpId)
-        .filter((tmpId): tmpId is string => tmpId !== null && tmpId !== "")
-        .filter((tmpId) => !unique.some((m) => m.messageId === tmpId));
+        .filter((tmpId): tmpId is string => tmpId !== null && tmpId !== "");
+      const replacedTmpIds = [...new Set([...echoedTmpIds, ...(await placeholdersSyncedAs(db, ctx, unique))])].filter(
+        (tmpId) => !unique.some((m) => m.messageId === tmpId),
+      );
       const statements: BatchItem<"sqlite">[] = chunks(replacedTmpIds, WRITE_CHUNK).map((ids) =>
         db.delete(message).where(and(eq(message.userId, ctx.userId), inArray(message.messageId, ids))),
       );
