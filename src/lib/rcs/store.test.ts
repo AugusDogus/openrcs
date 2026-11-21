@@ -134,6 +134,52 @@ describe("encrypted storage", () => {
     expect(page.messages.map((m) => [m.messageId, m.status])).toEqual([["real-1", "OUTGOING_DELIVERED"]]);
   });
 
+  describe("a synced copy of a sent message, which arrives without the temp id", () => {
+    const placeholder = (tmpId: string, overrides: Partial<PlainMessage> = {}) =>
+      plainMessage({ messageId: tmpId, tmpId, fromMe: true, status: "OUTGOING_SENDING", body: "on my way", timestampMs: 10_000, senderName: null, senderNumber: null, reactions: [], ...overrides });
+    const synced = (messageId: string, overrides: Partial<PlainMessage> = {}) =>
+      plainMessage({ messageId, fromMe: true, status: "OUTGOING_DELIVERED", body: "on my way", timestampMs: 12_500, reactions: [], ...overrides });
+    const listed = async () =>
+      (await Store.getMessages(env.db, env.ctx, "conv-1", { limit: 10 })).unwrap().messages.map((m) => [m.messageId, m.status]);
+
+    test("replaces the placeholder with the same text sent moments before", async () => {
+      await Store.upsertMessages(env.db, env.ctx, [placeholder("tmp_715570347490")]);
+      await Store.upsertMessages(env.db, env.ctx, [synced("46233")]);
+      expect(await listed()).toEqual([["46233", "OUTGOING_DELIVERED"]]);
+    });
+
+    test("keeps placeholders with other text, from another conversation, or sent long before", async () => {
+      await Store.upsertMessages(env.db, env.ctx, [
+        placeholder("tmp_000000000001", { body: "running late" }),
+        placeholder("tmp_000000000002", { timestampMs: 12_500 - 11 * 60_000 }),
+        placeholder("tmp_000000000003", { conversationId: "conv-2" }),
+      ]);
+      await Store.upsertMessages(env.db, env.ctx, [synced("46233")]);
+      expect(await listed()).toEqual([
+        ["tmp_000000000002", "OUTGOING_SENDING"],
+        ["tmp_000000000001", "OUTGOING_SENDING"],
+        ["46233", "OUTGOING_DELIVERED"],
+      ]);
+    });
+
+    test("one synced message replaces only one of two identical sends", async () => {
+      await Store.upsertMessages(env.db, env.ctx, [
+        placeholder("tmp_000000000001", { timestampMs: 10_000 }),
+        placeholder("tmp_000000000002", { timestampMs: 40_000 }),
+      ]);
+      await Store.upsertMessages(env.db, env.ctx, [synced("46233", { timestampMs: 12_500 })]);
+      expect(await listed()).toEqual([
+        ["46233", "OUTGOING_DELIVERED"],
+        ["tmp_000000000002", "OUTGOING_SENDING"],
+      ]);
+      await Store.upsertMessages(env.db, env.ctx, [synced("46234", { timestampMs: 41_000 })]);
+      expect(await listed()).toEqual([
+        ["46233", "OUTGOING_DELIVERED"],
+        ["46234", "OUTGOING_DELIVERED"],
+      ]);
+    });
+  });
+
   test("getMessages pages back with beforeMs and returns chat order", async () => {
     const { db, ctx } = env;
     await Store.upsertMessages(
